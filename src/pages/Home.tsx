@@ -3,6 +3,7 @@ import { CsvDropzone } from '../components/CsvDropzone';
 import { AddStageForm } from '../components/AddStageForm';
 import { StagesList } from '../components/StagesList';
 import { StageColorConfig } from '../components/StageColorConfig';
+import { DirectorySetupForm } from '../components/DirectorySetupForm';
 
 interface Stage {
   id?: string;
@@ -18,6 +19,7 @@ interface Stage {
 }
 
 export const Home: React.FC = () => {
+  const [directoryInfo, setDirectoryInfo] = useState<{ name: string; date: string } | null>(null);
   const [stages, setStages] = useState<Stage[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -38,21 +40,27 @@ export const Home: React.FC = () => {
   const [configuringShortcut, setConfiguringShortcut] = useState<string | null>(null);
 
 
-  // Función para obtener fecha y hora de Chile
-  const getChileDateTime = () => {
-    const now = new Date();
-    const chileTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Santiago"}));
-    const date = chileTime.toLocaleDateString('es-CL', { 
+  // Función para obtener información de compilación
+  const getBuildInfo = () => {
+    // Fecha fija de compilación (se actualiza cuando se hace un nuevo build)
+    const buildDate = new Date('2024-12-19T16:15:00-03:00'); // Fecha de Santiago, Chile
+    const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
       year: 'numeric' 
     });
-    const time = chileTime.toLocaleTimeString('es-CL', { 
+    const time = buildDate.toLocaleTimeString('es-CL', { 
       hour: '2-digit', 
       minute: '2-digit',
       hour12: false 
     });
-    return `${date} ${time}`;
+    return `Compilado: ${date} ${time}`;
+  };
+
+  const handleDirectorySetup = (data: { name: string; date: string }) => {
+    setDirectoryInfo(data);
+    // Guardar en localStorage para persistencia
+    localStorage.setItem('directoryInfo', JSON.stringify(data));
   };
 
   const handleImportStages = (importedStages: Array<{ title: string; duration: number }>) => {
@@ -188,6 +196,18 @@ export const Home: React.FC = () => {
     }
   };
 
+  // Cargar información del directorio al iniciar
+  useEffect(() => {
+    const savedDirectoryInfo = localStorage.getItem('directoryInfo');
+    if (savedDirectoryInfo) {
+      try {
+        setDirectoryInfo(JSON.parse(savedDirectoryInfo));
+      } catch (error) {
+        console.error('Error al cargar información del directorio:', error);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (showShortcutConfig) {
       document.addEventListener('keydown', handleShortcutKeyPress);
@@ -256,32 +276,54 @@ export const Home: React.FC = () => {
     }
   };
 
+    // Si no hay información del directorio, mostrar el formulario inicial
+  if (!directoryInfo) {
+    return <DirectorySetupForm onSubmit={handleDirectorySetup} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
-                 <header className="text-center mb-8">
-           <div className="mb-2">
-                                                                             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.4.1 ({getChileDateTime()})
+                <header className="text-center mb-8">
+          <div className="mb-2">
+                                                                                                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                v1.5.0 ({getBuildInfo()})
               </span>
-           </div>
-           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-             Configuración de Directorios Empresariales Gemini
-           </h1>
-           <p className="text-gray-600">
-             Configura y gestiona directorios empresariales de forma eficiente
-           </p>
-         </header>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            Configuración de Directorios Empresariales Gemini
+          </h1>
+          <p className="text-gray-600">
+            {directoryInfo.name} - {new Date(directoryInfo.date).toLocaleDateString('es-CL')}
+          </p>
+        </header>
 
         <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Configurar Directorio: {directoryInfo.name}
+            </h2>
+            <button
+              onClick={() => {
+                setDirectoryInfo(null);
+                setStages([]);
+                localStorage.removeItem('directoryInfo');
+                localStorage.removeItem('meetingStages');
+              }}
+              className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+            >
+              🔄 Nuevo Directorio
+            </button>
+          </div>
+
           {stages.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">⏱️</div>
+              <div className="text-6xl mb-4">📋</div>
                              <h2 className="text-xl font-semibold text-gray-700 mb-4">
-                 Bienvenido a la Configuración de Directorios Empresariales Gemini
+                 Directorio Empresarial: {directoryInfo.name}
                </h2>
                <p className="text-gray-600 mb-6">
-                 Importa un archivo CSV con tu estructura de directorio o crea etapas manualmente para comenzar.
+                 Este directorio no tiene etapas configuradas. Agrega etapas para comenzar la configuración.
                </p>
               
               <div className="space-y-4 max-w-md mx-auto">
