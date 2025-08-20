@@ -38,12 +38,13 @@ export const Home: React.FC = () => {
   });
   const [showShortcutConfig, setShowShortcutConfig] = useState(false);
   const [configuringShortcut, setConfiguringShortcut] = useState<string | null>(null);
+  const [timerUpdate, setTimerUpdate] = useState(0); // Para forzar re-render del cronómetro
 
 
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Fecha fija de compilación (se actualiza cuando se hace un nuevo build)
-    const buildDate = new Date('2024-12-19T16:15:00-03:00'); // Fecha de Santiago, Chile
+    const buildDate = new Date('2024-12-19T16:30:00-03:00'); // Fecha de Santiago, Chile
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -61,6 +62,25 @@ export const Home: React.FC = () => {
     setDirectoryInfo(data);
     // Guardar en localStorage para persistencia
     localStorage.setItem('directoryInfo', JSON.stringify(data));
+  };
+
+  // Función para obtener el tiempo actual del cronómetro
+  const getCurrentTime = () => {
+    // Usar timerUpdate para forzar la actualización
+    timerUpdate; // Esto hace que la función se ejecute cada vez que timerUpdate cambie
+    
+    const currentStage = stages[currentStageIndex];
+    if (!currentStage) return "00:00";
+    
+    const timeLeft = localStorage.getItem('currentTimeLeft');
+    const seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
+    
+    // Asegurar que el tiempo no sea negativo
+    const validSeconds = Math.max(0, seconds);
+    
+    const minutes = Math.floor(validSeconds / 60);
+    const secs = validSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleImportStages = (importedStages: Array<{ title: string; duration: number }>) => {
@@ -208,6 +228,18 @@ export const Home: React.FC = () => {
     }
   }, []);
 
+  // Sincronizar el cronómetro del panel de control con la ventana emergente
+  useEffect(() => {
+    if (meetingWindow && !meetingWindow.closed) {
+      const interval = setInterval(() => {
+        // Forzar re-render del componente para actualizar el cronómetro
+        setTimerUpdate(prev => prev + 1);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [meetingWindow]);
+
   useEffect(() => {
     if (showShortcutConfig) {
       document.addEventListener('keydown', handleShortcutKeyPress);
@@ -287,7 +319,7 @@ export const Home: React.FC = () => {
                 <header className="text-center mb-8">
           <div className="mb-2">
                                                                                                   <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.5.0 ({getBuildInfo()})
+                v1.5.1 ({getBuildInfo()})
               </span>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -387,25 +419,15 @@ export const Home: React.FC = () => {
                        Panel de Control del Directorio
                      </h3>
                      
-                     {/* Vista del Cronómetro */}
-                     <div className="bg-gray-900 rounded-lg p-4 mb-4 text-center">
-                       <div className="text-4xl font-mono text-white font-bold">
-                         {(() => {
-                           const currentStage = stages[currentStageIndex];
-                           if (!currentStage) return "00:00";
-                           
-                           const timeLeft = localStorage.getItem('currentTimeLeft');
-                           const seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
-                           
-                           const minutes = Math.floor(seconds / 60);
-                           const secs = seconds % 60;
-                           return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                         })()}
+                                                                 {/* Vista del Cronómetro */}
+                       <div className="bg-gray-900 rounded-lg p-4 mb-4 text-center">
+                         <div className="text-4xl font-mono text-white font-bold">
+                           {getCurrentTime()}
+                         </div>
+                         <div className="text-white text-sm mt-1">
+                           {stages[currentStageIndex]?.title || 'Etapa'}
+                         </div>
                        </div>
-                       <div className="text-white text-sm mt-1">
-                         {stages[currentStageIndex]?.title || 'Etapa'}
-                       </div>
-                     </div>
                      
                                            <div className="grid grid-cols-3 gap-3 mb-4">
                         {/* Botón Anterior */}
