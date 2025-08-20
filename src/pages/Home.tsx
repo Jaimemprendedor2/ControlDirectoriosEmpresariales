@@ -200,11 +200,12 @@ export const Home: React.FC = () => {
                  )}
        </div>
 
-       {/* Cronómetro de Reunión */}
+       {/* Cronómetro de Configuración */}
        <MeetingTimer 
          stages={stages}
          isOpen={showTimer}
          onClose={() => setShowTimer(false)}
+         onUpdateStages={setStages}
        />
      </div>
    );

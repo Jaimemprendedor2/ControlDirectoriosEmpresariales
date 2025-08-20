@@ -1,4 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { ColorConfig } from './ColorConfig';
+
+interface StageColor {
+  timePercentage: number; // Porcentaje de tiempo (ej: 50 para 50%)
+  backgroundColor: string; // Color en hexadecimal
+}
 
 interface Stage {
   id?: string;
@@ -6,19 +12,24 @@ interface Stage {
   duration: number;
   order_index?: number;
   is_completed?: boolean;
+  colors?: StageColor[]; // Configuración de colores por etapa
 }
 
 interface MeetingTimerProps {
   stages: Stage[];
   isOpen: boolean;
   onClose: () => void;
+  onUpdateStages?: (updatedStages: Stage[]) => void;
 }
 
-export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onClose }) => {
+export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onClose, onUpdateStages }) => {
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isWaitingForNext, setIsWaitingForNext] = useState(false);
+  const [showFullscreen, setShowFullscreen] = useState(false);
+  const [showColorConfig, setShowColorConfig] = useState(false);
 
   const currentStage = stages[currentStageIndex];
 
@@ -36,21 +47,14 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
-    if (isRunning && !isPaused && timeLeft > 0) {
+    if (isRunning && !isPaused && !isWaitingForNext && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft((prevTime) => {
           if (prevTime <= 1) {
             // Tiempo agotado para esta etapa
-            if (currentStageIndex < stages.length - 1) {
-              // Pasar a la siguiente etapa
-              const nextIndex = currentStageIndex + 1;
-              setCurrentStageIndex(nextIndex);
-              return stages[nextIndex].duration;
-            } else {
-              // Reunión terminada
-              setIsRunning(false);
-              return 0;
-            }
+            setIsRunning(false);
+            setIsWaitingForNext(true);
+            return 0;
           }
           return prevTime - 1;
         });
@@ -60,7 +64,7 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, isPaused, timeLeft, currentStageIndex, stages]);
+  }, [isRunning, isPaused, isWaitingForNext, timeLeft]);
 
   // Formatear tiempo
   const formatTime = (seconds: number): string => {
@@ -76,6 +80,37 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
 
   // Calcular progreso
   const progress = currentStage ? ((currentStage.duration - timeLeft) / currentStage.duration) * 100 : 0;
+
+  // Calcular color de fondo basado en tiempo restante
+  const getCurrentBackgroundColor = (): string => {
+    if (!currentStage?.colors || currentStage.colors.length === 0) {
+      return '#ffffff'; // Color por defecto
+    }
+
+    const timePercentage = ((currentStage.duration - timeLeft) / currentStage.duration) * 100;
+    
+    // Encontrar el color correspondiente al porcentaje actual
+    const applicableColors = currentStage.colors
+      .filter(color => timePercentage >= color.timePercentage)
+      .sort((a, b) => b.timePercentage - a.timePercentage);
+    
+    return applicableColors.length > 0 ? applicableColors[0].backgroundColor : '#ffffff';
+  };
+
+  // Pasar a la siguiente etapa
+  const handleNextStage = () => {
+    if (currentStageIndex < stages.length - 1) {
+      const nextIndex = currentStageIndex + 1;
+      setCurrentStageIndex(nextIndex);
+      setTimeLeft(stages[nextIndex].duration);
+      setIsWaitingForNext(false);
+      setIsRunning(true);
+    } else {
+      // Reunión terminada
+      setIsWaitingForNext(false);
+      setIsRunning(false);
+    }
+  };
 
   // Manejar controles
   const handlePlayPause = () => {
@@ -144,6 +179,48 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
 
   if (!isOpen || !currentStage) return null;
 
+  // Componente de pantalla completa
+  const FullscreenTimer = () => (
+    <div 
+      className="fixed inset-0 flex flex-col items-center justify-center z-50 transition-colors duration-1000"
+      style={{ backgroundColor: getCurrentBackgroundColor() }}
+    >
+      <div className="text-center">
+        <h1 className="text-6xl font-bold text-gray-800 mb-8">
+          {currentStage.title}
+        </h1>
+        <div className="text-9xl font-bold text-gray-900 font-mono mb-8">
+          {formatTime(timeLeft)}
+        </div>
+        
+        {isWaitingForNext && (
+          <div className="space-y-6">
+            <div className="text-3xl text-gray-700">
+              ¡Etapa completada!
+            </div>
+            <button
+              onClick={handleNextStage}
+              className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white text-2xl font-bold rounded-lg transition-colors"
+            >
+              {currentStageIndex < stages.length - 1 ? 'Siguiente Etapa' : 'Finalizar'}
+            </button>
+          </div>
+        )}
+        
+        <button
+          onClick={() => setShowFullscreen(false)}
+          className="absolute top-8 right-8 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+        >
+          Salir de Pantalla Completa
+        </button>
+      </div>
+    </div>
+  );
+
+  if (showFullscreen) {
+    return <FullscreenTimer />;
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8">
@@ -176,6 +253,21 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
           </p>
         </div>
 
+        {/* Mensaje de espera si la etapa terminó */}
+        {isWaitingForNext && (
+          <div className="text-center mb-6 p-4 bg-green-100 border border-green-300 rounded-lg">
+            <div className="text-xl font-bold text-green-800 mb-2">
+              ¡Etapa completada!
+            </div>
+            <button
+              onClick={handleNextStage}
+              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors"
+            >
+              {currentStageIndex < stages.length - 1 ? 'Continuar a la Siguiente Etapa' : 'Finalizar Configuración'}
+            </button>
+          </div>
+        )}
+
         {/* Controles */}
         <div className="flex justify-center space-x-4 mb-6">
           <button
@@ -189,7 +281,8 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
           
           <button
             onClick={handlePlayPause}
-            className="p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors"
+            disabled={isWaitingForNext}
+            className="p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors disabled:opacity-50"
             title="Play/Pause (Espacio)"
           >
             {isPaused ? '▶️' : '⏸️'}
@@ -202,6 +295,23 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
             title="Siguiente etapa (N)"
           >
             ⏭️
+          </button>
+        </div>
+
+        {/* Botones adicionales */}
+        <div className="flex justify-center space-x-4 mb-6">
+          <button
+            onClick={() => setShowFullscreen(true)}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+          >
+            🖥️ Pantalla Completa
+          </button>
+          
+          <button
+            onClick={() => setShowColorConfig(true)}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+          >
+            🎨 Configurar Colores
           </button>
         </div>
 
@@ -261,6 +371,14 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
           <kbd className="bg-gray-200 px-1 rounded">R</kbd> Reiniciar • 
           <kbd className="bg-gray-200 px-1 rounded">ESC</kbd> Cerrar</p>
         </div>
+
+        {/* Configurador de colores */}
+        <ColorConfig
+          isOpen={showColorConfig}
+          onClose={() => setShowColorConfig(false)}
+          stages={stages}
+          onUpdateStages={onUpdateStages || (() => {})}
+        />
       </div>
     </div>
   );
