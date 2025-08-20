@@ -15,6 +15,24 @@ export const Home: React.FC = () => {
   const [stages, setStages] = useState<Stage[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingStage, setEditingStage] = useState<{index: number, stage: Stage} | null>(null);
+
+  // Función para obtener fecha y hora de Chile
+  const getChileDateTime = () => {
+    const now = new Date();
+    const chileTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Santiago"}));
+    const date = chileTime.toLocaleDateString('es-CL', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+    const time = chileTime.toLocaleTimeString('es-CL', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+    return `${date} ${time}`;
+  };
 
   const handleImportStages = (importedStages: Array<{ title: string; duration: number }>) => {
     const newStages = importedStages.map((stage, index) => ({
@@ -44,9 +62,19 @@ export const Home: React.FC = () => {
   };
 
   const handleEditStage = (index: number, stage: Stage) => {
-    const newStages = [...stages];
-    newStages[index] = stage;
-    setStages(newStages);
+    setEditingStage({ index, stage });
+  };
+
+  const handleSaveEdit = (updatedStage: { title: string; duration: number }) => {
+    if (editingStage) {
+      const newStages = [...stages];
+      newStages[editingStage.index] = {
+        ...newStages[editingStage.index],
+        ...updatedStage
+      };
+      setStages(newStages);
+      setEditingStage(null);
+    }
   };
 
        const handleStartMeeting = () => {
@@ -73,9 +101,9 @@ export const Home: React.FC = () => {
       <div className="max-w-4xl mx-auto">
                  <header className="text-center mb-8">
            <div className="mb-2">
-             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-               v1.1.2
-             </span>
+                         <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+              v1.1.2 ({getChileDateTime()})
+            </span>
            </div>
            <h1 className="text-3xl font-bold text-gray-800 mb-2">
              Configuración de Directorios Empresariales Gemini
@@ -207,6 +235,27 @@ export const Home: React.FC = () => {
             </div>
           </div>
                  )}
+
+        {/* Edit Stage Modal */}
+        {editingStage && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Editar Etapa</h3>
+                <button
+                  onClick={() => setEditingStage(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <AddStageForm 
+                onAddStage={handleSaveEdit}
+                initialData={editingStage.stage}
+              />
+            </div>
+          </div>
+        )}
        </div>
 
 
