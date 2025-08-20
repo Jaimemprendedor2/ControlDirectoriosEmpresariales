@@ -160,9 +160,7 @@ export const Home: React.FC = () => {
     sendMessageToMeetingWindow('pauseResume');
   };
 
-  const handleRestartStage = () => {
-    sendMessageToMeetingWindow('restartStage');
-  };
+
 
   const handleAddTime = () => {
     sendMessageToMeetingWindow('addTime', { seconds: 30 });
@@ -264,7 +262,7 @@ export const Home: React.FC = () => {
                  <header className="text-center mb-8">
            <div className="mb-2">
                                                                              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.4.0 ({getChileDateTime()})
+                v1.4.1 ({getChileDateTime()})
               </span>
            </div>
            <h1 className="text-3xl font-bold text-gray-800 mb-2">
