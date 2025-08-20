@@ -12,12 +12,13 @@ const formatDuration = (seconds: number): string => {
 };
 
 interface AddStageFormProps {
-  onAddStage: (stage: { title: string; duration: number }) => void;
-  initialData?: { title: string; duration: number };
+  onAddStage: (stage: { title: string; description?: string; duration: number }) => void;
+  initialData?: { title: string; description?: string; duration: number };
 }
 
 export const AddStageForm: React.FC<AddStageFormProps> = ({ onAddStage, initialData }) => {
   const [title, setTitle] = useState(initialData?.title || '');
+  const [description, setDescription] = useState(initialData?.description || '');
   const [duration, setDuration] = useState(initialData?.duration ? formatDuration(initialData.duration) : '');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -63,11 +64,13 @@ export const AddStageForm: React.FC<AddStageFormProps> = ({ onAddStage, initialD
 
     onAddStage({
       title: title.trim(),
+      description: description.trim(),
       duration: durationSeconds
     });
 
     // Reset form
     setTitle('');
+    setDescription('');
     setDuration('');
     setIsOpen(false);
   };
@@ -103,6 +106,20 @@ export const AddStageForm: React.FC<AddStageFormProps> = ({ onAddStage, initialD
                          placeholder="Ej: Configuración Inicial"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="stage-description" className="block text-sm font-medium text-gray-700 mb-1">
+            Descripción (opcional)
+          </label>
+          <textarea
+            id="stage-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Descripción de la etapa"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            rows={2}
           />
         </div>
 

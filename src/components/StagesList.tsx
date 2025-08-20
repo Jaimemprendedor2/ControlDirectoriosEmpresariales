@@ -4,9 +4,12 @@ import { InlineStageEditor } from './InlineStageEditor';
 interface Stage {
   id?: string;
   title: string;
+  description?: string;
   duration: number;
   order_index?: number;
   is_completed?: boolean;
+  alertColor?: string;
+  alertSeconds?: number;
 }
 
 interface StagesListProps {
@@ -16,7 +19,7 @@ interface StagesListProps {
   onAddStage?: () => void;
   onConfigureColors?: (index: number, stage: Stage) => void;
   editingIndex?: number;
-  onSaveEdit?: (index: number, title: string, duration: number) => void;
+  onSaveEdit?: (index: number, title: string, description: string, duration: number, alertColor: string, alertSeconds: number) => void;
   onCancelEdit?: () => void;
 }
 
@@ -70,7 +73,7 @@ export const StagesList: React.FC<StagesListProps> = ({
              {editingIndex === index ? (
                <InlineStageEditor
                  stage={stage}
-                 onSave={(title, duration) => onSaveEdit?.(index, title, duration)}
+                 onSave={(title, description, duration, alertColor, alertSeconds) => onSaveEdit?.(index, title, description, duration, alertColor, alertSeconds)}
                  onCancel={onCancelEdit || (() => {})}
                />
              ) : (

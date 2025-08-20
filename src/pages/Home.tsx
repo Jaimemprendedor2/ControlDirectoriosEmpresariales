@@ -7,6 +7,7 @@ import { StageColorConfig } from '../components/StageColorConfig';
 interface Stage {
   id?: string;
   title: string;
+  description?: string;
   duration: number;
   order_index?: number;
   is_completed?: boolean;
@@ -15,6 +16,7 @@ interface Stage {
     backgroundColor: string;
   }>;
   alertColor?: string;
+  alertSeconds?: number;
 }
 
 export const Home: React.FC = () => {
@@ -74,19 +76,27 @@ export const Home: React.FC = () => {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleImportStages = (importedStages: Array<{ title: string; duration: number }>) => {
+  const handleImportStages = (importedStages: Array<{ title: string; description?: string; duration: number; color?: string }>) => {
     const newStages = importedStages.map((stage, index) => ({
-      ...stage,
-      order_index: index + 1
+      title: stage.title,
+      description: stage.description || '',
+      duration: stage.duration,
+      order_index: index + 1,
+      alertColor: stage.color || '#FF0000',
+      alertSeconds: 15
     }));
     setStages(newStages);
     setShowImport(false);
   };
 
-  const handleAddStage = (stage: { title: string; duration: number }) => {
+  const handleAddStage = (stage: { title: string; description?: string; duration: number }) => {
     const newStage = {
-      ...stage,
-      order_index: stages.length + 1
+      title: stage.title,
+      description: stage.description || '',
+      duration: stage.duration,
+      order_index: stages.length + 1,
+      alertColor: '#FF0000',
+      alertSeconds: 15
     };
     setStages([...stages, newStage]);
     setShowAddForm(false);
@@ -95,8 +105,11 @@ export const Home: React.FC = () => {
   const handleQuickAddStage = () => {
     const newStage = {
       title: '',
+      description: '',
       duration: 30,
-      order_index: stages.length + 1
+      order_index: stages.length + 1,
+      alertColor: '#FF0000',
+      alertSeconds: 15
     };
     setStages([...stages, newStage]);
     setEditingIndex(stages.length);
@@ -117,12 +130,15 @@ export const Home: React.FC = () => {
     setEditingIndex(index);
   };
 
-  const handleSaveEdit = (index: number, title: string, duration: number) => {
+  const handleSaveEdit = (index: number, title: string, description: string, duration: number, alertColor: string, alertSeconds: number) => {
     const newStages = [...stages];
     newStages[index] = {
       ...newStages[index],
       title,
-      duration
+      description,
+      duration,
+      alertColor,
+      alertSeconds
     };
     setStages(newStages);
     setEditingIndex(null);
@@ -287,7 +303,7 @@ export const Home: React.FC = () => {
         <header className="text-center mb-8">
           <div className="mb-2">
             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-              v1.5.4 ({getBuildInfo()})
+              v1.6.0 ({getBuildInfo()})
             </span>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">

@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import Papa from 'papaparse';
 
 interface CsvDropzoneProps {
-  onImport: (stages: Array<{ title: string; duration: number }>) => void;
+  onImport: (stages: Array<{ title: string; description?: string; duration: number; color?: string }>) => void;
 }
 
 export const CsvDropzone: React.FC<CsvDropzoneProps> = ({ onImport }) => {
@@ -24,8 +24,10 @@ export const CsvDropzone: React.FC<CsvDropzoneProps> = ({ onImport }) => {
         }
 
         const stages = results.data.map((row: any, index: number) => {
-          const title = row.titulo || row.title || `Etapa ${index + 1}`;
+          const title = row.titulo || row.title || row.name || `Etapa ${index + 1}`;
+          const description = row.descripcion || row.description || row.desc || '';
           let duration = 0;
+          const color = row.color || row.colour || '';
 
           // Parse duration from various formats
           if (row.duracion || row.duration) {
@@ -50,7 +52,9 @@ export const CsvDropzone: React.FC<CsvDropzoneProps> = ({ onImport }) => {
 
           return {
             title,
-            duration: Math.max(duration, 30) // Minimum 30 seconds
+            description,
+            duration: Math.max(duration, 30), // Minimum 30 seconds
+            color: color || undefined
           };
         });
 
@@ -135,7 +139,7 @@ export const CsvDropzone: React.FC<CsvDropzoneProps> = ({ onImport }) => {
               Arrastra un archivo CSV aquí o haz clic para seleccionar
             </div>
             <div className="text-xs text-gray-400 mt-2">
-                             Formato: titulo,duracion (ej: "Configuración Inicial,5:00")
+              Formato: titulo,descripcion,duracion,color (ej: "Configuración Inicial,Descripción,5:00,#FF0000")
             </div>
           </div>
         )}
