@@ -77,8 +77,23 @@ export const StageColorConfig: React.FC<StageColorConfigProps> = ({
   };
 
   const parseMMSSToSeconds = (timeString: string): number => {
-    const [minutes, seconds] = timeString.split(':').map(Number);
-    return (minutes * 60) + (seconds || 0);
+    if (!timeString || timeString === '') return 0;
+    
+    // Limpiar la cadena de caracteres no numéricos excepto ':'
+    const cleanString = timeString.replace(/[^\d:]/g, '');
+    const parts = cleanString.split(':');
+    
+    if (parts.length === 1) {
+      // Si solo hay un número, asumir que son segundos
+      return parseInt(parts[0]) || 0;
+    } else if (parts.length === 2) {
+      // Formato MM:SS
+      const minutes = parseInt(parts[0]) || 0;
+      const seconds = parseInt(parts[1]) || 0;
+      return (minutes * 60) + seconds;
+    }
+    
+    return 0;
   };
 
   const presetColors = [
@@ -115,19 +130,32 @@ export const StageColorConfig: React.FC<StageColorConfigProps> = ({
                  <label className="block text-sm font-medium text-gray-700 mb-1">
                    Tiempo de Activación (MM:SS)
                  </label>
-                 <input
-                   type="text"
-                   value={formatTimeToMMSS(newTimeInSeconds)}
-                   onChange={(e) => {
-                     const value = e.target.value;
-                     if (/^\d{0,2}:\d{0,2}$/.test(value) || value === '') {
-                       const seconds = value ? parseMMSSToSeconds(value) : 0;
-                       setNewTimeInSeconds(seconds);
-                     }
-                   }}
-                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                   placeholder="00:30"
-                 />
+                                   <input
+                    type="text"
+                    value={formatTimeToMMSS(newTimeInSeconds)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Permitir escribir libremente y validar al final
+                      if (value === '' || /^\d{0,2}:\d{0,2}$/.test(value)) {
+                        const seconds = value ? parseMMSSToSeconds(value) : 0;
+                        setNewTimeInSeconds(seconds);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // Validar y formatear al perder el foco
+                      const value = e.target.value;
+                      if (value && !/^\d{1,2}:\d{2}$/.test(value)) {
+                        // Si no está bien formateado, intentar arreglarlo
+                        const parts = value.replace(/[^\d]/g, '').padStart(4, '0');
+                        const minutes = parseInt(parts.slice(0, 2));
+                        const seconds = parseInt(parts.slice(2, 4));
+                        const totalSeconds = minutes * 60 + seconds;
+                        setNewTimeInSeconds(totalSeconds);
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                    placeholder="00:30"
+                  />
                  <p className="text-xs text-gray-500 mt-1">
                    Tiempo desde el inicio de la etapa (máximo: {formatTimeToMMSS(stage.duration)})
                  </p>

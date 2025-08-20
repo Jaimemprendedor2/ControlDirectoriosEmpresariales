@@ -227,12 +227,12 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
       className="min-h-screen flex flex-col items-center justify-center transition-colors duration-1000"
       style={{ backgroundColor: getFinalBackgroundColor() }}
     >
-      {/* Cronómetro - Aumentado 10% y separación exacta de 30px */}
-      <div className="text-[9.9rem] font-bold text-white font-mono mb-[30px]">
+      {/* Cronómetro - Aumentado 10% y separación exacta de 20px */}
+      <div className="text-[9.9rem] font-bold text-white font-mono mb-[20px]">
         {formatTime(timeLeft)}
       </div>
 
-      {/* Título de la etapa - Separación exacta de 30px */}
+      {/* Título de la etapa - Separación exacta de 20px */}
       <h1 className="text-6xl font-bold text-white text-center px-8">
         {currentStage.title}
       </h1>

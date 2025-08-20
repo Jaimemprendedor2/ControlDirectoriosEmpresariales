@@ -84,7 +84,7 @@ export const Home: React.FC = () => {
     setStages(reorderedStages);
   };
 
-  const handleEditStage = (index: number) => {
+  const handleEditStage = (index: number, stage: Stage) => {
     setEditingIndex(index);
   };
 
@@ -189,9 +189,9 @@ export const Home: React.FC = () => {
       <div className="max-w-4xl mx-auto">
                  <header className="text-center mb-8">
            <div className="mb-2">
-                                                   <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-               v1.1.4 ({getChileDateTime()})
-             </span>
+                                                                             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                v1.1.9 ({getChileDateTime()})
+              </span>
            </div>
            <h1 className="text-3xl font-bold text-gray-800 mb-2">
              Configuración de Directorios Empresariales Gemini
@@ -265,45 +265,86 @@ export const Home: React.FC = () => {
                   onCancelEdit={handleCancelEdit}
                />
 
-               {/* Controles del cronómetro - solo mostrar si hay una ventana de reunión abierta */}
-               {meetingWindow && !meetingWindow.closed && (
-                 <TimerControls
-                   currentStageIndex={currentStageIndex}
-                   totalStages={stages.length}
-                   isRunning={isTimerRunning}
-                   onPreviousStage={handlePreviousStage}
-                   onNextStage={handleNextStage}
-                   onPauseResume={handlePauseResume}
-                   onRestartStage={handleRestartStage}
-                   onAddTime={handleAddTime}
-                   onSubtractTime={handleSubtractTime}
-                 />
-               )}
+                               {/* Panel de Control de Tiempo - mostrar cuando se inicie el directorio */}
+                {meetingWindow && !meetingWindow.closed && (
+                  <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-200">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                      <span className="text-2xl mr-2">⏱️</span>
+                      Panel de Control del Directorio
+                    </h3>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                      {/* Pausar/Reanudar */}
+                      <button
+                        onClick={handlePauseResume}
+                        className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <span className="text-xl">{isTimerRunning ? '⏸️' : '▶️'}</span>
+                        <span className="text-sm">{isTimerRunning ? 'Pausar' : 'Reanudar'}</span>
+                      </button>
 
-              <div className="border-t pt-6">
-                                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                   Agregar Más Etapas del Directorio
-                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button 
-                    onClick={() => setShowImport(true)}
-                    className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-blue-400 hover:bg-blue-50 transition-colors"
-                  >
-                    <div className="text-2xl mb-2">📁</div>
-                    <div className="font-medium text-gray-700">Importar CSV</div>
-                    <div className="text-sm text-gray-500">Cargar desde archivo</div>
-                  </button>
-                  
-                  <button 
-                    onClick={() => setShowAddForm(true)}
-                    className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-green-400 hover:bg-green-50 transition-colors"
-                  >
-                    <div className="text-2xl mb-2">➕</div>
-                                         <div className="font-medium text-gray-700">Agregar Manual</div>
-                     <div className="text-sm text-gray-500">Crear etapa del directorio</div>
-                  </button>
-                </div>
-              </div>
+                      {/* Adelantar Etapa */}
+                      <button
+                        onClick={handleNextStage}
+                        disabled={currentStageIndex >= stages.length - 1}
+                        className="px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <span className="text-xl">⏭️</span>
+                        <span className="text-sm">Siguiente</span>
+                      </button>
+
+                      {/* Retroceder Etapa */}
+                      <button
+                        onClick={handlePreviousStage}
+                        disabled={currentStageIndex === 0}
+                        className="px-4 py-3 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <span className="text-xl">⏮️</span>
+                        <span className="text-sm">Anterior</span>
+                      </button>
+
+                      {/* Reiniciar Etapa */}
+                      <button
+                        onClick={handleRestartStage}
+                        className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <span className="text-xl">🔄</span>
+                        <span className="text-sm">Reiniciar</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Agregar Tiempo */}
+                      <button
+                        onClick={handleAddTime}
+                        className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <span className="text-xl">➕</span>
+                        <span className="text-sm">+30 segundos</span>
+                      </button>
+
+                      {/* Quitar Tiempo */}
+                      <button
+                        onClick={handleSubtractTime}
+                        className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <span className="text-xl">➖</span>
+                        <span className="text-sm">-30 segundos</span>
+                      </button>
+                    </div>
+
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="text-sm text-gray-600">
+                        <div className="font-medium">Etapa actual: {currentStageIndex + 1} de {stages.length}</div>
+                        <div className="text-xs mt-1">
+                          Los controles afectan la ventana emergente en tiempo real
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              
             </div>
           )}
         </div>
