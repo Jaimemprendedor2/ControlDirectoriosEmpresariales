@@ -27,6 +27,14 @@ export const Home: React.FC = () => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [keyboardShortcuts, setKeyboardShortcuts] = useState({
+    pauseResume: 'Space',
+    nextStage: 'KeyN',
+    previousStage: 'KeyP',
+    restartStage: 'KeyR',
+    addTime: 'Equal',
+    subtractTime: 'Minus'
+  });
 
   // Función para obtener fecha y hora de Chile
   const getChileDateTime = () => {
@@ -161,6 +169,59 @@ export const Home: React.FC = () => {
     sendMessageToMeetingWindow('subtractTime', { seconds: 30 });
   };
 
+  // Función para manejar atajos de teclado
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (meetingWindow && !meetingWindow.closed) {
+        switch (event.code) {
+          case keyboardShortcuts.pauseResume:
+            event.preventDefault();
+            handlePauseResume();
+            break;
+          case keyboardShortcuts.nextStage:
+            event.preventDefault();
+            handleNextStage();
+            break;
+          case keyboardShortcuts.previousStage:
+            event.preventDefault();
+            handlePreviousStage();
+            break;
+          case keyboardShortcuts.restartStage:
+            event.preventDefault();
+            handleRestartStage();
+            break;
+          case keyboardShortcuts.addTime:
+            event.preventDefault();
+            handleAddTime();
+            break;
+          case keyboardShortcuts.subtractTime:
+            event.preventDefault();
+            handleSubtractTime();
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [meetingWindow, keyboardShortcuts]);
+
+  // Función para configurar atajos de teclado
+  const handleConfigureShortcut = (action: string) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      setKeyboardShortcuts(prev => ({
+        ...prev,
+        [action]: event.code
+      }));
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+  };
+
                const handleStartMeeting = () => {
     if (stages.length === 0) {
       alert('Agrega al menos una etapa antes de iniciar el directorio');
@@ -189,7 +250,7 @@ export const Home: React.FC = () => {
                  <header className="text-center mb-8">
            <div className="mb-2">
                                                                              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.2.0 ({getChileDateTime()})
+                v1.3.0 ({getChileDateTime()})
               </span>
            </div>
            <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -264,84 +325,127 @@ export const Home: React.FC = () => {
                   onCancelEdit={handleCancelEdit}
                />
 
-                               {/* Panel de Control de Tiempo - mostrar cuando se inicie el directorio */}
-                {meetingWindow && !meetingWindow.closed && (
-                  <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-200">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      <span className="text-2xl mr-2">⏱️</span>
-                      Panel de Control del Directorio
-                    </h3>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                      {/* Pausar/Reanudar */}
-                      <button
-                        onClick={handlePauseResume}
-                        className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <span className="text-xl">{isTimerRunning ? '⏸️' : '▶️'}</span>
-                        <span className="text-sm">{isTimerRunning ? 'Pausar' : 'Reanudar'}</span>
-                      </button>
+                                                               {/* Panel de Control de Tiempo - mostrar cuando se inicie el directorio */}
+                 {meetingWindow && !meetingWindow.closed && (
+                   <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-200">
+                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                       <span className="text-2xl mr-2">⏱️</span>
+                       Panel de Control del Directorio
+                     </h3>
+                     
+                     {/* Vista del Cronómetro */}
+                     <div className="bg-gray-900 rounded-lg p-4 mb-4 text-center">
+                       <div className="text-4xl font-mono text-white font-bold">
+                         {(() => {
+                           const currentStage = stages[currentStageIndex];
+                           if (!currentStage) return "00:00";
+                           
+                           const timeLeft = localStorage.getItem('currentTimeLeft');
+                           const seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
+                           
+                           const minutes = Math.floor(seconds / 60);
+                           const secs = seconds % 60;
+                           return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                         })()}
+                       </div>
+                       <div className="text-white text-sm mt-1">
+                         {stages[currentStageIndex]?.title || 'Etapa'}
+                       </div>
+                     </div>
+                     
+                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                       {/* Botón Anterior */}
+                       <button
+                         onClick={handlePreviousStage}
+                         disabled={currentStageIndex === 0}
+                         className="px-4 py-3 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                         title="Anterior (P)"
+                       >
+                         <span className="text-xl">⏮️</span>
+                         <span className="text-sm">Anterior</span>
+                       </button>
 
-                      {/* Adelantar Etapa */}
-                      <button
-                        onClick={handleNextStage}
-                        disabled={currentStageIndex >= stages.length - 1}
-                        className="px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <span className="text-xl">⏭️</span>
-                        <span className="text-sm">Siguiente</span>
-                      </button>
+                       {/* Botón Pausar/Reanudar con reinicio al mantener presionado */}
+                       <button
+                         onClick={handlePauseResume}
+                         onMouseDown={handleRestartStage}
+                         className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                         title="Pausar/Reanudar (Espacio) - Mantener para reiniciar"
+                       >
+                         <span className="text-xl">{isTimerRunning ? '⏸️' : '▶️'}</span>
+                         <span className="text-sm">{isTimerRunning ? 'Pausar' : 'Reanudar'}</span>
+                       </button>
 
-                      {/* Retroceder Etapa */}
-                      <button
-                        onClick={handlePreviousStage}
-                        disabled={currentStageIndex === 0}
-                        className="px-4 py-3 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <span className="text-xl">⏮️</span>
-                        <span className="text-sm">Anterior</span>
-                      </button>
+                       {/* Botón Siguiente */}
+                       <button
+                         onClick={handleNextStage}
+                         disabled={currentStageIndex >= stages.length - 1}
+                         className="px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                         title="Siguiente (N)"
+                       >
+                         <span className="text-xl">⏭️</span>
+                         <span className="text-sm">Siguiente</span>
+                       </button>
 
-                      {/* Reiniciar Etapa */}
-                      <button
-                        onClick={handleRestartStage}
-                        className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <span className="text-xl">🔄</span>
-                        <span className="text-sm">Reiniciar</span>
-                      </button>
-                    </div>
+                       {/* Botón Reiniciar */}
+                       <button
+                         onClick={handleRestartStage}
+                         className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                         title="Reiniciar (R)"
+                       >
+                         <span className="text-xl">🔄</span>
+                         <span className="text-sm">Reiniciar</span>
+                       </button>
+                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Agregar Tiempo */}
-                      <button
-                        onClick={handleAddTime}
-                        className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <span className="text-xl">➕</span>
-                        <span className="text-sm">+30 segundos</span>
-                      </button>
+                     <div className="grid grid-cols-2 gap-3">
+                       {/* Agregar Tiempo */}
+                       <button
+                         onClick={handleAddTime}
+                         className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                         title="+30 segundos (+)"
+                       >
+                         <span className="text-xl">➕</span>
+                         <span className="text-sm">+30 segundos</span>
+                       </button>
 
-                      {/* Quitar Tiempo */}
-                      <button
-                        onClick={handleSubtractTime}
-                        className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <span className="text-xl">➖</span>
-                        <span className="text-sm">-30 segundos</span>
-                      </button>
-                    </div>
+                       {/* Quitar Tiempo */}
+                       <button
+                         onClick={handleSubtractTime}
+                         className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                         title="-30 segundos (-)"
+                       >
+                         <span className="text-xl">➖</span>
+                         <span className="text-sm">-30 segundos</span>
+                       </button>
+                     </div>
 
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="text-sm text-gray-600">
-                        <div className="font-medium">Etapa actual: {currentStageIndex + 1} de {stages.length}</div>
-                        <div className="text-xs mt-1">
-                          Los controles afectan la ventana emergente en tiempo real
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                     <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                       <div className="text-sm text-gray-600">
+                         <div className="font-medium">Etapa actual: {currentStageIndex + 1} de {stages.length}</div>
+                         <div className="text-xs mt-1">
+                           Los controles afectan la ventana emergente en tiempo real
+                         </div>
+                         <div className="text-xs mt-2 text-blue-600">
+                           Atajos: {keyboardShortcuts.pauseResume.replace('Space', 'Espacio')} (Pausar/Reanudar), 
+                           {keyboardShortcuts.nextStage.replace('KeyN', 'N')} (Siguiente), 
+                           {keyboardShortcuts.previousStage.replace('KeyP', 'P')} (Anterior), 
+                           {keyboardShortcuts.restartStage.replace('KeyR', 'R')} (Reiniciar), 
+                           {keyboardShortcuts.addTime.replace('Equal', '+')}/{keyboardShortcuts.subtractTime.replace('Minus', '-')} (Tiempo)
+                         </div>
+                         <button
+                           onClick={() => {
+                             // Aquí se podría abrir un modal para configurar atajos
+                             alert('Configuración de atajos de teclado próximamente');
+                           }}
+                           className="mt-2 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs rounded transition-colors"
+                         >
+                           ⚙️ Configurar Atajos
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                 )}
 
               
             </div>

@@ -135,8 +135,8 @@ export const StageColorConfig: React.FC<StageColorConfigProps> = ({
                     value={formatTimeToMMSS(newTimeInSeconds)}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Permitir escribir libremente y validar al final
-                      if (value === '' || /^\d{0,2}:\d{0,2}$/.test(value)) {
+                      // Permitir cualquier entrada numérica y ':'
+                      if (value === '' || /^[\d:]*$/.test(value)) {
                         const seconds = value ? parseMMSSToSeconds(value) : 0;
                         setNewTimeInSeconds(seconds);
                       }
@@ -144,13 +144,9 @@ export const StageColorConfig: React.FC<StageColorConfigProps> = ({
                     onBlur={(e) => {
                       // Validar y formatear al perder el foco
                       const value = e.target.value;
-                      if (value && !/^\d{1,2}:\d{2}$/.test(value)) {
-                        // Si no está bien formateado, intentar arreglarlo
-                        const parts = value.replace(/[^\d]/g, '').padStart(4, '0');
-                        const minutes = parseInt(parts.slice(0, 2));
-                        const seconds = parseInt(parts.slice(2, 4));
-                        const totalSeconds = minutes * 60 + seconds;
-                        setNewTimeInSeconds(totalSeconds);
+                      if (value) {
+                        const seconds = parseMMSSToSeconds(value);
+                        setNewTimeInSeconds(seconds);
                       }
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"

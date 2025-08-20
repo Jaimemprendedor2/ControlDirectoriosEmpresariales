@@ -51,7 +51,10 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
             setIsWaitingForNext(true);
             return 0;
           }
-          return prevTime - 1;
+          const newTime = prevTime - 1;
+          // Sincronizar con el panel de control
+          localStorage.setItem('currentTimeLeft', newTime.toString());
+          return newTime;
         });
       }, 1000);
     }
@@ -157,6 +160,7 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
             const newIndex = currentStageIndex - 1;
             setCurrentStageIndex(newIndex);
             setTimeLeft(stages[newIndex].duration);
+            localStorage.setItem('currentTimeLeft', stages[newIndex].duration.toString());
             setIsWaitingForNext(false);
             setIsRunning(true);
           }
@@ -167,6 +171,7 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
             const newIndex = currentStageIndex + 1;
             setCurrentStageIndex(newIndex);
             setTimeLeft(stages[newIndex].duration);
+            localStorage.setItem('currentTimeLeft', stages[newIndex].duration.toString());
             setIsWaitingForNext(false);
             setIsRunning(true);
           }
@@ -178,16 +183,25 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
 
         case 'restartStage':
           setTimeLeft(currentStage.duration);
+          localStorage.setItem('currentTimeLeft', currentStage.duration.toString());
           setIsWaitingForNext(false);
           setIsRunning(true);
           break;
 
         case 'addTime':
-          setTimeLeft(prev => prev + (data?.seconds || 30));
+          setTimeLeft(prev => {
+            const newTime = prev + (data?.seconds || 30);
+            localStorage.setItem('currentTimeLeft', newTime.toString());
+            return newTime;
+          });
           break;
 
         case 'subtractTime':
-          setTimeLeft(prev => Math.max(0, prev - (data?.seconds || 30)));
+          setTimeLeft(prev => {
+            const newTime = Math.max(0, prev - (data?.seconds || 30));
+            localStorage.setItem('currentTimeLeft', newTime.toString());
+            return newTime;
+          });
           break;
       }
     };
