@@ -12,7 +12,7 @@ interface Stage {
 interface StagesListProps {
   stages: Stage[];
   onRemoveStage?: (index: number) => void;
-  onEditStage?: (index: number, stage: Stage) => void;
+  onEditStage?: (index: number) => void;
   onAddStage?: () => void;
   onConfigureColors?: (index: number, stage: Stage) => void;
   editingIndex?: number;
@@ -118,15 +118,15 @@ export const StagesList: React.FC<StagesListProps> = ({
                      </button>
                    )}
                    
-                   {onEditStage && (
-                     <button
-                       onClick={() => onEditStage(index, stage)}
-                       className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                       title="Editar etapa"
-                     >
-                       ✏️
-                     </button>
-                   )}
+                                       {onEditStage && (
+                      <button
+                        onClick={() => onEditStage(index)}
+                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Editar etapa"
+                      >
+                        ✏️
+                      </button>
+                    )}
                    
                    {onRemoveStage && (
                      <button

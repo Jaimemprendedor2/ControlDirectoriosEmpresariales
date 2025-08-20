@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { CsvDropzone } from '../components/CsvDropzone';
 import { AddStageForm } from '../components/AddStageForm';
 import { StagesList } from '../components/StagesList';
@@ -84,7 +84,7 @@ export const Home: React.FC = () => {
     setStages(reorderedStages);
   };
 
-  const handleEditStage = (index: number, stage: Stage) => {
+  const handleEditStage = (index: number) => {
     setEditingIndex(index);
   };
 
@@ -103,17 +103,7 @@ export const Home: React.FC = () => {
     setEditingIndex(null);
   };
 
-  const handleSaveEdit = (updatedStage: { title: string; duration: number }) => {
-    if (editingStage) {
-      const newStages = [...stages];
-      newStages[editingStage.index] = {
-        ...newStages[editingStage.index],
-        ...updatedStage
-      };
-      setStages(newStages);
-      setEditingStage(null);
-    }
-  };
+
 
   const handleConfigureColors = (index: number, stage: Stage) => {
     setConfiguringColors({ index, stage });
@@ -199,9 +189,9 @@ export const Home: React.FC = () => {
       <div className="max-w-4xl mx-auto">
                  <header className="text-center mb-8">
            <div className="mb-2">
-                         <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-              v1.1.2 ({getChileDateTime()})
-            </span>
+                                                   <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+               v1.1.4 ({getChileDateTime()})
+             </span>
            </div>
            <h1 className="text-3xl font-bold text-gray-800 mb-2">
              Configuración de Directorios Empresariales Gemini
@@ -270,9 +260,9 @@ export const Home: React.FC = () => {
                  onEditStage={handleEditStage}
                  onAddStage={handleQuickAddStage}
                  onConfigureColors={handleConfigureColors}
-                 editingIndex={editingIndex}
-                 onSaveEdit={handleSaveEdit}
-                 onCancelEdit={handleCancelEdit}
+                                   editingIndex={editingIndex || undefined}
+                  onSaveEdit={handleSaveEdit}
+                  onCancelEdit={handleCancelEdit}
                />
 
                {/* Controles del cronómetro - solo mostrar si hay una ventana de reunión abierta */}
