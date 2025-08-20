@@ -85,9 +85,28 @@ export const InlineStageEditor: React.FC<InlineStageEditorProps> = ({
             value={formatDuration(duration)}
             onChange={(e) => {
               const value = e.target.value;
-              if (/^\d{0,2}:\d{0,2}$|^\d{0,2}:\d{0,2}:\d{0,2}$/.test(value) || value === '') {
-                const seconds = value ? parseTimeToSeconds(value) : 0;
+              // Permitir cualquier entrada numérica y ':'
+              if (value === '' || /^[\d:]*$/.test(value)) {
+                // No convertir inmediatamente, solo permitir la entrada
+                // La conversión se hará en onBlur
+              }
+            }}
+            onBlur={(e) => {
+              // Validar y formatear al perder el foco
+              const value = e.target.value;
+              if (value) {
+                const seconds = parseTimeToSeconds(value);
                 setDuration(seconds);
+              }
+            }}
+            onKeyDown={(e) => {
+              // Permitir teclas numéricas, dos puntos, backspace, delete, tab, enter, escape
+              const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+              const isNumber = /^[0-9]$/.test(e.key);
+              const isColon = e.key === ':';
+              
+              if (!isNumber && !isColon && !allowedKeys.includes(e.key)) {
+                e.preventDefault();
               }
             }}
             onKeyPress={handleKeyPress}

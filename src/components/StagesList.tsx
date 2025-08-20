@@ -120,7 +120,10 @@ export const StagesList: React.FC<StagesListProps> = ({
                    
                                        {onEditStage && (
                       <button
-                        onClick={() => onEditStage(index, stage)}
+                        onClick={() => {
+                          console.log('Botón de edición clickeado para etapa:', index, stage);
+                          onEditStage(index, stage);
+                        }}
                         className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                         title="Editar etapa"
                       >

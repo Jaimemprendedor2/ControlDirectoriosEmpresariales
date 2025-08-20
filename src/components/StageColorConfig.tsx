@@ -137,8 +137,8 @@ export const StageColorConfig: React.FC<StageColorConfigProps> = ({
                       const value = e.target.value;
                       // Permitir cualquier entrada numérica y ':'
                       if (value === '' || /^[\d:]*$/.test(value)) {
-                        const seconds = value ? parseMMSSToSeconds(value) : 0;
-                        setNewTimeInSeconds(seconds);
+                        // No convertir inmediatamente, solo permitir la entrada
+                        // La conversión se hará en onBlur
                       }
                     }}
                     onBlur={(e) => {
@@ -147,6 +147,16 @@ export const StageColorConfig: React.FC<StageColorConfigProps> = ({
                       if (value) {
                         const seconds = parseMMSSToSeconds(value);
                         setNewTimeInSeconds(seconds);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      // Permitir teclas numéricas, dos puntos, backspace, delete, tab, enter
+                      const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+                      const isNumber = /^[0-9]$/.test(e.key);
+                      const isColon = e.key === ':';
+                      
+                      if (!isNumber && !isColon && !allowedKeys.includes(e.key)) {
+                        e.preventDefault();
                       }
                     }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
