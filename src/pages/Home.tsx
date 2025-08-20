@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { CsvDropzone } from '../components/CsvDropzone';
 import { AddStageForm } from '../components/AddStageForm';
 import { StagesList } from '../components/StagesList';
-import { MeetingTimer } from '../components/MeetingTimer';
 
 interface Stage {
   id?: string;
@@ -16,7 +15,6 @@ export const Home: React.FC = () => {
   const [stages, setStages] = useState<Stage[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showTimer, setShowTimer] = useState(false);
 
   const handleImportStages = (importedStages: Array<{ title: string; duration: number }>) => {
     const newStages = importedStages.map((stage, index) => ({
@@ -53,10 +51,22 @@ export const Home: React.FC = () => {
 
      const handleStartMeeting = () => {
      if (stages.length === 0) {
-       alert('Agrega al menos una etapa antes de comenzar la configuración del directorio');
+       alert('Agrega al menos una etapa antes de iniciar el directorio');
        return;
      }
-     setShowTimer(true);
+     // Abrir una nueva ventana frameless para la vista de reunión
+     const popup = window.open(
+       '/presenter',
+       'DirectoryTimer',
+       'width=800,height=600,resizable=yes,scrollbars=no,status=no,location=no,toolbar=no,menubar=no'
+     );
+     
+     if (popup) {
+       // Pasar los datos de las etapas a la ventana popup
+       popup.addEventListener('load', () => {
+         popup.postMessage({ type: 'START_TIMER', stages }, '*');
+       });
+     }
    };
 
   return (
@@ -65,7 +75,7 @@ export const Home: React.FC = () => {
                  <header className="text-center mb-8">
            <div className="mb-2">
              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-               v1.1.0
+               v1.1.2
              </span>
            </div>
            <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -125,7 +135,7 @@ export const Home: React.FC = () => {
                   onClick={handleStartMeeting}
                   className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
                 >
-                                     🚀 Iniciar Configuración
+                                     🚀 Iniciar Directorio
                 </button>
               </div>
 
@@ -200,13 +210,7 @@ export const Home: React.FC = () => {
                  )}
        </div>
 
-       {/* Cronómetro de Configuración */}
-       <MeetingTimer 
-         stages={stages}
-         isOpen={showTimer}
-         onClose={() => setShowTimer(false)}
-         onUpdateStages={setStages}
-       />
+
      </div>
    );
  };
