@@ -34,8 +34,8 @@ export const StagesList: React.FC<StagesListProps> = ({
     return (
       <div className="text-center py-8 text-gray-500">
         <div className="text-4xl mb-2">📋</div>
-        <p>No hay etapas configuradas</p>
-        <p className="text-sm">Agrega etapas para comenzar tu reunión</p>
+                 <p>No hay etapas configuradas</p>
+         <p className="text-sm">Agrega etapas para comenzar tu directorio</p>
       </div>
     );
   }
@@ -45,9 +45,9 @@ export const StagesList: React.FC<StagesListProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gray-800">
-          Etapas de la Reunión ({stages.length})
-        </h3>
+                 <h3 className="text-lg font-semibold text-gray-800">
+           Etapas del Directorio ({stages.length})
+         </h3>
         <div className="text-sm text-gray-600">
           Total: {formatDuration(totalDuration)}
         </div>
@@ -117,9 +117,9 @@ export const StagesList: React.FC<StagesListProps> = ({
       {stages.length > 0 && (
         <div className="mt-6 p-4 bg-blue-50 rounded-lg">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-blue-800">
-              Resumen de la Reunión
-            </span>
+                       <span className="text-sm font-medium text-blue-800">
+             Resumen del Directorio
+           </span>
             <span className="text-sm text-blue-600">
               {formatDuration(totalDuration)}
             </span>

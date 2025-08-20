@@ -67,28 +67,28 @@ export const AddStageForm: React.FC<AddStageFormProps> = ({ onAddStage }) => {
         className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2"
       >
         <span className="text-xl">➕</span>
-        <span>Crear Etapa Manual</span>
+                 <span>Crear Etapa del Directorio</span>
       </button>
     );
   }
 
   return (
     <div className="w-full bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">
-        Agregar Nueva Etapa
-      </h3>
+             <h3 className="text-lg font-semibold text-gray-800 mb-4">
+         Agregar Nueva Etapa del Directorio
+       </h3>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="stage-title" className="block text-sm font-medium text-gray-700 mb-1">
-            Título de la Etapa
-          </label>
+                     <label htmlFor="stage-title" className="block text-sm font-medium text-gray-700 mb-1">
+             Título de la Etapa del Directorio
+           </label>
           <input
             type="text"
             id="stage-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ej: Introducción"
+                         placeholder="Ej: Configuración Inicial"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           />
@@ -117,7 +117,7 @@ export const AddStageForm: React.FC<AddStageFormProps> = ({ onAddStage }) => {
             type="submit"
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
           >
-            Agregar Etapa
+                         Agregar Etapa del Directorio
           </button>
           <button
             type="button"

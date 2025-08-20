@@ -1,0 +1,4 @@
+[33md716c47[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m Add functional components: CSV import, manual stage creation, and stages list
+[33m696c460[m Add Supabase integration: database schema, services, and configuration
+[33mcd98dce[m Fix: Remove unused React import from App.tsx
+[33m169ea7c[m Initial commit: Control de Reuniones app with React + Vite

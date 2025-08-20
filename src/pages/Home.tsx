@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CsvDropzone } from '../components/CsvDropzone';
 import { AddStageForm } from '../components/AddStageForm';
 import { StagesList } from '../components/StagesList';
+import { MeetingTimer } from '../components/MeetingTimer';
 
 interface Stage {
   id?: string;
@@ -15,6 +16,7 @@ export const Home: React.FC = () => {
   const [stages, setStages] = useState<Stage[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showTimer, setShowTimer] = useState(false);
 
   const handleImportStages = (importedStages: Array<{ title: string; duration: number }>) => {
     const newStages = importedStages.map((stage, index) => ({
@@ -49,37 +51,41 @@ export const Home: React.FC = () => {
     setStages(newStages);
   };
 
-  const handleStartMeeting = () => {
-    if (stages.length === 0) {
-      alert('Agrega al menos una etapa antes de comenzar la reunión');
-      return;
-    }
-    // TODO: Implementar inicio de reunión con Supabase
-    alert('Funcionalidad de inicio de reunión próximamente');
-  };
+     const handleStartMeeting = () => {
+     if (stages.length === 0) {
+       alert('Agrega al menos una etapa antes de comenzar la configuración del directorio');
+       return;
+     }
+     setShowTimer(true);
+   };
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
-        <header className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Control de Reuniones
-          </h1>
-          <p className="text-gray-600">
-            Gestiona el tiempo de tus reuniones de forma eficiente
-          </p>
-        </header>
+                 <header className="text-center mb-8">
+           <div className="mb-2">
+             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+               v1.1.0
+             </span>
+           </div>
+           <h1 className="text-3xl font-bold text-gray-800 mb-2">
+             Configuración de Directorios Empresariales Gemini
+           </h1>
+           <p className="text-gray-600">
+             Configura y gestiona directorios empresariales de forma eficiente
+           </p>
+         </header>
 
         <div className="bg-white rounded-lg shadow-md p-6">
           {stages.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">⏱️</div>
-              <h2 className="text-xl font-semibold text-gray-700 mb-4">
-                Bienvenido al Control de Reuniones
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Importa un archivo CSV con tu agenda o crea etapas manualmente para comenzar.
-              </p>
+                             <h2 className="text-xl font-semibold text-gray-700 mb-4">
+                 Bienvenido a la Configuración de Directorios Empresariales Gemini
+               </h2>
+               <p className="text-gray-600 mb-6">
+                 Importa un archivo CSV con tu estructura de directorio o crea etapas manualmente para comenzar.
+               </p>
               
               <div className="space-y-4 max-w-md mx-auto">
                 <button 
@@ -95,7 +101,7 @@ export const Home: React.FC = () => {
                   className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2"
                 >
                   <span className="text-xl">➕</span>
-                  <span>Crear Etapa Manual</span>
+                                     <span>Crear Etapa del Directorio</span>
                 </button>
               </div>
 
@@ -112,14 +118,14 @@ export const Home: React.FC = () => {
           ) : (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Configurar Reunión
-                </h2>
+                                 <h2 className="text-2xl font-bold text-gray-800">
+                   Configurar Directorio
+                 </h2>
                 <button
                   onClick={handleStartMeeting}
                   className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
                 >
-                  🚀 Iniciar Reunión
+                                     🚀 Iniciar Configuración
                 </button>
               </div>
 
@@ -130,9 +136,9 @@ export const Home: React.FC = () => {
               />
 
               <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Agregar Más Etapas
-                </h3>
+                                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                   Agregar Más Etapas del Directorio
+                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <button 
                     onClick={() => setShowImport(true)}
@@ -148,8 +154,8 @@ export const Home: React.FC = () => {
                     className="p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-green-400 hover:bg-green-50 transition-colors"
                   >
                     <div className="text-2xl mb-2">➕</div>
-                    <div className="font-medium text-gray-700">Agregar Manual</div>
-                    <div className="text-sm text-gray-500">Crear etapa a etapa</div>
+                                         <div className="font-medium text-gray-700">Agregar Manual</div>
+                     <div className="text-sm text-gray-500">Crear etapa del directorio</div>
                   </button>
                 </div>
               </div>
@@ -191,8 +197,15 @@ export const Home: React.FC = () => {
               <AddStageForm onAddStage={handleAddStage} />
             </div>
           </div>
-        )}
-      </div>
-    </div>
-  );
-};
+                 )}
+       </div>
+
+       {/* Cronómetro de Reunión */}
+       <MeetingTimer 
+         stages={stages}
+         isOpen={showTimer}
+         onClose={() => setShowTimer(false)}
+       />
+     </div>
+   );
+ };

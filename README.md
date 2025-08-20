@@ -1,199 +1,147 @@
-# Control de Reuniones
+# Configuración de Directorios Empresariales Gemini
 
-Una aplicación web moderna para gestionar el tiempo de reuniones con cronómetro automático, modo presentación y sincronización en tiempo real.
+**Versión:** 1.1.0
 
-## 🚀 Características
+Una plataforma moderna y eficiente para configurar y gestionar directorios empresariales con tecnología Gemini. Esta aplicación te permite crear, organizar y administrar estructuras de directorios empresariales de manera intuitiva y profesional.
 
-### ✨ Funcionalidades Principales
-- **Importación CSV**: Carga agendas desde archivos CSV con validación automática
-- **Cronómetro Inteligente**: Control automático del tiempo por etapa con auto-avance
-- **Modo Presentación**: Vista popup minimal para proyectar en pantallas
-- **Sincronización**: Tiempo real entre ventana principal y presentación via BroadcastChannel
-- **Persistencia**: Estado guardado automáticamente en localStorage
-- **Atajos de Teclado**: Control rápido con teclas (Espacio, N, P, R)
+## 🚀 Características Principales
 
-### 🎯 Gestión de Etapas
-- ✅ Crear, editar y eliminar etapas manualmente
-- ✅ Navegación entre etapas (anterior/siguiente)
-- ✅ Estados visuales: Completada/En curso/Pendiente
-- ✅ Barra de progreso con cambio de color cuando queda poco tiempo
-- ✅ Exportación a CSV de la agenda actual
-
-### 🔊 Notificaciones
-- ✅ Sonido automático al completar etapas (Web Audio API)
-- ✅ Vibración en dispositivos compatibles
-- ✅ Notificaciones visuales y sonoras especiales al finalizar
-
-### 🎨 Interfaz
-- ✅ Diseño responsive con TailwindCSS
-- ✅ Tema claro y profesional
-- ✅ Accesibilidad con roles ARIA y focus visible
-- ✅ Estados vacíos y manejo de errores
+- **📁 Importación CSV**: Carga estructuras de directorios desde archivos CSV
+- **➕ Creación Manual**: Agrega etapas de configuración manualmente
+- **⏱️ Cronómetro Inteligente**: Control de tiempo para cada etapa del directorio
+- **🎯 Gestión de Etapas**: Organiza y gestiona las etapas del directorio
+- **⌨️ Atajos de Teclado**: Navegación rápida y eficiente
+- **📊 Progreso Visual**: Seguimiento en tiempo real del progreso
+- **🔄 Sincronización**: Funciona en múltiples ventanas simultáneamente
 
 ## 📋 Formato CSV
 
-El archivo CSV debe tener la siguiente estructura:
+El archivo CSV debe tener el siguiente formato:
 
 ```csv
 titulo,duracion
-Introducción,5:00
-Revisión de métricas,15:00
-Discusión,30:00
-Cierre,10:00
+Configuración Inicial,5:00
+Análisis de Estructura,15:00
+Implementación,30:00
+Validación Final,10:00
 ```
 
-### Formatos de duración soportados:
-- **mm:ss** (ej. `5:00`, `12:30`)
-- **minutos enteros** (ej. `5`, `15`)
+### Formatos de Duración Soportados:
+- `mm:ss` (ej: `5:00` = 5 minutos)
+- `hh:mm:ss` (ej: `1:30:00` = 1 hora 30 minutos)
+- Segundos (ej: `300` = 5 minutos)
+- Minutos (ej: `5` = 5 minutos)
 
-## 🚀 Instalación y Uso
+## 🛠️ Instalación
 
-### Requisitos
-- Node.js 16+ y npm
+1. **Clonar el repositorio:**
+   ```bash
+   git clone https://github.com/Jaimemprendedor2/ControlDirectoriosEmpresariales.git
+   cd ControlDirectoriosEmpresariales
+   ```
 
-### Instalación
-```bash
-# Clonar el repositorio
-git clone <url-del-repo>
-cd control-reunion
+2. **Instalar dependencias:**
+   ```bash
+   npm install
+   ```
 
-# Instalar dependencias
-npm install
+3. **Configurar variables de entorno:**
+   ```bash
+   cp env.example .env
+   # Editar .env con tus credenciales de Supabase
+   ```
 
-# Ejecutar en modo desarrollo
-npm run dev
-
-# Construir para producción
-npm run build
-
-# Previsualizar build
-npm run preview
-```
-
-### Uso Rápido
-1. **Importar agenda**: Arrastra un CSV o usa el botón para cargar
-2. **Iniciar reunión**: Presiona Play o Espacio para comenzar
-3. **Modo presentación**: Haz clic en "Modo Presentación" para abrir popup
-4. **Controlar tiempo**: Usa los botones o atajos de teclado
+4. **Ejecutar en desarrollo:**
+   ```bash
+   npm run dev
+   ```
 
 ## ⌨️ Atajos de Teclado
 
 | Tecla | Acción |
 |-------|--------|
-| `Espacio` | Play/Pause |
-| `N` | Siguiente etapa |
-| `P` | Etapa anterior |
+| `Espacio` | Play/Pause del cronómetro |
+| `N` | Siguiente etapa del directorio |
+| `P` | Etapa anterior del directorio |
 | `R` | Reiniciar etapa actual |
+| `ESC` | Cerrar cronómetro |
 
 ## 🏗️ Arquitectura Técnica
 
-### Stack Tecnológico
-- **Frontend**: React 18 + TypeScript
-- **Build**: Vite
-- **Estilos**: TailwindCSS
-- **Estado**: Zustand
-- **Routing**: React Router Dom
-- **CSV**: PapaParse
-- **Tiempo**: date-fns
+### Frontend
+- **React 18** con TypeScript
+- **Vite** como bundler
+- **TailwindCSS** para estilos
+- **React Router** para navegación
+- **Zustand** para gestión de estado
 
-### Estructura del Proyecto
-```
-src/
-├── components/          # Componentes reutilizables
-│   ├── CsvDropzone.tsx     # Carga de archivos CSV
-│   ├── AgendaTable.tsx     # Lista de etapas
-│   ├── TimerControls.tsx   # Controles del cronómetro
-│   ├── ProgressBar.tsx     # Barra de progreso
-│   ├── ExportButton.tsx    # Exportar CSV
-│   └── PresentationButton.tsx # Botón modo presentación
-├── pages/               # Páginas principales
-│   ├── Home.tsx            # Vista principal
-│   └── Presenter.tsx       # Vista de presentación
-├── store/               # Estado global
-│   └── agendaStore.ts      # Store Zustand
-├── utils/               # Utilidades
-│   ├── time.ts             # Funciones de tiempo
-│   ├── csv.ts              # Parseo y export CSV
-│   └── audio.ts            # Sonidos y vibración
-├── types/               # Tipos TypeScript
-│   └── index.ts
-└── App.tsx             # Componente raíz
-```
+### Backend
+- **Supabase** como BaaS
+- **PostgreSQL** como base de datos
+- **Row Level Security (RLS)** para seguridad
 
-### Sincronización de Datos
-- **BroadcastChannel**: Comunicación principal entre ventanas
-- **localStorage**: Fallback y persistencia
-- **Versionado**: Esquema v1 para compatibilidad futura
+### Librerías Principales
+- **PapaParse**: Parsing de archivos CSV
+- **date-fns**: Manipulación de fechas
+- **BroadcastChannel**: Sincronización entre ventanas
 
-## 🔧 Configuración
+## 📊 Estructura de la Base de Datos
 
-### Variables de Entorno
-No se requieren variables de entorno especiales.
+### Tablas Principales:
+- `meetings` → `directories`: Directorios empresariales
+- `meeting_stages` → `directory_stages`: Etapas del directorio
+- `meeting_sessions` → `directory_sessions`: Sesiones de configuración
+- `stage_progress` → `stage_progress`: Progreso de etapas
 
-### Personalización
-- **Sonidos**: Modifica `src/utils/audio.ts` para cambiar frecuencias
-- **Colores**: Edita `tailwind.config.js` para personalizar tema
-- **Persistencia**: Cambia `STORAGE_KEY` en `agendaStore.ts`
+## 🔄 Flujo de Trabajo
 
-## 🐛 Troubleshooting
+1. **Configuración Inicial**: Importar CSV o crear etapas manualmente
+2. **Revisión**: Verificar la estructura del directorio
+3. **Ejecución**: Iniciar el cronómetro para cada etapa
+4. **Seguimiento**: Monitorear el progreso en tiempo real
+5. **Finalización**: Completar la configuración del directorio
 
-### Problemas Comunes
+## 🚀 Roadmap
 
-**❌ El popup no se abre**
-- Verificar que los popups estén permitidos en el navegador
-- Usar el enlace manual a `/presenter`
+### Versión 1.2.0 (Próxima)
+- [ ] Autenticación de usuarios
+- [ ] Plantillas de directorios predefinidas
+- [ ] Exportación de reportes
+- [ ] Integración con APIs empresariales
 
-**❌ No se sincroniza el modo presentación**
-- Verificar que BroadcastChannel esté soportado
-- La app usa localStorage como fallback automático
+### Versión 1.3.0
+- [ ] Dashboard de analytics
+- [ ] Notificaciones en tiempo real
+- [ ] Modo presentación mejorado
+- [ ] Integración con calendarios
 
-**❌ El CSV no se importa**
-- Verificar formato: encabezados `titulo,duracion`
-- Revisar formato de duración (mm:ss o minutos)
-- Descargar y revisar el reporte de errores
-
-**❌ El sonido no funciona**
-- Verificar permisos de audio en el navegador
-- Interactuar con la página antes (limitación de autoplay)
-
-## 📱 Compatibilidad
-
-### Navegadores Soportados
-- ✅ Chrome 80+
-- ✅ Firefox 75+
-- ✅ Safari 13.1+
-- ✅ Edge 80+
-
-### Características por Dispositivo
-- **Desktop**: Funcionalidad completa
-- **Mobile**: Funcional, vibración en dispositivos compatibles
-- **Tablet**: Interfaz responsive adaptada
+### Versión 2.0.0
+- [ ] IA asistente con Gemini
+- [ ] Automatización de procesos
+- [ ] Colaboración en tiempo real
+- [ ] Múltiples directorios simultáneos
 
 ## 🤝 Contribución
 
 1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/amazing-feature`)
-3. Commit tus cambios (`git commit -m 'Add amazing feature'`)
-4. Push a la rama (`git push origin feature/amazing-feature`)
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
-## 👥 Autor
+## 📞 Soporte
 
-Desarrollado con ❤️ para mejorar la gestión de reuniones profesionales.
+Para soporte técnico o consultas:
+- 📧 Email: soporte@directoriosempresariales.com
+- 📱 WhatsApp: +1 (555) 123-4567
+- 🌐 Web: https://directoriosempresariales.com
 
 ---
 
-### 🎯 Próximas Características (Roadmap)
-
-- [ ] Drag & drop para reordenar etapas
-- [ ] Temas oscuro/claro
-- [ ] Sonidos configurables
-- [ ] Integración con calendarios
-- [ ] Exportar reportes de tiempo
-- [ ] Plantillas de reuniones predefinidas
+**Desarrollado con ❤️ para optimizar la configuración de directorios empresariales**
 
 

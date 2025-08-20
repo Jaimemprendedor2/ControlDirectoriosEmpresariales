@@ -128,14 +128,14 @@ export const CsvDropzone: React.FC<CsvDropzoneProps> = ({ onImport }) => {
         ) : (
           <div className="space-y-2">
             <div className="text-4xl">📁</div>
-            <div className="text-lg font-medium text-gray-700">
-              Importar CSV
-            </div>
+                         <div className="text-lg font-medium text-gray-700">
+               Importar Estructura CSV
+             </div>
             <div className="text-sm text-gray-500">
               Arrastra un archivo CSV aquí o haz clic para seleccionar
             </div>
             <div className="text-xs text-gray-400 mt-2">
-              Formato: titulo,duracion (ej: "Introducción,5:00")
+                             Formato: titulo,duracion (ej: "Configuración Inicial,5:00")
             </div>
           </div>
         )}
