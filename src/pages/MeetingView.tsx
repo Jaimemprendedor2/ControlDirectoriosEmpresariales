@@ -18,7 +18,7 @@ interface MeetingViewProps {
 
 export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) => {
   // Leer las etapas del localStorage si no se pasan como props
-  const [stages, setStages] = useState<Stage[]>(() => {
+  const [stages] = useState<Stage[]>(() => {
     const storedStages = localStorage.getItem('meetingStages');
     return storedStages ? JSON.parse(storedStages) : propStages;
   });
