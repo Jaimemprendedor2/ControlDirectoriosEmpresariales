@@ -208,19 +208,7 @@ export const Home: React.FC = () => {
     };
   }, [meetingWindow, keyboardShortcuts]);
 
-  // Función para configurar atajos de teclado
-  const handleConfigureShortcut = (action: string) => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      event.preventDefault();
-      setKeyboardShortcuts(prev => ({
-        ...prev,
-        [action]: event.code
-      }));
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-    
-    document.addEventListener('keydown', handleKeyDown);
-  };
+
 
                const handleStartMeeting = () => {
     if (stages.length === 0) {
