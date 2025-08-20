@@ -148,19 +148,19 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
       className="min-h-screen flex flex-col items-center justify-center transition-colors duration-1000"
       style={{ backgroundColor: getCurrentBackgroundColor() }}
     >
-      {/* Título de la etapa */}
-      <h1 className="text-6xl font-bold text-gray-800 mb-16 text-center px-8">
-        {currentStage.title}
-      </h1>
-
-      {/* Cronómetro */}
-      <div className="text-9xl font-bold text-gray-900 font-mono mb-16">
+      {/* Cronómetro - Aumentado 10% y acercado al título */}
+      <div className="text-[9.9rem] font-bold text-gray-900 font-mono mb-8">
         {formatTime(timeLeft)}
       </div>
 
+      {/* Título de la etapa - Acercado al número */}
+      <h1 className="text-6xl font-bold text-gray-800 text-center px-8">
+        {currentStage.title}
+      </h1>
+
       {/* Mensaje de espera si la etapa terminó */}
       {isWaitingForNext && (
-        <div className="text-center space-y-8">
+        <div className="text-center space-y-8 mt-8">
           <div className="text-4xl text-gray-700 font-bold">
             ¡Etapa completada!
           </div>
@@ -175,16 +175,6 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
           </div>
         </div>
       )}
-
-      {/* Información de progreso */}
-      <div className="absolute bottom-8 left-8 text-lg text-gray-600">
-        Etapa {currentStageIndex + 1} de {stages.length}
-      </div>
-
-      {/* Instrucciones */}
-      <div className="absolute bottom-8 right-8 text-sm text-gray-500">
-        <kbd className="bg-gray-200 px-2 py-1 rounded">ESC</kbd> para cerrar
-      </div>
     </div>
   );
 };

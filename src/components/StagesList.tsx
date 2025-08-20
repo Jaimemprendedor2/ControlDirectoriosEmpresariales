@@ -12,12 +12,16 @@ interface StagesListProps {
   stages: Stage[];
   onRemoveStage?: (index: number) => void;
   onEditStage?: (index: number, stage: Stage) => void;
+  onAddStage?: () => void;
+  onConfigureColors?: (index: number, stage: Stage) => void;
 }
 
 export const StagesList: React.FC<StagesListProps> = ({ 
   stages, 
   onRemoveStage, 
-  onEditStage
+  onEditStage,
+  onAddStage,
+  onConfigureColors
 }) => {
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -90,6 +94,16 @@ export const StagesList: React.FC<StagesListProps> = ({
             </div>
 
             <div className="flex items-center space-x-2">
+              {onConfigureColors && (
+                <button
+                  onClick={() => onConfigureColors(index, stage)}
+                  className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                  title="Configurar colores"
+                >
+                  🎨
+                </button>
+              )}
+              
               {onEditStage && (
                 <button
                   onClick={() => onEditStage(index, stage)}
@@ -112,6 +126,17 @@ export const StagesList: React.FC<StagesListProps> = ({
             </div>
           </div>
         ))}
+        
+        {/* Botón para agregar nueva etapa */}
+        {onAddStage && (
+          <button
+            onClick={onAddStage}
+            className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hover:border-blue-400 hover:bg-blue-50 transition-colors"
+          >
+            <div className="text-2xl mb-2">➕</div>
+            <div className="font-medium text-gray-700">Agregar Nueva Etapa</div>
+          </button>
+        )}
       </div>
 
       {stages.length > 0 && (

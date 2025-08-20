@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CsvDropzone } from '../components/CsvDropzone';
 import { AddStageForm } from '../components/AddStageForm';
 import { StagesList } from '../components/StagesList';
+import { StageColorConfig } from '../components/StageColorConfig';
 
 interface Stage {
   id?: string;
@@ -9,6 +10,10 @@ interface Stage {
   duration: number;
   order_index?: number;
   is_completed?: boolean;
+  colors?: Array<{
+    timePercentage: number;
+    backgroundColor: string;
+  }>;
 }
 
 export const Home: React.FC = () => {
@@ -16,6 +21,7 @@ export const Home: React.FC = () => {
   const [showImport, setShowImport] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingStage, setEditingStage] = useState<{index: number, stage: Stage} | null>(null);
+  const [configuringColors, setConfiguringColors] = useState<{index: number, stage: Stage} | null>(null);
 
   // Función para obtener fecha y hora de Chile
   const getChileDateTime = () => {
@@ -77,17 +83,33 @@ export const Home: React.FC = () => {
     }
   };
 
+  const handleConfigureColors = (index: number, stage: Stage) => {
+    setConfiguringColors({ index, stage });
+  };
+
+  const handleSaveColors = (colors: Array<{ timePercentage: number; backgroundColor: string }>) => {
+    if (configuringColors) {
+      const newStages = [...stages];
+      newStages[configuringColors.index] = {
+        ...newStages[configuringColors.index],
+        colors
+      };
+      setStages(newStages);
+      setConfiguringColors(null);
+    }
+  };
+
        const handleStartMeeting = () => {
     if (stages.length === 0) {
       alert('Agrega al menos una etapa antes de iniciar el directorio');
       return;
     }
     
-    // Abrir ventana de reunión en pantalla completa
+    // Abrir ventana de reunión frameless de 500x400
     const meetingWindow = window.open(
       '/meeting',
       'meeting',
-      'width=1920,height=1080,fullscreen=yes,scrollbars=no,resizable=yes,menubar=no,toolbar=no,location=no,status=no'
+      'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
     );
     
     if (meetingWindow) {
@@ -170,6 +192,8 @@ export const Home: React.FC = () => {
                 stages={stages}
                 onRemoveStage={handleRemoveStage}
                 onEditStage={handleEditStage}
+                onAddStage={() => setShowAddForm(true)}
+                onConfigureColors={handleConfigureColors}
               />
 
               <div className="border-t pt-6">
@@ -255,6 +279,16 @@ export const Home: React.FC = () => {
               />
             </div>
           </div>
+        )}
+
+        {/* Color Configuration Modal */}
+        {configuringColors && (
+          <StageColorConfig
+            isOpen={true}
+            onClose={() => setConfiguringColors(null)}
+            stage={configuringColors.stage}
+            onSave={handleSaveColors}
+          />
         )}
        </div>
 
