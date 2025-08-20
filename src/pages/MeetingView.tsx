@@ -7,9 +7,10 @@ interface Stage {
   order_index?: number;
   is_completed?: boolean;
   colors?: Array<{
-    timePercentage: number;
+    timeInSeconds: number;
     backgroundColor: string;
   }>;
+  alertColor?: string;
 }
 
 interface MeetingViewProps {
@@ -26,6 +27,7 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
   const [timeLeft, setTimeLeft] = useState(0);
   const [isRunning, setIsRunning] = useState(true);
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
+  const [isAlertBlinking, setIsAlertBlinking] = useState(false);
 
   const currentStage = stages[currentStageIndex];
 
@@ -59,6 +61,23 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
     };
   }, [isRunning, isWaitingForNext, timeLeft]);
 
+  // Manejar el parpadeo de alerta cuando el tiempo llega a cero
+  useEffect(() => {
+    let blinkInterval: NodeJS.Timeout | null = null;
+
+    if (timeLeft === 0 && currentStage?.alertColor) {
+      blinkInterval = setInterval(() => {
+        setIsAlertBlinking(prev => !prev);
+      }, 1000);
+    } else {
+      setIsAlertBlinking(false);
+    }
+
+    return () => {
+      if (blinkInterval) clearInterval(blinkInterval);
+    };
+  }, [timeLeft, currentStage?.alertColor]);
+
   // Formatear tiempo
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -71,20 +90,20 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Calcular color de fondo basado en tiempo restante
+  // Calcular color de fondo basado en tiempo transcurrido
   const getCurrentBackgroundColor = (): string => {
     if (!currentStage?.colors || currentStage.colors.length === 0) {
-      return '#ffffff'; // Color por defecto
+      return '#000000'; // Fondo negro por defecto
     }
 
-    const timePercentage = ((currentStage.duration - timeLeft) / currentStage.duration) * 100;
+    const timeElapsed = currentStage.duration - timeLeft;
     
-    // Encontrar el color correspondiente al porcentaje actual
+    // Encontrar el color correspondiente al tiempo transcurrido
     const applicableColors = currentStage.colors
-      .filter(color => timePercentage >= color.timePercentage)
-      .sort((a, b) => b.timePercentage - a.timePercentage);
+      .filter(color => timeElapsed >= color.timeInSeconds)
+      .sort((a, b) => b.timeInSeconds - a.timeInSeconds);
     
-    return applicableColors.length > 0 ? applicableColors[0].backgroundColor : '#ffffff';
+    return applicableColors.length > 0 ? applicableColors[0].backgroundColor : '#000000';
   };
 
   // Pasar a la siguiente etapa
@@ -127,6 +146,58 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
     };
   }, [isWaitingForNext]);
 
+  // Escuchar mensajes de la ventana principal
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const { action, data } = event.data;
+
+      switch (action) {
+        case 'previousStage':
+          if (currentStageIndex > 0) {
+            const newIndex = currentStageIndex - 1;
+            setCurrentStageIndex(newIndex);
+            setTimeLeft(stages[newIndex].duration);
+            setIsWaitingForNext(false);
+            setIsRunning(true);
+          }
+          break;
+
+        case 'nextStage':
+          if (currentStageIndex < stages.length - 1) {
+            const newIndex = currentStageIndex + 1;
+            setCurrentStageIndex(newIndex);
+            setTimeLeft(stages[newIndex].duration);
+            setIsWaitingForNext(false);
+            setIsRunning(true);
+          }
+          break;
+
+        case 'pauseResume':
+          setIsRunning(!isRunning);
+          break;
+
+        case 'restartStage':
+          setTimeLeft(currentStage.duration);
+          setIsWaitingForNext(false);
+          setIsRunning(true);
+          break;
+
+        case 'addTime':
+          setTimeLeft(prev => prev + (data?.seconds || 30));
+          break;
+
+        case 'subtractTime':
+          setTimeLeft(prev => Math.max(0, prev - (data?.seconds || 30)));
+          break;
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [currentStageIndex, stages, isRunning, currentStage]);
+
   if (!currentStage) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -143,38 +214,28 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
     );
   }
 
+  // Determinar el color de fondo final (incluyendo parpadeo de alerta)
+  const getFinalBackgroundColor = (): string => {
+    if (timeLeft === 0 && currentStage?.alertColor && isAlertBlinking) {
+      return currentStage.alertColor;
+    }
+    return getCurrentBackgroundColor();
+  };
+
   return (
     <div 
       className="min-h-screen flex flex-col items-center justify-center transition-colors duration-1000"
-      style={{ backgroundColor: getCurrentBackgroundColor() }}
+      style={{ backgroundColor: getFinalBackgroundColor() }}
     >
-      {/* Cronómetro - Aumentado 10% y acercado al título */}
-      <div className="text-[9.9rem] font-bold text-gray-900 font-mono mb-8">
+      {/* Cronómetro - Aumentado 10% y separación exacta de 30px */}
+      <div className="text-[9.9rem] font-bold text-white font-mono mb-[30px]">
         {formatTime(timeLeft)}
       </div>
 
-      {/* Título de la etapa - Acercado al número */}
-      <h1 className="text-6xl font-bold text-gray-800 text-center px-8">
+      {/* Título de la etapa - Separación exacta de 30px */}
+      <h1 className="text-6xl font-bold text-white text-center px-8">
         {currentStage.title}
       </h1>
-
-      {/* Mensaje de espera si la etapa terminó */}
-      {isWaitingForNext && (
-        <div className="text-center space-y-8 mt-8">
-          <div className="text-4xl text-gray-700 font-bold">
-            ¡Etapa completada!
-          </div>
-          <button
-            onClick={handleNextStage}
-            className="px-12 py-6 bg-green-600 hover:bg-green-700 text-white text-3xl font-bold rounded-lg transition-colors shadow-lg"
-          >
-            {currentStageIndex < stages.length - 1 ? 'Siguiente Etapa' : 'Finalizar'}
-          </button>
-          <div className="text-lg text-gray-600">
-            Presiona <kbd className="bg-gray-200 px-2 py-1 rounded text-sm">Espacio</kbd> para continuar
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React from 'react';
+import { InlineStageEditor } from './InlineStageEditor';
 
 interface Stage {
   id?: string;
@@ -14,6 +15,9 @@ interface StagesListProps {
   onEditStage?: (index: number, stage: Stage) => void;
   onAddStage?: () => void;
   onConfigureColors?: (index: number, stage: Stage) => void;
+  editingIndex?: number;
+  onSaveEdit?: (index: number, title: string, duration: number) => void;
+  onCancelEdit?: () => void;
 }
 
 export const StagesList: React.FC<StagesListProps> = ({ 
@@ -21,7 +25,10 @@ export const StagesList: React.FC<StagesListProps> = ({
   onRemoveStage, 
   onEditStage,
   onAddStage,
-  onConfigureColors
+  onConfigureColors,
+  editingIndex,
+  onSaveEdit,
+  onCancelEdit
 }) => {
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -57,75 +64,84 @@ export const StagesList: React.FC<StagesListProps> = ({
         </div>
       </div>
 
-      <div className="space-y-2">
-        {stages.map((stage, index) => (
-          <div
-            key={stage.id || index}
-            className={`
-              flex items-center justify-between p-4 rounded-lg border transition-colors
-              ${stage.is_completed 
-                ? 'bg-green-50 border-green-200' 
-                : 'bg-white border-gray-200 hover:border-gray-300'
-              }
-            `}
-          >
-            <div className="flex items-center space-x-4">
-              <div className={`
-                w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                ${stage.is_completed 
-                  ? 'bg-green-500 text-white' 
-                  : 'bg-gray-200 text-gray-700'
-                }
-              `}>
-                {index + 1}
-              </div>
-              
-              <div className="flex-1">
-                <h4 className={`
-                  font-medium
-                  ${stage.is_completed ? 'text-green-800 line-through' : 'text-gray-800'}
-                `}>
-                  {stage.title}
-                </h4>
-                <p className="text-sm text-gray-500">
-                  {formatDuration(stage.duration)}
-                </p>
-              </div>
-            </div>
+             <div className="space-y-2">
+         {stages.map((stage, index) => (
+           <div key={stage.id || index}>
+             {editingIndex === index ? (
+               <InlineStageEditor
+                 stage={stage}
+                 onSave={(title, duration) => onSaveEdit?.(index, title, duration)}
+                 onCancel={onCancelEdit || (() => {})}
+               />
+             ) : (
+               <div
+                 className={`
+                   flex items-center justify-between p-4 rounded-lg border transition-colors
+                   ${stage.is_completed 
+                     ? 'bg-green-50 border-green-200' 
+                     : 'bg-white border-gray-200 hover:border-gray-300'
+                   }
+                 `}
+               >
+                 <div className="flex items-center space-x-4">
+                   <div className={`
+                     w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                     ${stage.is_completed 
+                       ? 'bg-green-500 text-white' 
+                       : 'bg-gray-200 text-gray-700'
+                     }
+                   `}>
+                     {index + 1}
+                   </div>
+                   
+                   <div className="flex-1">
+                     <h4 className={`
+                       font-medium
+                       ${stage.is_completed ? 'text-green-800 line-through' : 'text-gray-800'}
+                     `}>
+                       {stage.title}
+                     </h4>
+                     <p className="text-sm text-gray-500">
+                       {formatDuration(stage.duration)}
+                     </p>
+                   </div>
+                 </div>
 
-            <div className="flex items-center space-x-2">
-              {onConfigureColors && (
-                <button
-                  onClick={() => onConfigureColors(index, stage)}
-                  className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
-                  title="Configurar colores"
-                >
-                  🎨
-                </button>
-              )}
-              
-              {onEditStage && (
-                <button
-                  onClick={() => onEditStage(index, stage)}
-                  className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                  title="Editar etapa"
-                >
-                  ✏️
-                </button>
-              )}
-              
-              {onRemoveStage && (
-                <button
-                  onClick={() => onRemoveStage(index)}
-                  className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                  title="Eliminar etapa"
-                >
-                  🗑️
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+                 <div className="flex items-center space-x-2">
+                   {onConfigureColors && (
+                     <button
+                       onClick={() => onConfigureColors(index, stage)}
+                       className="p-2 text-gray-400 hover:text-purple-600 transition-colors"
+                       title="Configurar colores"
+                     >
+                       🎨
+                     </button>
+                   )}
+                   
+                   {onEditStage && (
+                     <button
+                       onClick={() => onEditStage(index, stage)}
+                       className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                       title="Editar etapa"
+                     >
+                       ✏️
+                     </button>
+                   )}
+                   
+                   {onRemoveStage && (
+                     <button
+                       onClick={() => onRemoveStage(index)}
+                       className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                       title="Eliminar etapa"
+                     >
+                       🗑️
+                     </button>
+                   )}
+                 </div>
+               </div>
+             )}
+           </div>
+         ))}
         
         {/* Botón para agregar nueva etapa */}
         {onAddStage && (

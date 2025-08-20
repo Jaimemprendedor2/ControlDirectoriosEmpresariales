@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { CsvDropzone } from '../components/CsvDropzone';
 import { AddStageForm } from '../components/AddStageForm';
 import { StagesList } from '../components/StagesList';
 import { StageColorConfig } from '../components/StageColorConfig';
+import { TimerControls } from '../components/TimerControls';
 
 interface Stage {
   id?: string;
@@ -11,9 +12,10 @@ interface Stage {
   order_index?: number;
   is_completed?: boolean;
   colors?: Array<{
-    timePercentage: number;
+    timeInSeconds: number;
     backgroundColor: string;
   }>;
+  alertColor?: string;
 }
 
 export const Home: React.FC = () => {
@@ -22,6 +24,10 @@ export const Home: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingStage, setEditingStage] = useState<{index: number, stage: Stage} | null>(null);
   const [configuringColors, setConfiguringColors] = useState<{index: number, stage: Stage} | null>(null);
+  const [meetingWindow, setMeetingWindow] = useState<Window | null>(null);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   // Función para obtener fecha y hora de Chile
   const getChileDateTime = () => {
@@ -55,6 +61,17 @@ export const Home: React.FC = () => {
       order_index: stages.length + 1
     };
     setStages([...stages, newStage]);
+    setShowAddForm(false);
+  };
+
+  const handleQuickAddStage = () => {
+    const newStage = {
+      title: '',
+      duration: 30,
+      order_index: stages.length + 1
+    };
+    setStages([...stages, newStage]);
+    setEditingIndex(stages.length);
   };
 
   const handleRemoveStage = (index: number) => {
@@ -68,7 +85,22 @@ export const Home: React.FC = () => {
   };
 
   const handleEditStage = (index: number, stage: Stage) => {
-    setEditingStage({ index, stage });
+    setEditingIndex(index);
+  };
+
+  const handleSaveEdit = (index: number, title: string, duration: number) => {
+    const newStages = [...stages];
+    newStages[index] = {
+      ...newStages[index],
+      title,
+      duration
+    };
+    setStages(newStages);
+    setEditingIndex(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
   };
 
   const handleSaveEdit = (updatedStage: { title: string; duration: number }) => {
@@ -87,34 +119,78 @@ export const Home: React.FC = () => {
     setConfiguringColors({ index, stage });
   };
 
-  const handleSaveColors = (colors: Array<{ timePercentage: number; backgroundColor: string }>) => {
+  const handleSaveColors = (colors: Array<{ timeInSeconds: number; backgroundColor: string }>, alertColor: string) => {
     if (configuringColors) {
       const newStages = [...stages];
       newStages[configuringColors.index] = {
         ...newStages[configuringColors.index],
-        colors
+        colors,
+        alertColor
       };
       setStages(newStages);
       setConfiguringColors(null);
     }
   };
 
-       const handleStartMeeting = () => {
+  // Funciones para controlar el cronómetro
+  const sendMessageToMeetingWindow = (action: string, data?: any) => {
+    if (meetingWindow && !meetingWindow.closed) {
+      meetingWindow.postMessage({ action, data }, '*');
+    }
+  };
+
+  const handlePreviousStage = () => {
+    if (currentStageIndex > 0) {
+      const newIndex = currentStageIndex - 1;
+      setCurrentStageIndex(newIndex);
+      sendMessageToMeetingWindow('previousStage', { stageIndex: newIndex });
+    }
+  };
+
+  const handleNextStage = () => {
+    if (currentStageIndex < stages.length - 1) {
+      const newIndex = currentStageIndex + 1;
+      setCurrentStageIndex(newIndex);
+      sendMessageToMeetingWindow('nextStage', { stageIndex: newIndex });
+    }
+  };
+
+  const handlePauseResume = () => {
+    setIsTimerRunning(!isTimerRunning);
+    sendMessageToMeetingWindow('pauseResume');
+  };
+
+  const handleRestartStage = () => {
+    sendMessageToMeetingWindow('restartStage');
+  };
+
+  const handleAddTime = () => {
+    sendMessageToMeetingWindow('addTime', { seconds: 30 });
+  };
+
+  const handleSubtractTime = () => {
+    sendMessageToMeetingWindow('subtractTime', { seconds: 30 });
+  };
+
+               const handleStartMeeting = () => {
     if (stages.length === 0) {
       alert('Agrega al menos una etapa antes de iniciar el directorio');
       return;
     }
     
     // Abrir ventana de reunión frameless de 500x400
-    const meetingWindow = window.open(
+    const newMeetingWindow = window.open(
       '/meeting',
       'meeting',
       'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
     );
     
-    if (meetingWindow) {
+    if (newMeetingWindow) {
       // Guardar las etapas en localStorage para que la nueva ventana las pueda leer
       localStorage.setItem('meetingStages', JSON.stringify(stages));
+      setMeetingWindow(newMeetingWindow);
+      setIsTimerRunning(true);
+      setCurrentStageIndex(0);
     }
   };
 
@@ -188,13 +264,31 @@ export const Home: React.FC = () => {
                 </button>
               </div>
 
-              <StagesList 
-                stages={stages}
-                onRemoveStage={handleRemoveStage}
-                onEditStage={handleEditStage}
-                onAddStage={() => setShowAddForm(true)}
-                onConfigureColors={handleConfigureColors}
-              />
+                             <StagesList 
+                 stages={stages}
+                 onRemoveStage={handleRemoveStage}
+                 onEditStage={handleEditStage}
+                 onAddStage={handleQuickAddStage}
+                 onConfigureColors={handleConfigureColors}
+                 editingIndex={editingIndex}
+                 onSaveEdit={handleSaveEdit}
+                 onCancelEdit={handleCancelEdit}
+               />
+
+               {/* Controles del cronómetro - solo mostrar si hay una ventana de reunión abierta */}
+               {meetingWindow && !meetingWindow.closed && (
+                 <TimerControls
+                   currentStageIndex={currentStageIndex}
+                   totalStages={stages.length}
+                   isRunning={isTimerRunning}
+                   onPreviousStage={handlePreviousStage}
+                   onNextStage={handleNextStage}
+                   onPauseResume={handlePauseResume}
+                   onRestartStage={handleRestartStage}
+                   onAddTime={handleAddTime}
+                   onSubtractTime={handleSubtractTime}
+                 />
+               )}
 
               <div className="border-t pt-6">
                                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -260,26 +354,7 @@ export const Home: React.FC = () => {
           </div>
                  )}
 
-        {/* Edit Stage Modal */}
-        {editingStage && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Editar Etapa</h3>
-                <button
-                  onClick={() => setEditingStage(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-              <AddStageForm 
-                onAddStage={handleSaveEdit}
-                initialData={editingStage.stage}
-              />
-            </div>
-          </div>
-        )}
+        
 
         {/* Color Configuration Modal */}
         {configuringColors && (
