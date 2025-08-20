@@ -22,7 +22,7 @@ export const Home: React.FC = () => {
   const [stages, setStages] = useState<Stage[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingStage, setEditingStage] = useState<{index: number, stage: Stage} | null>(null);
+
   const [configuringColors, setConfiguringColors] = useState<{index: number, stage: Stage} | null>(null);
   const [meetingWindow, setMeetingWindow] = useState<Window | null>(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
