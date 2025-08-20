@@ -27,14 +27,7 @@ export const Home: React.FC = () => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [keyboardShortcuts, setKeyboardShortcuts] = useState({
-    pauseResume: 'Space',
-    nextStage: 'KeyN',
-    previousStage: 'KeyP',
-    restartStage: 'KeyR',
-    addTime: 'Equal',
-    subtractTime: 'Minus'
-  });
+
 
   // Función para obtener fecha y hora de Chile
   const getChileDateTime = () => {
@@ -174,27 +167,27 @@ export const Home: React.FC = () => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if (meetingWindow && !meetingWindow.closed) {
         switch (event.code) {
-          case keyboardShortcuts.pauseResume:
+          case 'Space':
             event.preventDefault();
             handlePauseResume();
             break;
-          case keyboardShortcuts.nextStage:
+          case 'KeyN':
             event.preventDefault();
             handleNextStage();
             break;
-          case keyboardShortcuts.previousStage:
+          case 'KeyP':
             event.preventDefault();
             handlePreviousStage();
             break;
-          case keyboardShortcuts.restartStage:
+          case 'KeyR':
             event.preventDefault();
             handleRestartStage();
             break;
-          case keyboardShortcuts.addTime:
+          case 'Equal':
             event.preventDefault();
             handleAddTime();
             break;
-          case keyboardShortcuts.subtractTime:
+          case 'Minus':
             event.preventDefault();
             handleSubtractTime();
             break;
@@ -206,7 +199,7 @@ export const Home: React.FC = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
-  }, [meetingWindow, keyboardShortcuts]);
+  }, [meetingWindow]);
 
 
 
@@ -414,13 +407,9 @@ export const Home: React.FC = () => {
                          <div className="text-xs mt-1">
                            Los controles afectan la ventana emergente en tiempo real
                          </div>
-                         <div className="text-xs mt-2 text-blue-600">
-                           Atajos: {keyboardShortcuts.pauseResume.replace('Space', 'Espacio')} (Pausar/Reanudar), 
-                           {keyboardShortcuts.nextStage.replace('KeyN', 'N')} (Siguiente), 
-                           {keyboardShortcuts.previousStage.replace('KeyP', 'P')} (Anterior), 
-                           {keyboardShortcuts.restartStage.replace('KeyR', 'R')} (Reiniciar), 
-                           {keyboardShortcuts.addTime.replace('Equal', '+')}/{keyboardShortcuts.subtractTime.replace('Minus', '-')} (Tiempo)
-                         </div>
+                                                   <div className="text-xs mt-2 text-blue-600">
+                            Atajos: Espacio (Pausar/Reanudar), N (Siguiente), P (Anterior), R (Reiniciar), +/- (Tiempo)
+                          </div>
                          <button
                            onClick={() => {
                              // Aquí se podría abrir un modal para configurar atajos
