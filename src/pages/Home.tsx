@@ -3,7 +3,6 @@ import { CsvDropzone } from '../components/CsvDropzone';
 import { AddStageForm } from '../components/AddStageForm';
 import { StagesList } from '../components/StagesList';
 import { StageColorConfig } from '../components/StageColorConfig';
-import { TimerControls } from '../components/TimerControls';
 
 interface Stage {
   id?: string;
@@ -84,7 +83,7 @@ export const Home: React.FC = () => {
     setStages(reorderedStages);
   };
 
-  const handleEditStage = (index: number, stage: Stage) => {
+  const handleEditStage = (index: number, _stage: Stage) => {
     setEditingIndex(index);
   };
 
@@ -190,7 +189,7 @@ export const Home: React.FC = () => {
                  <header className="text-center mb-8">
            <div className="mb-2">
                                                                              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.1.9 ({getChileDateTime()})
+                v1.2.0 ({getChileDateTime()})
               </span>
            </div>
            <h1 className="text-3xl font-bold text-gray-800 mb-2">
