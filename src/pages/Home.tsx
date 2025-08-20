@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { CsvDropzone } from '../components/CsvDropzone';
-import { AddStageForm } from '../components/AddStageForm';
 import { StagesList } from '../components/StagesList';
 import { StageColorConfig } from '../components/StageColorConfig';
 
@@ -22,7 +21,6 @@ interface Stage {
 export const Home: React.FC = () => {
   const [stages, setStages] = useState<Stage[]>([]);
   const [showImport, setShowImport] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
 
   const [configuringColors, setConfiguringColors] = useState<{index: number, stage: Stage} | null>(null);
   const [meetingWindow, setMeetingWindow] = useState<Window | null>(null);
@@ -89,17 +87,8 @@ export const Home: React.FC = () => {
     setShowImport(false);
   };
 
-  const handleAddStage = (stage: { title: string; description?: string; duration: number }) => {
-    const newStage = {
-      title: stage.title,
-      description: stage.description || '',
-      duration: stage.duration,
-      order_index: stages.length + 1,
-      alertColor: '#FF0000',
-      alertSeconds: 15
-    };
-    setStages([...stages, newStage]);
-    setShowAddForm(false);
+  const handleAddStage = () => {
+    // Eliminar esta función ya que no se usará más
   };
 
   const handleQuickAddStage = () => {
@@ -303,7 +292,7 @@ export const Home: React.FC = () => {
         <header className="text-center mb-8">
           <div className="mb-2">
             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-              v1.6.0 ({getBuildInfo()})
+              v1.6.1 ({getBuildInfo()})
             </span>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -324,13 +313,13 @@ export const Home: React.FC = () => {
                 <span>📁</span>
                 <span>Importar CSV</span>
               </button>
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
-              >
-                <span>➕</span>
-                <span>Crear Etapa</span>
-              </button>
+                             <button
+                 onClick={handleQuickAddStage}
+                 className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
+               >
+                 <span>➕</span>
+                 <span>Crear Etapa</span>
+               </button>
               <button
                 onClick={() => {
                   setStages([]);
@@ -535,23 +524,7 @@ export const Home: React.FC = () => {
           </div>
         )}
 
-        {/* Add Stage Modal */}
-        {showAddForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Agregar Etapa</h3>
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-              <AddStageForm onAddStage={handleAddStage} />
-            </div>
-          </div>
-        )}
+        
 
         {/* Color Configuration Modal */}
         {configuringColors && (
