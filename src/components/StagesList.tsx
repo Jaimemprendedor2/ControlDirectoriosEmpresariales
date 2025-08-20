@@ -12,14 +12,12 @@ interface StagesListProps {
   stages: Stage[];
   onRemoveStage?: (index: number) => void;
   onEditStage?: (index: number, stage: Stage) => void;
-  allowEdit?: boolean;
 }
 
 export const StagesList: React.FC<StagesListProps> = ({ 
   stages, 
   onRemoveStage, 
-  onEditStage,
-  allowEdit = true
+  onEditStage
 }) => {
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);

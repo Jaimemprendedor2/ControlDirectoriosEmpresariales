@@ -49,25 +49,24 @@ export const Home: React.FC = () => {
     setStages(newStages);
   };
 
-     const handleStartMeeting = () => {
-     if (stages.length === 0) {
-       alert('Agrega al menos una etapa antes de iniciar el directorio');
-       return;
-     }
-     // Abrir una nueva ventana frameless para la vista de reunión
-     const popup = window.open(
-       '/presenter',
-       'DirectoryTimer',
-       'width=800,height=600,resizable=yes,scrollbars=no,status=no,location=no,toolbar=no,menubar=no'
-     );
-     
-     if (popup) {
-       // Pasar los datos de las etapas a la ventana popup
-       popup.addEventListener('load', () => {
-         popup.postMessage({ type: 'START_TIMER', stages }, '*');
-       });
-     }
-   };
+       const handleStartMeeting = () => {
+    if (stages.length === 0) {
+      alert('Agrega al menos una etapa antes de iniciar el directorio');
+      return;
+    }
+    
+    // Abrir ventana de reunión en pantalla completa
+    const meetingWindow = window.open(
+      '/meeting',
+      'meeting',
+      'width=1920,height=1080,fullscreen=yes,scrollbars=no,resizable=yes,menubar=no,toolbar=no,location=no,status=no'
+    );
+    
+    if (meetingWindow) {
+      // Guardar las etapas en localStorage para que la nueva ventana las pueda leer
+      localStorage.setItem('meetingStages', JSON.stringify(stages));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
