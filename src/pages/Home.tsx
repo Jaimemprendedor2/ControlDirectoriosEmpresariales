@@ -4,6 +4,14 @@ import { StagesList } from '../components/StagesList';
 import { StageColorConfig } from '../components/StageColorConfig';
 import { MeetingService } from '../services/meetingService';
 import { Meeting } from '../lib/supabase';
+import { createWebSocketService, ConnectionState } from '../services/websocketService';
+
+// Extender Window interface para incluir websocketService
+declare global {
+  interface Window {
+    websocketService?: any;
+  }
+}
 
 interface Stage {
   id?: string;
@@ -78,6 +86,18 @@ export const Home: React.FC = () => {
   const [configuringShortcut, setConfiguringShortcut] = useState<string | null>(null);
   const [timerUpdate, setTimerUpdate] = useState(0); // Para forzar re-render del cronómetro
   const [isLongPress, setIsLongPress] = useState(false); // Para manejar presión prolongada del botón
+
+  // Estado del WebSocket
+  const [connectionState, setConnectionState] = useState<ConnectionState>({
+    connected: false,
+    connecting: false,
+    error: null,
+    reconnectAttempts: 0,
+    lastConnected: null,
+    latency: 0
+  });
+  const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
+  const [showConnectionLogs, setShowConnectionLogs] = useState(false);
 
   // Función para obtener información de compilación
   const getBuildInfo = () => {
@@ -372,10 +392,42 @@ export const Home: React.FC = () => {
     }
   };
 
-  // Función para enviar mensajes a la ventana de reflejo
+  // Función para enviar mensajes a la ventana de reflejo (mantener para compatibilidad)
   const sendMessageToReflectionWindow = (action: string, data?: any) => {
     if (meetingWindow && !meetingWindow.closed) {
       meetingWindow.postMessage({ action, data }, '*');
+    }
+  };
+
+  // Funciones para WebSocket
+  const getWebSocketUrl = () => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = process.env.NODE_ENV === 'production' 
+      ? window.location.host 
+      : 'localhost:3001';
+    return `${protocol}//${host}`;
+  };
+
+  const addConnectionLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `[${timestamp}] ${message}`;
+    setConnectionLogs(prev => [...prev.slice(-49), logEntry]); // Mantener solo los últimos 50 logs
+    console.log(logEntry);
+  };
+
+  const sendTimerState = () => {
+    const currentTimeLeft = parseInt(localStorage.getItem('currentTimeLeft') || '0');
+    const timerState = {
+      currentTimeLeft,
+      isRunning: isTimerRunning,
+      currentStageIndex,
+      stages,
+      timestamp: Date.now()
+    };
+    
+    // Enviar estado a través de WebSocket si está disponible
+    if (window.websocketService) {
+      window.websocketService.sendTimerState(timerState);
     }
   };
 
@@ -416,6 +468,16 @@ export const Home: React.FC = () => {
       // Pausar el cronómetro al cambiar de etapa
       setIsTimerRunning(false);
       sendMessageToReflectionWindow('previousStage', { stageIndex: newIndex });
+      
+      // Enviar comando a través de WebSocket
+      if (window.websocketService) {
+        window.websocketService.sendCommand({
+          action: 'previousStage',
+          data: { stageIndex: newIndex },
+          timestamp: Date.now(),
+          source: 'main-timer'
+        });
+      }
     }
   };
 
@@ -430,6 +492,16 @@ export const Home: React.FC = () => {
       // Pausar el cronómetro al cambiar de etapa
       setIsTimerRunning(false);
       sendMessageToReflectionWindow('nextStage', { stageIndex: newIndex });
+      
+      // Enviar comando a través de WebSocket
+      if (window.websocketService) {
+        window.websocketService.sendCommand({
+          action: 'nextStage',
+          data: { stageIndex: newIndex },
+          timestamp: Date.now(),
+          source: 'main-timer'
+        });
+      }
     }
   };
 
@@ -444,6 +516,16 @@ export const Home: React.FC = () => {
     
     // Enviar mensaje a la ventana de reflejo
     sendMessageToReflectionWindow('pauseResume', { isRunning: newRunningState });
+    
+    // Enviar comando a través de WebSocket
+    if (window.websocketService) {
+      window.websocketService.sendCommand({
+        action: 'pauseResume',
+        data: { isRunning: newRunningState },
+        timestamp: Date.now(),
+        source: 'main-timer'
+      });
+    }
     
     // Sincronizar inmediatamente el estado del panel de control
     setTimeout(() => {
@@ -461,6 +543,16 @@ export const Home: React.FC = () => {
     localStorage.setItem('currentTimeLeft', '0');
     sendMessageToReflectionWindow('setTime', { seconds: 0 });
     setIsTimerRunning(false);
+    
+    // Enviar comando a través de WebSocket
+    if (window.websocketService) {
+      window.websocketService.sendCommand({
+        action: 'setTime',
+        data: { seconds: 0 },
+        timestamp: Date.now(),
+        source: 'main-timer'
+      });
+    }
   };
 
   // Funciones para manejar presión prolongada del botón
@@ -515,11 +607,31 @@ export const Home: React.FC = () => {
       }
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
+      
+      // Enviar comando a través de WebSocket
+      if (window.websocketService) {
+        window.websocketService.sendCommand({
+          action: 'setTime',
+          data: { seconds: newTime },
+          timestamp: Date.now(),
+          source: 'main-timer'
+        });
+      }
     } else {
       // Si está funcionando: sumar 30s inmediatamente
       const newTime = currentSeconds + 30;
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('addTime', { seconds: 30 });
+      
+      // Enviar comando a través de WebSocket
+      if (window.websocketService) {
+        window.websocketService.sendCommand({
+          action: 'addTime',
+          data: { seconds: 30 },
+          timestamp: Date.now(),
+          source: 'main-timer'
+        });
+      }
     }
   };
 
@@ -533,11 +645,31 @@ export const Home: React.FC = () => {
       const newTime = Math.max(0, Math.floor(currentSeconds / 30) * 30); // Redondear hacia abajo al múltiplo de 30
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
+      
+      // Enviar comando a través de WebSocket
+      if (window.websocketService) {
+        window.websocketService.sendCommand({
+          action: 'setTime',
+          data: { seconds: newTime },
+          timestamp: Date.now(),
+          source: 'main-timer'
+        });
+      }
     } else {
       // Si está funcionando: restar 30s inmediatamente
       const newTime = Math.max(0, currentSeconds - 30);
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('subtractTime', { seconds: 30 });
+      
+      // Enviar comando a través de WebSocket
+      if (window.websocketService) {
+        window.websocketService.sendCommand({
+          action: 'subtractTime',
+          data: { seconds: 30 },
+          timestamp: Date.now(),
+          source: 'main-timer'
+        });
+      }
     }
   };
 
@@ -583,6 +715,88 @@ export const Home: React.FC = () => {
     loadMeetings();
   }, []);
 
+  // Inicializar WebSocket cuando se selecciona un directorio
+  useEffect(() => {
+    if (selectedMeeting) {
+      addConnectionLog('Inicializando WebSocket para directorio: ' + selectedMeeting.title);
+      
+      const websocketService = createWebSocketService({
+        url: getWebSocketUrl(),
+        room: selectedMeeting.id,
+        type: 'timer'
+      });
+
+      // Configurar callbacks
+      websocketService.onConnectionChange((state) => {
+        setConnectionState(state);
+        addConnectionLog(`Estado de conexión: ${state.connected ? 'Conectado' : 'Desconectado'}`);
+        if (state.error) {
+          addConnectionLog(`Error: ${state.error}`);
+        }
+      });
+
+      websocketService.onCommand((command) => {
+        addConnectionLog(`Comando recibido: ${command.action}`);
+        console.log('📡 Comando recibido via WebSocket:', command);
+        
+        // Procesar comandos del control remoto
+        switch (command.action) {
+          case 'previousStage':
+            handlePreviousStage();
+            break;
+          case 'nextStage':
+            handleNextStage();
+            break;
+          case 'pauseResume':
+            handlePauseResume();
+            break;
+          case 'setTime':
+            if (command.data?.seconds !== undefined) {
+              localStorage.setItem('currentTimeLeft', command.data.seconds.toString());
+              sendMessageToReflectionWindow('setTime', command.data);
+            }
+            break;
+          case 'addTime':
+            handleAddTime();
+            break;
+          case 'subtractTime':
+            handleSubtractTime();
+            break;
+        }
+      });
+
+      websocketService.onError((error) => {
+        addConnectionLog(`Error WebSocket: ${error}`);
+      });
+
+      // Conectar al servidor
+      websocketService.connect().then(() => {
+        addConnectionLog('WebSocket conectado exitosamente');
+        window.websocketService = websocketService;
+      }).catch((error) => {
+        addConnectionLog(`Error conectando WebSocket: ${error}`);
+      });
+
+      // Cleanup al desmontar
+      return () => {
+        addConnectionLog('Cerrando conexión WebSocket');
+        websocketService.disconnect();
+        window.websocketService = undefined;
+      };
+    }
+  }, [selectedMeeting?.id]);
+
+  // Enviar estado del timer periódicamente
+  useEffect(() => {
+    if (connectionState.connected && window.websocketService) {
+      const interval = setInterval(() => {
+        sendTimerState();
+      }, 1000); // Enviar estado cada segundo
+
+      return () => clearInterval(interval);
+    }
+  }, [connectionState.connected, isTimerRunning, currentStageIndex, stages]);
+
   // Timer principal del cronómetro
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -614,7 +828,7 @@ export const Home: React.FC = () => {
     };
   }, [isTimerRunning]);
 
-  // Escuchar mensajes de la página de control móvil
+  // Escuchar mensajes de la página de control móvil (mantener para compatibilidad)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const { action, data } = event.data;
@@ -630,28 +844,24 @@ export const Home: React.FC = () => {
           }
           break;
         case 'heartbeat':
-          // Actualizar heartbeat de la conexión
-          if (data.connectionId) {
-            updateConnectionHeartbeat(data.connectionId);
-          }
+          // Actualizar heartbeat de la conexión (mantener para compatibilidad)
+          console.log('📡 Heartbeat recibido de control remoto');
           break;
         case 'registerConnection':
-          // Registrar nueva conexión de control
-          if (data.connectionId) {
-            registerControlConnection(data.connectionId);
-            // Responder con estado actual
-            if (event.source && event.source !== window) {
-              (event.source as Window).postMessage({ 
-                action: 'connectionRegistered', 
-                data: { 
-                  connectionId: data.connectionId,
-                  stages: stages,
-                  currentStageIndex: currentStageIndex,
-                  isTimerRunning: isTimerRunning,
-                  currentTimeLeft: localStorage.getItem('currentTimeLeft')
-                } 
-              }, '*');
-            }
+          // Registrar nueva conexión de control (mantener para compatibilidad)
+          console.log('📡 Registro de conexión recibido de control remoto');
+          // Responder con estado actual
+          if (event.source && event.source !== window) {
+            (event.source as Window).postMessage({ 
+              action: 'connectionRegistered', 
+              data: { 
+                connectionId: data.connectionId,
+                stages: stages,
+                currentStageIndex: currentStageIndex,
+                isTimerRunning: isTimerRunning,
+                currentTimeLeft: localStorage.getItem('currentTimeLeft')
+              } 
+            }, '*');
           }
           break;
         case 'forceReconnect':
@@ -708,19 +918,19 @@ export const Home: React.FC = () => {
     }
   }, [showShortcutConfig, configuringShortcut]);
 
-  // Sistema de heartbeat y verificación de conexiones
-  useEffect(() => {
-    // Verificar conexiones activas cada 5 segundos
-    const connectionCheckInterval = setInterval(checkActiveConnections, 5000);
-    
-    // Enviar heartbeat cada 2 segundos
-    const heartbeatInterval = setInterval(sendHeartbeatToControls, 2000);
-    
-    return () => {
-      clearInterval(connectionCheckInterval);
-      clearInterval(heartbeatInterval);
-    };
-  }, [stages, currentStageIndex, isTimerRunning, meetingWindow]);
+  // Sistema de heartbeat y verificación de conexiones (eliminado - reemplazado por WebSocket)
+  // useEffect(() => {
+  //   // Verificar conexiones activas cada 5 segundos
+  //   const connectionCheckInterval = setInterval(checkActiveConnections, 5000);
+  //   
+  //   // Enviar heartbeat cada 2 segundos
+  //   const heartbeatInterval = setInterval(sendHeartbeatToControls, 2000);
+  //   
+  //   return () => {
+  //     clearInterval(connectionCheckInterval);
+  //     clearInterval(heartbeatInterval);
+  //   };
+  // }, [stages, currentStageIndex, isTimerRunning, meetingWindow]);
 
   // Función para manejar atajos de teclado
   useEffect(() => {
@@ -845,103 +1055,18 @@ export const Home: React.FC = () => {
      console.log('Directorio iniciado exitosamente');
    };
 
-  // Sistema de verificación de conexión robusto
-  const [controlConnections, setControlConnections] = useState<Set<string>>(new Set());
-  const [connectionHeartbeat, setConnectionHeartbeat] = useState<Map<string, number>>(new Map());
-  const [lastPingTime, setLastPingTime] = useState<number>(Date.now());
-
-  // Función para verificar conexiones activas
-  const checkActiveConnections = () => {
-    const now = Date.now();
-    const activeConnections = new Set<string>();
-    const updatedHeartbeat = new Map<string, number>();
-
-    // Verificar cada conexión
-    controlConnections.forEach(connectionId => {
-      const lastHeartbeat = connectionHeartbeat.get(connectionId) || 0;
-      if (now - lastHeartbeat < 10000) { // 10 segundos de timeout
-        activeConnections.add(connectionId);
-        updatedHeartbeat.set(connectionId, lastHeartbeat);
-      } else {
-        console.log(`🔌 Conexión ${connectionId} expirada, removiendo...`);
-      }
-    });
-
-    setControlConnections(activeConnections);
-    setConnectionHeartbeat(updatedHeartbeat);
-  };
-
-  // Función para enviar heartbeat a todos los controles conectados
-  const sendHeartbeatToControls = () => {
-    const now = Date.now();
-    setLastPingTime(now);
-    
-    // Enviar heartbeat a todas las ventanas abiertas
-    if (meetingWindow && !meetingWindow.closed) {
-      try {
-        meetingWindow.postMessage({ 
-          action: 'heartbeat', 
-          data: { 
-            timestamp: now,
-            connectionId: 'main-window',
-            stages: stages,
-            currentStageIndex: currentStageIndex,
-            isTimerRunning: isTimerRunning
-          } 
-        }, '*');
-      } catch (error) {
-        console.log('Error enviando heartbeat a ventana principal:', error);
-      }
-    }
-
-    // Broadcast a todas las ventanas de control
-    window.postMessage({ 
-      action: 'heartbeat', 
-      data: { 
-        timestamp: now,
-        connectionId: 'main-broadcast',
-        stages: stages,
-        currentStageIndex: currentStageIndex,
-        isTimerRunning: isTimerRunning
-      } 
-    }, '*');
-  };
-
-  // Función para registrar una nueva conexión de control
-  const registerControlConnection = (connectionId: string) => {
-    const now = Date.now();
-    setControlConnections(prev => new Set([...prev, connectionId]));
-    setConnectionHeartbeat(prev => new Map(prev).set(connectionId, now));
-    console.log(`✅ Nueva conexión de control registrada: ${connectionId}`);
-  };
-
-  // Función para actualizar heartbeat de una conexión
-  const updateConnectionHeartbeat = (connectionId: string) => {
-    const now = Date.now();
-    setConnectionHeartbeat(prev => new Map(prev).set(connectionId, now));
-  };
-
-  // Función para forzar reconexión de controles
+  // Función para forzar reconexión de controles (mantener para compatibilidad)
   const forceControlReconnection = () => {
     console.log('🔄 Forzando reconexión de controles...');
+    addConnectionLog('Reconexión manual solicitada');
     
-    // Enviar señal de reconexión
-    window.postMessage({ 
-      action: 'forceReconnect', 
-      data: { 
-        timestamp: Date.now(),
-        reason: 'manual_reconnect'
-      } 
-    }, '*');
-
-    // Limpiar conexiones existentes
-    setControlConnections(new Set());
-    setConnectionHeartbeat(new Map());
-    
-    // Enviar estado actual para sincronización
-    setTimeout(() => {
-      sendHeartbeatToControls();
-    }, 100);
+    // Reconectar WebSocket si está disponible
+    if (window.websocketService) {
+      window.websocketService.disconnect();
+      setTimeout(() => {
+        window.websocketService.connect();
+      }, 1000);
+    }
   };
 
   return (
@@ -1265,18 +1390,64 @@ export const Home: React.FC = () => {
                          {formatShortcut(keyboardShortcuts.addTime)}/{formatShortcut(keyboardShortcuts.subtractTime)} (Tiempo)
                        </div>
                        
-                       {/* Indicador de conexiones activas */}
+                       {/* Indicador de estado WebSocket */}
                        <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-                         <div className="flex items-center justify-between">
-                           <span className="text-xs text-blue-700">
-                             <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                             Controles conectados: {controlConnections.size}
+                         <div className="flex items-center justify-between mb-2">
+                           <span className="text-xs text-blue-700 font-medium">
+                             Estado WebSocket:
                            </span>
-                           <span className="text-xs text-blue-600">
-                             Último heartbeat: {new Date(lastPingTime).toLocaleTimeString()}
+                           <span className={`text-xs px-2 py-1 rounded-full ${
+                             connectionState.connected 
+                               ? 'bg-green-100 text-green-700' 
+                               : connectionState.connecting 
+                               ? 'bg-yellow-100 text-yellow-700'
+                               : 'bg-red-100 text-red-700'
+                           }`}>
+                             {connectionState.connected ? 'Conectado' : 
+                              connectionState.connecting ? 'Conectando...' : 'Desconectado'}
                            </span>
                          </div>
+                         
+                         {connectionState.connected && (
+                           <div className="text-xs text-blue-600 space-y-1">
+                             <div>Latencia: {connectionState.latency}ms</div>
+                             <div>Reconexiones: {connectionState.reconnectAttempts}</div>
+                             {connectionState.lastConnected && (
+                               <div>Última conexión: {new Date(connectionState.lastConnected).toLocaleTimeString()}</div>
+                             )}
+                           </div>
+                         )}
+                         
+                         {connectionState.error && (
+                           <div className="text-xs text-red-600 mt-1">
+                             Error: {connectionState.error}
+                           </div>
+                         )}
+                         
+                         <div className="mt-2 flex space-x-2">
+                           <button
+                             onClick={() => setShowConnectionLogs(!showConnectionLogs)}
+                             className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                           >
+                             {showConnectionLogs ? 'Ocultar Logs' : 'Ver Logs'}
+                           </button>
+                         </div>
                        </div>
+                       
+                       {/* Logs de conexión */}
+                       {showConnectionLogs && (
+                         <div className="mt-2 p-2 bg-gray-100 rounded border max-h-32 overflow-y-auto">
+                           <div className="text-xs text-gray-700 space-y-1">
+                             {connectionLogs.length === 0 ? (
+                               <div className="text-gray-500">No hay logs disponibles</div>
+                             ) : (
+                               connectionLogs.map((log, index) => (
+                                 <div key={index} className="font-mono text-xs">{log}</div>
+                               ))
+                             )}
+                           </div>
+                         </div>
+                       )}
                                                <div className="mt-3 flex space-x-2">
                           <button
                             onClick={() => setShowShortcutsModal(true)}

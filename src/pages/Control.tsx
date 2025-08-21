@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MeetingService } from '../services/meetingService';
 import { Meeting } from '../lib/supabase';
+import { createWebSocketService, getWebSocketService, clearWebSocketService, ConnectionState, CommandData } from '../services/websocketService';
 
 interface Stage {
   id?: string;
@@ -19,180 +20,25 @@ export const Control: React.FC = () => {
   const [currentTimeLeft, setCurrentTimeLeft] = useState(0);
   const [isLongPress, setIsLongPress] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState('Desconectado');
+  
+  // Estado de conexión WebSocket
+  const [connectionState, setConnectionState] = useState<ConnectionState>({
+    connected: false,
+    connecting: false,
+    error: null,
+    reconnectAttempts: 0,
+    lastConnected: null,
+    latency: 0
+  });
+  
+  const [showConnectionLogs, setShowConnectionLogs] = useState(false);
+  const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
 
-  // Sistema robusto de conexión
-  const [connectionId] = useState(`control-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
-  const [lastHeartbeat, setLastHeartbeat] = useState<number>(Date.now());
-  const [heartbeatInterval, setHeartbeatInterval] = useState<NodeJS.Timeout | null>(null);
-  const [reconnectionTimer, setReconnectionTimer] = useState<NodeJS.Timeout | null>(null);
-  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'disconnected'>('disconnected');
-  const [connectionLatency, setConnectionLatency] = useState<number>(0);
-
-  // Función para generar un ID único de conexión
-  const generateConnectionId = () => {
-    return `control-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  };
-
-  // Función para medir latencia de conexión
-  const measureConnectionLatency = (): Promise<number> => {
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      
-      if (window.opener && !window.opener.closed && isConnected) {
-        try {
-          window.opener.postMessage({ 
-            action: 'latencyTest', 
-            data: { 
-              timestamp: startTime,
-              connectionId: connectionId 
-            } 
-          }, '*');
-          
-          // Esperar respuesta con timeout
-          const timeout = setTimeout(() => {
-            resolve(999); // Timeout
-          }, 1000);
-          
-          const handleLatencyResponse = (event: MessageEvent) => {
-            if (event.data.action === 'latencyResponse' && event.data.data.connectionId === connectionId) {
-              clearTimeout(timeout);
-              window.removeEventListener('message', handleLatencyResponse);
-              const latency = Date.now() - startTime;
-              resolve(latency);
-            }
-          };
-          
-          window.addEventListener('message', handleLatencyResponse);
-        } catch (error) {
-          resolve(999); // Error
-        }
-      } else {
-        resolve(999); // No conectado
-      }
-    });
-  };
-
-  // Función para evaluar calidad de conexión
-  const evaluateConnectionQuality = (latency: number): 'excellent' | 'good' | 'poor' | 'disconnected' => {
-    if (latency >= 999) return 'disconnected';
-    if (latency < 50) return 'excellent';
-    if (latency < 200) return 'good';
-    return 'poor';
-  };
-
-  // Función para enviar heartbeat
-  const sendHeartbeat = () => {
-    const now = Date.now();
-    setLastHeartbeat(now);
-    
-    if (window.opener && !window.opener.closed && isConnected) {
-      try {
-        window.opener.postMessage({ 
-          action: 'heartbeat', 
-          data: { 
-            timestamp: now,
-            connectionId: connectionId,
-            latency: connectionLatency
-          } 
-        }, '*');
-      } catch (error) {
-        console.log('Error enviando heartbeat:', error);
-        handleConnectionError();
-      }
-    } else {
-      // Fallback: enviar a localStorage
-      localStorage.setItem('controlHeartbeat', JSON.stringify({
-        timestamp: now,
-        connectionId: connectionId,
-        latency: connectionLatency
-      }));
-    }
-  };
-
-  // Función para manejar errores de conexión
-  const handleConnectionError = () => {
-    console.log('🔌 Error de conexión detectado, iniciando reconexión...');
-    setIsConnected(false);
-    setConnectionStatus('Reconectando...');
-    setConnectionQuality('disconnected');
-    
-    // Limpiar timers existentes
-    if (heartbeatInterval) {
-      clearInterval(heartbeatInterval);
-      setHeartbeatInterval(null);
-    }
-    if (reconnectionTimer) {
-      clearTimeout(reconnectionTimer);
-      setReconnectionTimer(null);
-    }
-    
-    // Intentar reconexión
-    attemptReconnection();
-  };
-
-  // Función para intentar reconexión
-  const attemptReconnection = () => {
-    const maxAttempts = 5;
-    const attemptDelay = Math.min(1000 * Math.pow(2, connectionAttempts), 10000); // Exponential backoff
-    
-    if (connectionAttempts >= maxAttempts) {
-      console.log('❌ Máximo de intentos de reconexión alcanzado');
-      setConnectionStatus('Error de conexión');
-      setConnectionQuality('disconnected');
-      return;
-    }
-    
-    setConnectionAttempts(prev => prev + 1);
-    setConnectionStatus(`Reconectando... (${connectionAttempts + 1}/${maxAttempts})`);
-    
-    const timer = setTimeout(() => {
-      checkConnection();
-      measureAndUpdateConnectionQuality();
-    }, attemptDelay);
-    
-    setReconnectionTimer(timer);
-  };
-
-  // Función para medir y actualizar calidad de conexión
-  const measureAndUpdateConnectionQuality = async () => {
-    const latency = await measureConnectionLatency();
-    setConnectionLatency(latency);
-    
-    const quality = evaluateConnectionQuality(latency);
-    setConnectionQuality(quality);
-    
-    // Si la conexión es buena, resetear intentos
-    if (quality !== 'disconnected') {
-      setConnectionAttempts(0);
-    }
-  };
-
-  // Función para forzar reconexión manual
-  const forceReconnection = () => {
-    console.log('🔄 Reconexión manual solicitada');
-    setConnectionAttempts(0);
-    handleConnectionError();
-  };
-
-  // Función para registrar conexión con el servidor principal
-  const registerWithMainServer = () => {
-    if (window.opener && !window.opener.closed) {
-      try {
-        window.opener.postMessage({ 
-          action: 'registerConnection', 
-          data: { 
-            connectionId: connectionId,
-            timestamp: Date.now(),
-            userAgent: navigator.userAgent
-          } 
-        }, '*');
-      } catch (error) {
-        console.log('Error registrando conexión:', error);
-      }
-    }
+  // Función para agregar logs de conexión
+  const addConnectionLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `[${timestamp}] ${message}`;
+    setConnectionLogs(prev => [...prev.slice(-50), logEntry]); // Mantener solo últimos 50 logs
   };
 
   // Función para formatear tiempo
@@ -202,78 +48,70 @@ export const Control: React.FC = () => {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Función para enviar mensajes a la ventana principal
-  const sendMessageToMain = (action: string, data?: any) => {
-    if (window.opener && !window.opener.closed && isConnected && connectionQuality !== 'disconnected') {
-      try {
-        const messageData = {
-          action,
-          data: {
-            ...data,
-            connectionId: connectionId,
-            timestamp: Date.now(),
-            latency: connectionLatency
-          }
-        };
-        
-        window.opener.postMessage(messageData, '*');
-        console.log('📱 Enviando mensaje a ventana principal:', { action, data, connectionId });
-        
-        // Medir latencia después de enviar mensaje
-        setTimeout(() => {
-          measureAndUpdateConnectionQuality();
-        }, 100);
-        
-        return true;
-      } catch (error) {
-        console.log('Error enviando mensaje a ventana principal:', error);
-        handleConnectionError();
-        return false;
-      }
-    } else {
-      console.log('⚠️ No hay conexión válida con la ventana principal, usando localStorage');
-      // Actualizar localStorage directamente como fallback
-      try {
-        switch (action) {
-          case 'setTime':
-            localStorage.setItem('currentTimeLeft', data.seconds.toString());
-            break;
-          case 'setRunning':
-            localStorage.setItem('isTimerRunning', data.isRunning.toString());
-            break;
-          case 'nextStage':
-            const nextIndex = Math.min(currentStageIndex + 1, stages.length - 1);
-            localStorage.setItem('currentStageIndex', nextIndex.toString());
-            if (stages[nextIndex]) {
-              localStorage.setItem('currentTimeLeft', stages[nextIndex].duration.toString());
-              localStorage.setItem('initialTime', stages[nextIndex].duration.toString());
-            }
-            break;
-          case 'previousStage':
-            const prevIndex = Math.max(currentStageIndex - 1, 0);
-            localStorage.setItem('currentStageIndex', prevIndex.toString());
-            if (stages[prevIndex]) {
-              localStorage.setItem('currentTimeLeft', stages[prevIndex].duration.toString());
-              localStorage.setItem('initialTime', stages[prevIndex].duration.toString());
-            }
-            break;
-          case 'addTime':
-            const newTimeAdd = currentTimeLeft + (data.seconds || 30);
-            localStorage.setItem('currentTimeLeft', newTimeAdd.toString());
-            break;
-          case 'subtractTime':
-            const newTimeSub = Math.max(0, currentTimeLeft - (data.seconds || 30));
-            localStorage.setItem('currentTimeLeft', newTimeSub.toString());
-            break;
-        }
-        console.log('📝 Actualización realizada en localStorage como fallback');
-        return true;
-      } catch (error) {
-        console.log('Error actualizando localStorage:', error);
-        return false;
-      }
+  // Función para obtener URL del servidor WebSocket
+  const getWebSocketUrl = (): string => {
+    // En desarrollo, usar localhost:3001
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:3001';
     }
+    // En producción, usar el mismo dominio con puerto 3001
+    return `${window.location.protocol}//${window.location.hostname}:3001`;
   };
+
+  // Inicializar WebSocket
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const meetingId = urlParams.get('meeting');
+    
+    if (!meetingId) {
+      addConnectionLog('❌ No se encontró ID de directorio en la URL');
+      return;
+    }
+
+    // Crear servicio WebSocket
+    const wsService = createWebSocketService({
+      url: getWebSocketUrl(),
+      room: `meeting-${meetingId}`,
+      type: 'controller',
+      autoReconnect: true,
+      maxReconnectAttempts: 10,
+      reconnectDelay: 1000
+    });
+
+    // Configurar callbacks
+    wsService.onConnectionChange((state) => {
+      setConnectionState(state);
+      addConnectionLog(`Estado de conexión: ${state.connected ? 'Conectado' : 'Desconectado'}`);
+      if (state.error) {
+        addConnectionLog(`Error: ${state.error}`);
+      }
+    });
+
+    wsService.onCommand((command: CommandData) => {
+      addConnectionLog(`Comando recibido: ${command.action}`);
+      // Los comandos se manejan en el timer, no en el control
+    });
+
+    wsService.onError((error) => {
+      addConnectionLog(`Error WebSocket: ${error}`);
+    });
+
+    // Conectar al servidor
+    addConnectionLog('🔄 Conectando al servidor WebSocket...');
+    wsService.connect()
+      .then(() => {
+        addConnectionLog('✅ Conectado exitosamente al servidor');
+      })
+      .catch((error) => {
+        addConnectionLog(`❌ Error de conexión: ${error.message}`);
+      });
+
+    // Cleanup al desmontar
+    return () => {
+      addConnectionLog('🔌 Desconectando del servidor...');
+      clearWebSocketService();
+    };
+  }, []);
 
   // Cargar datos del directorio
   const loadMeetingData = async (meetingId: string) => {
@@ -298,43 +136,96 @@ export const Control: React.FC = () => {
       }
     } catch (error) {
       console.error('Error cargando directorio:', error);
+      addConnectionLog(`❌ Error cargando directorio: ${error}`);
     }
   };
 
+  // Función para enviar comandos
+  const sendCommand = async (action: string, data?: any) => {
+    const wsService = getWebSocketService();
+    if (!wsService) {
+      addConnectionLog('❌ Servicio WebSocket no disponible');
+      return false;
+    }
+
+    if (!wsService.isConnected()) {
+      addConnectionLog('⚠️ No conectado al servidor, comando no enviado');
+      return false;
+    }
+
+    addConnectionLog(`📤 Enviando comando: ${action}`);
+    const success = await wsService.sendCommand(action, data);
+    
+    if (success) {
+      addConnectionLog(`✅ Comando enviado exitosamente: ${action}`);
+    } else {
+      addConnectionLog(`❌ Error enviando comando: ${action}`);
+    }
+    
+    return success;
+  };
+
   // Control de etapas
-  const handlePreviousStage = () => {
+  const handlePreviousStage = async () => {
     if (currentStageIndex > 0) {
       const newIndex = currentStageIndex - 1;
       setCurrentStageIndex(newIndex);
       const newStageTime = stages[newIndex].duration;
       setCurrentTimeLeft(newStageTime);
       setIsTimerRunning(false);
-      sendMessageToMain('previousStage', { stageIndex: newIndex });
+      
+      const success = await sendCommand('previousStage', { stageIndex: newIndex });
+      if (!success) {
+        // Fallback a localStorage
+        localStorage.setItem('currentStageIndex', newIndex.toString());
+        localStorage.setItem('currentTimeLeft', newStageTime.toString());
+        localStorage.setItem('initialTime', newStageTime.toString());
+        localStorage.setItem('isTimerRunning', 'false');
+      }
     }
   };
 
-  const handleNextStage = () => {
+  const handleNextStage = async () => {
     if (currentStageIndex < stages.length - 1) {
       const newIndex = currentStageIndex + 1;
       setCurrentStageIndex(newIndex);
       const newStageTime = stages[newIndex].duration;
       setCurrentTimeLeft(newStageTime);
       setIsTimerRunning(false);
-      sendMessageToMain('nextStage', { stageIndex: newIndex });
+      
+      const success = await sendCommand('nextStage', { stageIndex: newIndex });
+      if (!success) {
+        // Fallback a localStorage
+        localStorage.setItem('currentStageIndex', newIndex.toString());
+        localStorage.setItem('currentTimeLeft', newStageTime.toString());
+        localStorage.setItem('initialTime', newStageTime.toString());
+        localStorage.setItem('isTimerRunning', 'false');
+      }
     }
   };
 
   // Control del cronómetro
-  const handlePauseResume = () => {
+  const handlePauseResume = async () => {
     const newRunningState = !isTimerRunning;
     setIsTimerRunning(newRunningState);
-    sendMessageToMain('pauseResume', { isRunning: newRunningState });
+    
+    const success = await sendCommand('pauseResume', { isRunning: newRunningState });
+    if (!success) {
+      // Fallback a localStorage
+      localStorage.setItem('isTimerRunning', newRunningState.toString());
+    }
   };
 
-  const handleResetToZero = () => {
+  const handleResetToZero = async () => {
     setCurrentTimeLeft(0);
     setIsTimerRunning(false);
-    sendMessageToMain('setTime', { seconds: 0 });
+    
+    const success = await sendCommand('setTime', { seconds: 0 });
+    if (!success) {
+      // Fallback a localStorage
+      localStorage.setItem('currentTimeLeft', '0');
+      localStorage.setItem('isTimerRunning', 'false');
+    }
   };
 
   // Manejo de presión prolongada
@@ -361,7 +252,7 @@ export const Control: React.FC = () => {
   };
 
   // Control de tiempo
-  const handleAddTime = () => {
+  const handleAddTime = async () => {
     if (!isTimerRunning) {
       let newTime: number;
       if (currentTimeLeft === 0) {
@@ -370,61 +261,56 @@ export const Control: React.FC = () => {
         newTime = Math.ceil(currentTimeLeft / 30) * 30;
       }
       setCurrentTimeLeft(newTime);
-      sendMessageToMain('setTime', { seconds: newTime });
+      
+      const success = await sendCommand('setTime', { seconds: newTime });
+      if (!success) {
+        // Fallback a localStorage
+        localStorage.setItem('currentTimeLeft', newTime.toString());
+      }
     } else {
       const newTime = currentTimeLeft + 30;
       setCurrentTimeLeft(newTime);
-      sendMessageToMain('addTime', { seconds: 30 });
+      
+      const success = await sendCommand('addTime', { seconds: 30 });
+      if (!success) {
+        // Fallback a localStorage
+        localStorage.setItem('currentTimeLeft', newTime.toString());
+      }
     }
   };
 
-  const handleSubtractTime = () => {
+  const handleSubtractTime = async () => {
     if (!isTimerRunning) {
       const newTime = Math.max(0, Math.floor(currentTimeLeft / 30) * 30);
       setCurrentTimeLeft(newTime);
-      sendMessageToMain('setTime', { seconds: newTime });
+      
+      const success = await sendCommand('setTime', { seconds: newTime });
+      if (!success) {
+        // Fallback a localStorage
+        localStorage.setItem('currentTimeLeft', newTime.toString());
+      }
     } else {
       const newTime = Math.max(0, currentTimeLeft - 30);
       setCurrentTimeLeft(newTime);
-      sendMessageToMain('subtractTime', { seconds: 30 });
-    }
-  };
-
-  // Verificar conexión con ventana principal
-  const checkConnection = () => {
-    const hasOpener = window.opener && !window.opener.closed;
-    
-    // Verificar si la ventana principal está en el mismo dominio
-    let isSameOrigin = false;
-    try {
-      if (hasOpener) {
-        // Intentar acceder a la ubicación para verificar el mismo origen
-        const openerOrigin = window.opener.location.origin;
-        const currentOrigin = window.location.origin;
-        isSameOrigin = openerOrigin === currentOrigin;
-      }
-    } catch (error) {
-      // Si hay error de acceso, probablemente es por políticas de seguridad
-      console.log('No se puede verificar el origen de la ventana principal:', error);
-    }
-    
-    const isConnected = hasOpener && isSameOrigin;
-    setIsConnected(isConnected);
-    setConnectionStatus(isConnected ? 'Conectado' : 'Desconectado');
-    
-    // Si hay conexión válida, enviar ping para verificar
-    if (isConnected) {
-      try {
-        window.opener.postMessage({ action: 'ping', data: { from: 'control' } }, '*');
-      } catch (error) {
-        console.log('Error enviando ping:', error);
-        setIsConnected(false);
-        setConnectionStatus('Error de conexión');
+      
+      const success = await sendCommand('subtractTime', { seconds: 30 });
+      if (!success) {
+        // Fallback a localStorage
+        localStorage.setItem('currentTimeLeft', newTime.toString());
       }
     }
   };
 
-  // Sincronización con localStorage y verificación de conexión
+  // Función para forzar reconexión
+  const forceReconnection = () => {
+    const wsService = getWebSocketService();
+    if (wsService) {
+      addConnectionLog('🔄 Reconexión manual solicitada');
+      wsService.forceReconnect('manual');
+    }
+  };
+
+  // Sincronización con localStorage como fallback
   useEffect(() => {
     const syncWithLocalStorage = () => {
       const timeLeft = localStorage.getItem('currentTimeLeft');
@@ -460,109 +346,15 @@ export const Control: React.FC = () => {
       }
     };
 
-    // Verificar conexión cada 3 segundos
-    const connectionInterval = setInterval(checkConnection, 3000);
-    
     // Sincronizar cada 500ms para mayor responsividad
     const syncInterval = setInterval(syncWithLocalStorage, 500);
     
-    // Enviar heartbeat cada 2 segundos
-    const heartbeatTimer = setInterval(sendHeartbeat, 2000);
-    setHeartbeatInterval(heartbeatTimer);
-    
-    // Medir calidad de conexión cada 10 segundos
-    const qualityTimer = setInterval(measureAndUpdateConnectionQuality, 10000);
-    
     // Verificación inicial
-    checkConnection();
     syncWithLocalStorage();
-    registerWithMainServer();
-    measureAndUpdateConnectionQuality();
     
     return () => {
-      clearInterval(connectionInterval);
       clearInterval(syncInterval);
-      clearInterval(heartbeatTimer);
-      clearInterval(qualityTimer);
     };
-  }, [connectionId]);
-
-  // Escuchar respuestas de la ventana principal
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const { action, data } = event.data;
-      
-      switch (action) {
-        case 'pong':
-          console.log('📡 Pong recibido de ventana principal');
-          setIsConnected(true);
-          setConnectionStatus('Conectado');
-          break;
-        case 'heartbeat':
-          console.log('💓 Heartbeat recibido de ventana principal');
-          if (data.connectionId === connectionId) {
-            setLastHeartbeat(Date.now());
-            // Responder al heartbeat
-            if (event.source && event.source !== window) {
-              (event.source as Window).postMessage({ 
-                action: 'heartbeat', 
-                data: { 
-                  timestamp: Date.now(),
-                  connectionId: connectionId,
-                  latency: connectionLatency
-                } 
-              }, '*');
-            }
-          }
-          break;
-        case 'connectionRegistered':
-          console.log('✅ Conexión registrada exitosamente');
-          setIsConnected(true);
-          setConnectionStatus('Conectado');
-          setConnectionAttempts(0);
-          // Sincronizar estado
-          if (data.stages) {
-            setStages(data.stages);
-          }
-          if (data.currentStageIndex !== undefined) {
-            setCurrentStageIndex(data.currentStageIndex);
-          }
-          if (data.isTimerRunning !== undefined) {
-            setIsTimerRunning(data.isTimerRunning);
-          }
-          if (data.currentTimeLeft) {
-            setCurrentTimeLeft(parseInt(data.currentTimeLeft));
-          }
-          break;
-        case 'forceReconnect':
-          console.log('🔄 Reconexión forzada solicitada por servidor principal');
-          forceReconnection();
-          break;
-        case 'latencyResponse':
-          if (data.connectionId === connectionId) {
-            const latency = Date.now() - data.timestamp;
-            setConnectionLatency(latency);
-            const quality = evaluateConnectionQuality(latency);
-            setConnectionQuality(quality);
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [connectionId, connectionLatency]);
-
-  // Cargar datos al iniciar
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const meetingId = urlParams.get('meeting');
-    
-    if (meetingId) {
-      loadMeetingData(meetingId);
-    }
   }, []);
 
   // Timer para contar regresivamente
@@ -586,6 +378,16 @@ export const Control: React.FC = () => {
     };
   }, [isTimerRunning, currentTimeLeft]);
 
+  // Cargar datos al iniciar
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const meetingId = urlParams.get('meeting');
+    
+    if (meetingId) {
+      loadMeetingData(meetingId);
+    }
+  }, []);
+
   if (!meeting) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -607,28 +409,31 @@ export const Control: React.FC = () => {
           
           {/* Indicador de estado de conexión */}
           <div className={`mt-3 px-3 py-1 rounded-full text-xs font-medium ${
-            isConnected 
+            connectionState.connected 
               ? 'bg-green-100 text-green-800 border border-green-200' 
               : 'bg-red-100 text-red-800 border border-red-200'
           }`}>
             <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
-              isConnected ? 'bg-green-500' : 'bg-red-500'
+              connectionState.connected ? 'bg-green-500' : 'bg-red-500'
             }`}></span>
-            {connectionStatus}
+            {connectionState.connected ? 'Conectado' : 
+             connectionState.connecting ? 'Conectando...' : 
+             connectionState.error ? 'Error' : 'Desconectado'}
           </div>
           
-          {/* Indicador de calidad de conexión */}
-          {isConnected && (
+          {/* Indicador de latencia */}
+          {connectionState.connected && connectionState.latency > 0 && (
             <div className="mt-2 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-              <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
-                connectionQuality === 'excellent' ? 'bg-green-500' :
-                connectionQuality === 'good' ? 'bg-yellow-500' :
-                connectionQuality === 'poor' ? 'bg-orange-500' : 'bg-red-500'
-              }`}></span>
-              {connectionQuality === 'excellent' ? 'Excelente' :
-               connectionQuality === 'good' ? 'Buena' :
-               connectionQuality === 'poor' ? 'Pobre' : 'Desconectado'} 
-              {connectionLatency > 0 && connectionLatency < 999 && ` (${connectionLatency}ms)`}
+              <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+              Latencia: {connectionState.latency}ms
+            </div>
+          )}
+          
+          {/* Información de reconexión */}
+          {connectionState.reconnectAttempts > 0 && (
+            <div className="mt-2 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+              <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+              Reconectando... ({connectionState.reconnectAttempts}/10)
             </div>
           )}
         </header>
@@ -743,27 +548,60 @@ export const Control: React.FC = () => {
             🔄 Reconectar Manualmente
           </button>
           
-          {!isConnected && (
+          {/* Botón para mostrar logs */}
+          <button
+            onClick={() => setShowConnectionLogs(!showConnectionLogs)}
+            className="mt-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded-lg transition-colors"
+            title="Ver logs de conexión"
+          >
+            📋 {showConnectionLogs ? 'Ocultar' : 'Ver'} Logs
+          </button>
+          
+          {!connectionState.connected && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-800 text-xs">
                 <strong>⚠️ Control Remoto Desconectado</strong><br/>
-                Estado: {connectionStatus}<br/>
-                Para usar como control remoto, abre este enlace desde la misma pestaña donde tienes el panel principal abierto.<br/>
-                <span className="text-xs opacity-75">Los controles funcionarán con sincronización local.</span>
+                {connectionState.error ? `Error: ${connectionState.error}` : 'No hay conexión con el servidor'}<br/>
+                Los controles funcionarán con sincronización local.<br/>
+                <span className="text-xs opacity-75">Asegúrate de que el servidor WebSocket esté ejecutándose.</span>
               </p>
             </div>
           )}
           
-          {isConnected && (
+          {connectionState.connected && (
             <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-green-800 text-xs">
                 <strong>✅ Control Remoto Activo</strong><br/>
-                Estado: {connectionStatus}<br/>
+                Conectado al servidor WebSocket<br/>
                 Los controles afectan directamente al cronómetro principal en tiempo real.
               </p>
             </div>
           )}
         </div>
+
+        {/* Logs de conexión */}
+        {showConnectionLogs && (
+          <div className="mt-4 bg-gray-800 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-3">Logs de Conexión</h3>
+            <div className="bg-gray-900 rounded p-3 h-40 overflow-y-auto text-xs font-mono">
+              {connectionLogs.length === 0 ? (
+                <p className="text-gray-500">No hay logs disponibles</p>
+              ) : (
+                connectionLogs.map((log, index) => (
+                  <div key={index} className="text-gray-300 mb-1">
+                    {log}
+                  </div>
+                ))
+              )}
+            </div>
+            <button
+              onClick={() => setConnectionLogs([])}
+              className="mt-2 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded-lg transition-colors"
+            >
+              Limpiar Logs
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
