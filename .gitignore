@@ -4,12 +4,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 
 # Build outputs
 dist/
 build/
-*.local
+*.tsbuildinfo
 
 # Environment variables
 .env
@@ -18,16 +17,21 @@ build/
 .env.test.local
 .env.production.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
 # Logs
 logs
@@ -88,5 +92,10 @@ jspm_packages/
 tmp/
 temp/
 
-# Vite
-.vite
+# Supabase
+.supabase/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
