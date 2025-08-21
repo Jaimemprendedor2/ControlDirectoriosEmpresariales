@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { TimeSelector } from './TimeSelector';
 
 interface InlineStageEditorProps {
   stage: {
@@ -31,32 +32,20 @@ export const InlineStageEditor: React.FC<InlineStageEditorProps> = ({
     }
   }, []);
 
-  const formatDuration = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
 
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const parseTimeToSeconds = (timeString: string): number => {
-    const parts = timeString.split(':').map(Number);
-    if (parts.length === 2) {
-      // MM:SS
-      return parts[0] * 60 + parts[1];
-    } else if (parts.length === 3) {
-      // HH:MM:SS
-      return parts[0] * 3600 + parts[1] * 60 + parts[2];
-    }
-    return 0;
-  };
 
   const handleSave = () => {
+    console.log('handleSave llamado');
+    console.log('title:', title);
+    console.log('duration:', duration);
+    console.log('title.trim():', title.trim());
+    console.log('duration > 0:', duration > 0);
+    
     if (title.trim() && duration > 0) {
+      console.log('Guardando etapa...');
       onSave(title.trim(), description.trim(), duration, alertColor, alertSeconds);
+    } else {
+      console.log('No se puede guardar - título vacío o duración inválida');
     }
   };
 
@@ -95,62 +84,11 @@ export const InlineStageEditor: React.FC<InlineStageEditorProps> = ({
         </div>
 
         {/* Tiempo */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tiempo (MM:SS) *
-          </label>
-          <input
-            type="text"
-            value={formatDuration(duration)}
-            onChange={(e) => {
-              const value = e.target.value;
-              // Permitir entrada de números y dos puntos
-              if (value === '' || /^[\d:]*$/.test(value)) {
-                // Validar formato básico
-                const parts = value.split(':');
-                if (parts.length <= 2 && parts.every(part => part === '' || /^\d{0,2}$/.test(part))) {
-                  // Si el formato es válido, actualizar el estado temporal
-                  if (value && value !== formatDuration(duration)) {
-                    const seconds = parseTimeToSeconds(value);
-                    if (seconds > 0) {
-                      setDuration(seconds);
-                    }
-                  }
-                }
-              }
-            }}
-            onBlur={(e) => {
-              const value = e.target.value;
-              if (value) {
-                const seconds = parseTimeToSeconds(value);
-                if (seconds > 0) {
-                  setDuration(seconds);
-                } else {
-                  // Si el formato no es válido, restaurar el valor anterior
-                  e.target.value = formatDuration(duration);
-                }
-              }
-            }}
-            onKeyDown={(e) => {
-              const allowedKeys = [
-                'Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 
-                'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-                'Home', 'End', 'Insert'
-              ];
-              const isNumber = /^[0-9]$/.test(e.key);
-              const isColon = e.key === ':';
-              const isNumpad = e.key.startsWith('Numpad') || e.key.startsWith('Num');
-              
-              if (!isNumber && !isColon && !isNumpad && !allowedKeys.includes(e.key)) {
-                e.preventDefault();
-              }
-            }}
-            onKeyPress={handleKeyPress}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-            placeholder="00:30"
-            inputMode="numeric"
-          />
-        </div>
+        <TimeSelector
+          duration={duration}
+          onChange={setDuration}
+          label="Tiempo"
+        />
 
         {/* Descripción */}
         <div className="md:col-span-2">

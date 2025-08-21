@@ -201,9 +201,14 @@ export const Home: React.FC = () => {
   };
 
   const handleEditStage = (index: number, _stage: Stage) => {
-    console.log('Editando etapa:', index, _stage);
+    console.log('handleEditStage llamado con índice:', index);
+    console.log('Etapa a editar:', _stage);
+    console.log('stages.length:', stages.length);
+    console.log('editingIndex actual:', editingIndex);
+    
     // Asegurar que el índice sea válido
     if (index >= 0 && index < stages.length) {
+      console.log('Índice válido, estableciendo editingIndex a:', index);
       setEditingIndex(index);
     } else {
       console.error('Índice de etapa inválido:', index);
@@ -377,8 +382,13 @@ export const Home: React.FC = () => {
   }, [meetingWindow, keyboardShortcuts]);
 
   const handleStartMeeting = () => {
+    console.log('handleStartMeeting llamado');
+    console.log('meetingWindow:', meetingWindow);
+    console.log('stages.length:', stages.length);
+    
     // Si ya hay una ventana abierta, cerrarla y parar el directorio
     if (meetingWindow && !meetingWindow.closed) {
+      console.log('Cerrando ventana existente');
       meetingWindow.close();
       setMeetingWindow(null);
       setIsTimerRunning(false);
@@ -391,6 +401,7 @@ export const Home: React.FC = () => {
       return;
     }
     
+    console.log('Abriendo nueva ventana');
     // Abrir ventana de reunión frameless de 500x400
     const newMeetingWindow = window.open(
       '/meeting',
@@ -404,6 +415,7 @@ export const Home: React.FC = () => {
       setMeetingWindow(newMeetingWindow);
       setIsTimerRunning(true);
       setCurrentStageIndex(0);
+      console.log('Ventana abierta exitosamente');
     }
   };
 

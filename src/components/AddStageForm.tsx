@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
+import { TimeSelector } from './TimeSelector';
 
-const formatDuration = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
 
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
-};
 
 interface AddStageFormProps {
   onAddStage: (stage: { title: string; description?: string; duration: number }) => void;
@@ -19,7 +11,7 @@ interface AddStageFormProps {
 export const AddStageForm: React.FC<AddStageFormProps> = ({ onAddStage, initialData }) => {
   const [title, setTitle] = useState(initialData?.title || '');
   const [description, setDescription] = useState(initialData?.description || '');
-  const [duration, setDuration] = useState(initialData?.duration ? formatDuration(initialData.duration) : '');
+  const [duration, setDuration] = useState(initialData?.duration || 300); // 5 minutos por defecto
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -30,34 +22,7 @@ export const AddStageForm: React.FC<AddStageFormProps> = ({ onAddStage, initialD
       return;
     }
 
-    if (!duration.trim()) {
-      alert('Por favor ingresa la duración de la etapa');
-      return;
-    }
-
-    // Parse duration
-    let durationSeconds = 0;
-    const durationStr = duration.trim();
-    
-    if (durationStr.includes(':')) {
-      // Format: "5:00" or "1:30:00"
-      const parts = durationStr.split(':').map(Number);
-      if (parts.length === 2) {
-        durationSeconds = parts[0] * 60 + parts[1]; // mm:ss
-      } else if (parts.length === 3) {
-        durationSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2]; // hh:mm:ss
-      }
-    } else {
-      // Format: "300" (seconds) or "5" (minutes)
-      const num = parseInt(durationStr);
-      if (isNaN(num) || num <= 0) {
-        alert('Por favor ingresa una duración válida');
-        return;
-      }
-      durationSeconds = num < 1000 ? num * 60 : num; // Assume minutes if small number
-    }
-
-    if (durationSeconds < 30) {
+    if (duration < 30) {
       alert('La duración mínima es 30 segundos');
       return;
     }
@@ -65,13 +30,13 @@ export const AddStageForm: React.FC<AddStageFormProps> = ({ onAddStage, initialD
     onAddStage({
       title: title.trim(),
       description: description.trim(),
-      duration: durationSeconds
+      duration: duration
     });
 
     // Reset form
     setTitle('');
     setDescription('');
-    setDuration('');
+    setDuration(300); // Reset to 5 minutes
     setIsOpen(false);
   };
 
@@ -123,44 +88,11 @@ export const AddStageForm: React.FC<AddStageFormProps> = ({ onAddStage, initialD
           />
         </div>
 
-        <div>
-          <label htmlFor="stage-duration" className="block text-sm font-medium text-gray-700 mb-1">
-            Duración
-          </label>
-          <input
-            type="text"
-            id="stage-duration"
-            value={duration}
-            onChange={(e) => {
-              const value = e.target.value;
-              // Permitir entrada de números y dos puntos
-              if (value === '' || /^[\d:]*$/.test(value)) {
-                setDuration(value);
-              }
-            }}
-            onKeyDown={(e) => {
-              const allowedKeys = [
-                'Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 
-                'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
-                'Home', 'End', 'Insert'
-              ];
-              const isNumber = /^[0-9]$/.test(e.key);
-              const isColon = e.key === ':';
-              const isNumpad = e.key.startsWith('Numpad') || e.key.startsWith('Num');
-              
-              if (!isNumber && !isColon && !isNumpad && !allowedKeys.includes(e.key)) {
-                e.preventDefault();
-              }
-            }}
-            placeholder="Ej: 5:00 o 300"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
-            required
-            inputMode="numeric"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Formato: mm:ss (ej: 5:00) o segundos (ej: 300)
-          </p>
-        </div>
+        <TimeSelector
+          duration={duration}
+          onChange={setDuration}
+          label="Duración"
+        />
 
         <div className="flex space-x-3 pt-2">
           <button
