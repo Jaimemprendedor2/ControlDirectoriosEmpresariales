@@ -35,13 +35,43 @@ export const Home: React.FC = () => {
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  const [keyboardShortcuts, setKeyboardShortcuts] = useState({
-    pauseResume: { key: 'Space', ctrl: false, alt: false, shift: false, global: false },
-    nextStage: { key: 'KeyN', ctrl: false, alt: false, shift: false, global: false },
-    previousStage: { key: 'KeyP', ctrl: false, alt: false, shift: false, global: false },
-    addTime: { key: 'Equal', ctrl: false, alt: false, shift: false, global: false },
-    subtractTime: { key: 'Minus', ctrl: false, alt: false, shift: false, global: false }
-  });
+  // Tipo para los atajos de teclado
+  type KeyboardShortcut = {
+    key: string;
+    ctrl: boolean;
+    alt: boolean;
+    shift: boolean;
+    global: boolean;
+  };
+
+  type KeyboardShortcuts = {
+    pauseResume: KeyboardShortcut;
+    nextStage: KeyboardShortcut;
+    previousStage: KeyboardShortcut;
+    addTime: KeyboardShortcut;
+    subtractTime: KeyboardShortcut;
+  };
+
+  // Cargar atajos de teclado desde localStorage o usar valores por defecto
+  const loadKeyboardShortcuts = (): KeyboardShortcuts => {
+    const saved = localStorage.getItem('keyboardShortcuts');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (error) {
+        console.error('Error cargando atajos de teclado:', error);
+      }
+    }
+    return {
+      pauseResume: { key: 'Space', ctrl: false, alt: false, shift: false, global: false },
+      nextStage: { key: 'KeyN', ctrl: false, alt: false, shift: false, global: false },
+      previousStage: { key: 'KeyP', ctrl: false, alt: false, shift: false, global: false },
+      addTime: { key: 'Equal', ctrl: false, alt: false, shift: false, global: false },
+      subtractTime: { key: 'Minus', ctrl: false, alt: false, shift: false, global: false }
+    };
+  };
+
+  const [keyboardShortcuts, setKeyboardShortcuts] = useState(loadKeyboardShortcuts);
   const [showShortcutConfig, setShowShortcutConfig] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [configuringShortcut, setConfiguringShortcut] = useState<string | null>(null);
@@ -50,8 +80,9 @@ export const Home: React.FC = () => {
 
   // Función para obtener información de compilación
   const getBuildInfo = () => {
-    // Fecha fija de compilación (se actualiza cuando se hace un nuevo build)
-    const buildDate = new Date();
+    // Fecha fija de compilación (se actualiza solo cuando se hace un commit)
+    // Esta fecha se mantiene estática hasta que se actualice manualmente
+    const buildDate = new Date('2024-12-19T15:30:00'); // Fecha fija de la versión actual
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -66,7 +97,7 @@ export const Home: React.FC = () => {
   };
 
   // Función para formatear combinaciones de teclas
-  const formatShortcut = (shortcut: { key: string; ctrl: boolean; alt: boolean; shift: boolean; global: boolean }) => {
+  const formatShortcut = (shortcut: KeyboardShortcut) => {
     const parts = [];
     if (shortcut.ctrl) parts.push('Ctrl');
     if (shortcut.alt) parts.push('Alt');
@@ -201,12 +232,21 @@ export const Home: React.FC = () => {
     const currentStage = stages[currentStageIndex];
     if (!currentStage) return "00:00";
     
+    // Solo usar localStorage si el cronómetro está corriendo o pausado
+    // Si no hay ventana abierta, usar el tiempo de la etapa
+    if (!meetingWindow || meetingWindow.closed) {
+      const minutes = Math.floor(currentStage.duration / 60);
+      const secs = currentStage.duration % 60;
+      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
     // Obtener el tiempo del localStorage con mejor sincronización
     const timeLeft = localStorage.getItem('currentTimeLeft');
     let seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
     
     // Asegurar que el tiempo no sea negativo y no sea NaN
     if (isNaN(seconds)) {
+      console.log('⚠️ Valor NaN detectado en localStorage, corrigiendo...');
       seconds = currentStage.duration;
       // Si el valor es NaN, corregir el localStorage
       localStorage.setItem('currentTimeLeft', seconds.toString());
@@ -377,19 +417,25 @@ export const Home: React.FC = () => {
 
   const handlePauseResume = () => {
     const newRunningState = !isTimerRunning;
+    console.log('🔄 handlePauseResume:', { 
+      from: isTimerRunning, 
+      to: newRunningState,
+      meetingWindow: meetingWindow ? !meetingWindow.closed : false 
+    });
+    
     setIsTimerRunning(newRunningState);
     
-    // Sincronizar inmediatamente el estado del panel de control
-    if (!newRunningState) {
-      // Si se va a pausar, obtener el tiempo actual del localStorage
-      const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-      if (currentTimeLeft) {
-        // Forzar una actualización inmediata del panel de control
-        setTimerUpdate(prev => prev + 1);
-      }
-    }
-    
+    // Enviar mensaje a la ventana emergente primero
     sendMessageToMeetingWindow('pauseResume', { isRunning: newRunningState });
+    
+    // Sincronizar inmediatamente el estado del panel de control
+    // Esperar un poco para que la ventana emergente procese el mensaje
+    setTimeout(() => {
+      const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+      console.log('💾 Tiempo en localStorage después de pausa:', currentTimeLeft);
+      // Forzar una actualización inmediata del panel de control
+      setTimerUpdate(prev => prev + 1);
+    }, 50);
   };
 
 
@@ -497,16 +543,19 @@ export const Home: React.FC = () => {
       ];
       
       if (validKeys.includes(event.code)) {
-        setKeyboardShortcuts(prev => ({
-          ...prev,
+        const newShortcuts = {
+          ...keyboardShortcuts,
           [configuringShortcut]: {
-            ...prev[configuringShortcut as keyof typeof prev],
+            ...keyboardShortcuts[configuringShortcut as keyof KeyboardShortcuts],
             key: event.code,
             ctrl: event.ctrlKey,
             alt: event.altKey,
             shift: event.shiftKey
           }
-        }));
+        };
+        setKeyboardShortcuts(newShortcuts);
+        // Guardar en localStorage
+        localStorage.setItem('keyboardShortcuts', JSON.stringify(newShortcuts));
         setConfiguringShortcut(null);
         setShowShortcutConfig(false);
       }
@@ -542,6 +591,16 @@ export const Home: React.FC = () => {
   // Función para manejar atajos de teclado
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
+      // Solo procesar si no estamos escribiendo en un input/textarea
+      const activeElement = document.activeElement;
+      if (activeElement && (
+        activeElement.tagName === 'INPUT' || 
+        activeElement.tagName === 'TEXTAREA' || 
+        activeElement.getAttribute('contenteditable') === 'true'
+      )) {
+        return; // No procesar atajos si estamos escribiendo
+      }
+
       // Verificar cada atajo
       Object.entries(keyboardShortcuts).forEach(([action, shortcut]) => {
         if (event.code === shortcut.key && 
@@ -549,11 +608,32 @@ export const Home: React.FC = () => {
             event.altKey === shortcut.alt && 
             event.shiftKey === shortcut.shift) {
           
-          // Solo ejecutar si la ventana está activa O si el atajo es global
-          const shouldExecute = (meetingWindow && !meetingWindow.closed) || shortcut.global;
+          // Determinar si debe ejecutarse
+          const hasActiveWindow = meetingWindow && !meetingWindow.closed;
+          const isWindowFocused = document.hasFocus();
+          
+          // Los atajos globales funcionan cuando:
+          // 1. La ventana de reunión está abierta Y
+          // 2. (El atajo es global O la ventana principal tiene foco)
+          const shouldExecute = hasActiveWindow && (shortcut.global || isWindowFocused);
+          
+          // Debug logging para atajos globales
+          if (shortcut.global) {
+            console.log(`🔍 Atajo global detectado: ${action}`, {
+              code: event.code,
+              ctrl: event.ctrlKey,
+              alt: event.altKey,
+              shift: event.shiftKey,
+              hasActiveWindow,
+              isWindowFocused,
+              shouldExecute,
+              isGlobal: shortcut.global
+            });
+          }
           
           if (shouldExecute) {
             event.preventDefault();
+            console.log(`✅ Ejecutando atajo: ${action} (global: ${shortcut.global})`);
             
             switch (action) {
               case 'pauseResume':
@@ -572,14 +652,19 @@ export const Home: React.FC = () => {
                 handleSubtractTime();
                 break;
             }
+          } else if (shortcut.global) {
+            console.log(`❌ Atajo global NO ejecutado: ${action}`, {
+              reason: !hasActiveWindow ? 'No hay ventana activa' : 'Ventana no tiene foco'
+            });
           }
         }
       });
     };
 
-    document.addEventListener('keydown', handleKeyPress);
+    // Usar window en lugar de document para capturar más eventos
+    window.addEventListener('keydown', handleKeyPress, true);
     return () => {
-      document.removeEventListener('keydown', handleKeyPress);
+      window.removeEventListener('keydown', handleKeyPress, true);
     };
   }, [meetingWindow, keyboardShortcuts]);
 
@@ -883,15 +968,26 @@ export const Home: React.FC = () => {
                          {formatShortcut(keyboardShortcuts.previousStage)} (Anterior), 
                          {formatShortcut(keyboardShortcuts.addTime)}/{formatShortcut(keyboardShortcuts.subtractTime)} (Tiempo)
                        </div>
-                       <div className="mt-3">
-                         <button
-                           onClick={() => setShowShortcutsModal(true)}
-                           className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-lg transition-colors flex items-center space-x-2"
-                         >
-                           <span>⌨️</span>
-                           <span>Configurar Atajos</span>
-                         </button>
-                       </div>
+                                               <div className="mt-3 flex space-x-2">
+                          <button
+                            onClick={() => setShowShortcutsModal(true)}
+                            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-lg transition-colors flex items-center space-x-2"
+                          >
+                            <span>⌨️</span>
+                            <span>Configurar Atajos</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              console.log('🔍 Estado actual de atajos:', keyboardShortcuts);
+                              console.log('🔍 Ventana de reunión:', meetingWindow ? !meetingWindow.closed : false);
+                            }}
+                            className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs rounded-lg transition-colors flex items-center space-x-2"
+                            title="Ver estado de atajos en consola"
+                          >
+                            <span>🔍</span>
+                            <span>Debug Atajos</span>
+                          </button>
+                        </div>
                     </div>
                   </div>
                 </div>
@@ -1049,6 +1145,23 @@ export const Home: React.FC = () => {
                   </button>
                 </div>
                 
+                {/* Nota informativa sobre atajos globales */}
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <span className="text-blue-400 text-lg">ℹ️</span>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-blue-700">
+                        <strong>Atajos Globales:</strong> Los atajos marcados como "Global" funcionan cuando esta pestaña del navegador tiene foco, incluso si otra ventana está en primer plano. Los navegadores web no permiten atajos verdaderamente globales (de todo el sistema) por razones de seguridad.
+                      </p>
+                      <p className="text-sm text-blue-700 mt-2">
+                        <strong>Tip:</strong> Para mejor funcionamiento, mantén la pestaña del navegador visible o usa Alt+Tab para enfocar rápidamente la aplicación.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
                 {/* Tabla de atajos */}
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse border border-gray-300">
@@ -1073,10 +1186,14 @@ export const Home: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={keyboardShortcuts.pauseResume.global}
-                            onChange={(e) => setKeyboardShortcuts(prev => ({
-                              ...prev,
-                              pauseResume: { ...prev.pauseResume, global: e.target.checked }
-                            }))}
+                                                         onChange={(e) => {
+                               const newShortcuts = {
+                                 ...keyboardShortcuts,
+                                 pauseResume: { ...keyboardShortcuts.pauseResume, global: e.target.checked }
+                               };
+                               setKeyboardShortcuts(newShortcuts);
+                               localStorage.setItem('keyboardShortcuts', JSON.stringify(newShortcuts));
+                             }}
                             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                           />
                         </td>
@@ -1101,10 +1218,14 @@ export const Home: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={keyboardShortcuts.nextStage.global}
-                            onChange={(e) => setKeyboardShortcuts(prev => ({
-                              ...prev,
-                              nextStage: { ...prev.nextStage, global: e.target.checked }
-                            }))}
+                                                         onChange={(e) => {
+                               const newShortcuts = {
+                                 ...keyboardShortcuts,
+                                 nextStage: { ...keyboardShortcuts.nextStage, global: e.target.checked }
+                               };
+                               setKeyboardShortcuts(newShortcuts);
+                               localStorage.setItem('keyboardShortcuts', JSON.stringify(newShortcuts));
+                             }}
                             className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
                           />
                         </td>
@@ -1129,10 +1250,14 @@ export const Home: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={keyboardShortcuts.previousStage.global}
-                            onChange={(e) => setKeyboardShortcuts(prev => ({
-                              ...prev,
-                              previousStage: { ...prev.previousStage, global: e.target.checked }
-                            }))}
+                                                         onChange={(e) => {
+                               const newShortcuts = {
+                                 ...keyboardShortcuts,
+                                 previousStage: { ...keyboardShortcuts.previousStage, global: e.target.checked }
+                               };
+                               setKeyboardShortcuts(newShortcuts);
+                               localStorage.setItem('keyboardShortcuts', JSON.stringify(newShortcuts));
+                             }}
                             className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500"
                           />
                         </td>
@@ -1157,10 +1282,14 @@ export const Home: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={keyboardShortcuts.addTime.global}
-                            onChange={(e) => setKeyboardShortcuts(prev => ({
-                              ...prev,
-                              addTime: { ...prev.addTime, global: e.target.checked }
-                            }))}
+                                                         onChange={(e) => {
+                               const newShortcuts = {
+                                 ...keyboardShortcuts,
+                                 addTime: { ...keyboardShortcuts.addTime, global: e.target.checked }
+                               };
+                               setKeyboardShortcuts(newShortcuts);
+                               localStorage.setItem('keyboardShortcuts', JSON.stringify(newShortcuts));
+                             }}
                             className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500"
                           />
                         </td>
@@ -1185,10 +1314,14 @@ export const Home: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={keyboardShortcuts.subtractTime.global}
-                            onChange={(e) => setKeyboardShortcuts(prev => ({
-                              ...prev,
-                              subtractTime: { ...prev.subtractTime, global: e.target.checked }
-                            }))}
+                                                         onChange={(e) => {
+                               const newShortcuts = {
+                                 ...keyboardShortcuts,
+                                 subtractTime: { ...keyboardShortcuts.subtractTime, global: e.target.checked }
+                               };
+                               setKeyboardShortcuts(newShortcuts);
+                               localStorage.setItem('keyboardShortcuts', JSON.stringify(newShortcuts));
+                             }}
                             className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500"
                           />
                         </td>
