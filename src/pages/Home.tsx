@@ -645,9 +645,16 @@ export const Home: React.FC = () => {
     const handleMessage = (event: MessageEvent) => {
       const { action, data } = event.data;
       
-      console.log('📱 Mensaje recibido de control móvil:', { action, data });
+      console.log('📱 Mensaje recibido de control remoto:', { action, data });
       
       switch (action) {
+        case 'ping':
+          // Responder al ping del control remoto
+          if (event.source && event.source !== window) {
+            (event.source as Window).postMessage({ action: 'pong', data: { from: 'main' } }, '*');
+            console.log('📡 Ping respondido al control remoto');
+          }
+          break;
         case 'previousStage':
           handlePreviousStage();
           break;

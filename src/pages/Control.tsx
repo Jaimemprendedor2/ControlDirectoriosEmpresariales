@@ -19,6 +19,8 @@ export const Control: React.FC = () => {
   const [currentTimeLeft, setCurrentTimeLeft] = useState(0);
   const [isLongPress, setIsLongPress] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('Desconectado');
 
   // Función para formatear tiempo
   const formatTime = (seconds: number): string => {
@@ -31,6 +33,11 @@ export const Control: React.FC = () => {
   const sendMessageToMain = (action: string, data?: any) => {
     if (window.opener && !window.opener.closed) {
       window.opener.postMessage({ action, data }, '*');
+      console.log('📱 Enviando mensaje a ventana principal:', { action, data });
+    } else {
+      // Si no hay ventana principal, intentar enviar a localStorage para sincronización
+      console.log('⚠️ No hay ventana principal abierta, usando localStorage');
+      localStorage.setItem('remoteControlAction', JSON.stringify({ action, data, timestamp: Date.now() }));
     }
   };
 
@@ -149,7 +156,25 @@ export const Control: React.FC = () => {
     }
   };
 
-  // Sincronización con localStorage
+  // Verificar conexión con ventana principal
+  const checkConnection = () => {
+    const hasOpener = window.opener && !window.opener.closed;
+    setIsConnected(hasOpener);
+    setConnectionStatus(hasOpener ? 'Conectado' : 'Desconectado');
+    
+    // Si hay conexión, enviar ping para verificar
+    if (hasOpener) {
+      try {
+        window.opener.postMessage({ action: 'ping', data: { from: 'control' } }, '*');
+      } catch (error) {
+        console.log('Error enviando ping:', error);
+        setIsConnected(false);
+        setConnectionStatus('Error de conexión');
+      }
+    }
+  };
+
+  // Sincronización con localStorage y verificación de conexión
   useEffect(() => {
     const syncWithLocalStorage = () => {
       const timeLeft = localStorage.getItem('currentTimeLeft');
@@ -167,9 +192,37 @@ export const Control: React.FC = () => {
       }
     };
 
+    // Verificar conexión cada 2 segundos
+    const connectionInterval = setInterval(checkConnection, 2000);
+    
     // Sincronizar cada segundo
-    const interval = setInterval(syncWithLocalStorage, 1000);
-    return () => clearInterval(interval);
+    const syncInterval = setInterval(syncWithLocalStorage, 1000);
+    
+    // Verificación inicial
+    checkConnection();
+    
+    return () => {
+      clearInterval(connectionInterval);
+      clearInterval(syncInterval);
+    };
+  }, []);
+
+  // Escuchar respuestas de la ventana principal
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const { action } = event.data;
+      
+      if (action === 'pong') {
+        console.log('📡 Pong recibido de ventana principal');
+        setIsConnected(true);
+        setConnectionStatus('Conectado');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
   }, []);
 
   // Cargar datos al iniciar
@@ -220,7 +273,19 @@ export const Control: React.FC = () => {
         {/* Header */}
         <header className="text-center mb-6">
           <h1 className="text-2xl font-bold mb-2">{meeting.title}</h1>
-          <p className="text-gray-400 text-sm">Control Móvil</p>
+          <p className="text-gray-400 text-sm">Control Remoto</p>
+          
+          {/* Indicador de estado de conexión */}
+          <div className={`mt-3 px-3 py-1 rounded-full text-xs font-medium ${
+            isConnected 
+              ? 'bg-green-100 text-green-800 border border-green-200' 
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}>
+            <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
+              isConnected ? 'bg-green-500' : 'bg-red-500'
+            }`}></span>
+            {connectionStatus}
+          </div>
         </header>
 
         {/* Cronómetro principal */}
@@ -323,6 +388,24 @@ export const Control: React.FC = () => {
         <div className="mt-6 text-center text-sm text-gray-400">
           <p>Mantén presionado el botón central por 1 segundo para resetear</p>
           <p className="mt-1">Sincronizado con el panel principal</p>
+          
+          {!isConnected && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-yellow-800 text-xs">
+                <strong>⚠️ Control Remoto Desconectado</strong><br/>
+                Para usar como control remoto, abre este enlace desde la misma pestaña donde tienes el panel principal abierto.
+              </p>
+            </div>
+          )}
+          
+          {isConnected && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-green-800 text-xs">
+                <strong>✅ Control Remoto Activo</strong><br/>
+                Los controles afectan directamente al cronómetro principal en tiempo real.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
