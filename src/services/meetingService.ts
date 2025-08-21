@@ -8,7 +8,7 @@ export class MeetingService {
       .insert({
         title,
         description,
-        user_id: "anonymous"
+        user_id: null
       })
       .select()
       .single()

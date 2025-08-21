@@ -16,7 +16,7 @@ export interface Meeting {
   description?: string
   created_at: string
   updated_at: string
-  user_id: string
+  user_id: string | null
   is_active: boolean
 }
 
