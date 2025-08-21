@@ -1,6 +1,30 @@
 # 📋 Historial de Versiones - Control de Reunión
 
-## 🚀 Versión 1.6.1 - [2025-08-21 07:44:36]
+## 🚀 Versión 1.6.2 - [2024-12-19 16:00]
+
+### ✅ **Cambios Realizados:**
+- **Limpieza completa del sistema de conexión**: Eliminados sistemas residuales de WebSocket y postMessage
+- **Solo Pusher activo**: Sistema de comunicación unificado y simplificado
+- **Corrección de conflictos de conexión**: Eliminados mensajes contradictorios de estado
+- **Mejora del modo fallback**: Manejo mejorado cuando Pusher no está configurado
+- **Eliminación de código legacy**: Removidas referencias a WebSocket y sistemas obsoletos
+
+### 🔧 **Archivos Modificados:**
+- `src/pages/Home.tsx` (LIMPIEZA COMPLETA)
+- `src/pages/Control.tsx` (LIMPIEZA COMPLETA)
+- `src/pages/MeetingView.tsx` (LIMPIEZA COMPLETA)
+- `src/services/pusherService.ts` (MEJORADO)
+- `VERSION.md` (ACTUALIZADO)
+
+### 🗑️ **Archivos Eliminados:**
+- `README_WEBSOCKET.md` (Documentación obsoleta)
+
+### 📦 **Dependencias:**
+- **Sin cambios**: Solo Pusher activo
+
+---
+
+## 🚀 Versión 1.6.1 - [2024-12-19 15:40]
 
 ### ✅ **Cambios Realizados:**
 - **Migración completa a Pusher**: Eliminado Socket.IO, implementado PusherService
@@ -122,4 +146,4 @@
 
 ---
 
-*Última actualización: 2025-08-21 07:44:36*
+*Última actualización: 2024-12-19 16:00*

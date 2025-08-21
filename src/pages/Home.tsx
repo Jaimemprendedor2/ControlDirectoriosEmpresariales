@@ -87,7 +87,7 @@ export const Home: React.FC = () => {
   const [timerUpdate, setTimerUpdate] = useState(0); // Para forzar re-render del cronómetro
   const [isLongPress, setIsLongPress] = useState(false); // Para manejar presión prolongada del botón
 
-  // Estado del WebSocket
+  // Estado de Pusher
   const [connectionState, setConnectionState] = useState<ConnectionState>({
     connected: false,
     connecting: false,
@@ -165,6 +165,25 @@ export const Home: React.FC = () => {
       // Cargar el directorio recién creado
       await loadMeetingWithStages(meeting.id);
       setSelectedMeeting(meeting);
+      
+      // Inicializar automáticamente el directorio
+      if (stages.length > 0) {
+        localStorage.setItem('meetingStages', JSON.stringify(stages));
+        const initialStageTime = stages[0].duration;
+        localStorage.setItem('currentTimeLeft', initialStageTime.toString());
+        localStorage.setItem('initialTime', initialStageTime.toString());
+        localStorage.setItem('isTimerRunning', 'false');
+        localStorage.setItem('currentStageIndex', '0');
+        setCurrentStageIndex(0);
+        setIsTimerRunning(false);
+        
+        // Forzar una actualización inmediata del panel de control
+        setTimeout(() => {
+          setTimerUpdate(prev => prev + 1);
+        }, 50);
+        
+        console.log('✅ Directorio creado e inicializado automáticamente');
+      }
       
       // Cerrar modal y limpiar campos
       setShowNewMeetingModal(false);
@@ -391,7 +410,7 @@ export const Home: React.FC = () => {
     }
   };
 
-  // Función para enviar mensajes a la ventana de reflejo (mantener para compatibilidad)
+  // Función para enviar mensajes a la ventana de reflejo (solo para sincronización local)
   const sendMessageToReflectionWindow = (action: string, data?: any) => {
     if (meetingWindow && !meetingWindow.closed) {
       meetingWindow.postMessage({ action, data }, '*');
@@ -498,6 +517,41 @@ export const Home: React.FC = () => {
   };
 
   const handlePauseResume = () => {
+    // Si no hay directorio iniciado, inicializarlo primero
+    if (!localStorage.getItem('currentTimeLeft') && stages.length > 0) {
+      console.log('🚀 Iniciando directorio por primera vez');
+      localStorage.setItem('meetingStages', JSON.stringify(stages));
+      const initialStageTime = stages[0].duration;
+      localStorage.setItem('currentTimeLeft', initialStageTime.toString());
+      localStorage.setItem('initialTime', initialStageTime.toString());
+      localStorage.setItem('isTimerRunning', 'true');
+      localStorage.setItem('currentStageIndex', '0');
+      setCurrentStageIndex(0);
+      setIsTimerRunning(true);
+      
+      // Enviar mensaje a la ventana de reflejo
+      sendMessageToReflectionWindow('pauseResume', { isRunning: true });
+      
+      // Enviar comando a través de Pusher
+      if (window.pusherService) {
+        window.pusherService.sendCommand({
+          action: 'pauseResume',
+          data: { isRunning: true },
+          timestamp: Date.now(),
+          source: 'main-timer'
+        });
+      }
+      
+      // Forzar una actualización inmediata del panel de control
+      setTimeout(() => {
+        setTimerUpdate(prev => prev + 1);
+      }, 50);
+      
+      console.log('✅ Directorio iniciado y cronómetro iniciado');
+      return;
+    }
+    
+    // Comportamiento normal de pausar/reanudar
     const newRunningState = !isTimerRunning;
     console.log('🔄 handlePauseResume:', { 
       from: isTimerRunning, 
@@ -707,7 +761,7 @@ export const Home: React.FC = () => {
     loadMeetings();
   }, []);
 
-  // Inicializar WebSocket cuando se selecciona un directorio
+  // Inicializar Pusher cuando se selecciona un directorio
   useEffect(() => {
     if (selectedMeeting) {
       addConnectionLog('Inicializando Pusher para directorio: ' + selectedMeeting.title);
@@ -820,86 +874,7 @@ export const Home: React.FC = () => {
     };
   }, [isTimerRunning]);
 
-  // Escuchar mensajes de la página de control móvil (mantener para compatibilidad)
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const { action, data } = event.data;
-      
-      console.log('📱 Mensaje recibido de control remoto:', { action, data });
-      
-      switch (action) {
-        case 'ping':
-          // Responder al ping del control remoto
-          if (event.source && event.source !== window) {
-            (event.source as Window).postMessage({ action: 'pong', data: { from: 'main' } }, '*');
-            console.log('📡 Ping respondido al control remoto');
-          }
-          break;
-        case 'heartbeat':
-          // Actualizar heartbeat de la conexión (mantener para compatibilidad)
-          console.log('📡 Heartbeat recibido de control remoto');
-          break;
-        case 'registerConnection':
-          // Registrar nueva conexión de control (mantener para compatibilidad)
-          console.log('📡 Registro de conexión recibido de control remoto');
-          // Responder con estado actual
-          if (event.source && event.source !== window) {
-            (event.source as Window).postMessage({ 
-              action: 'connectionRegistered', 
-              data: { 
-                connectionId: data.connectionId,
-                stages: stages,
-                currentStageIndex: currentStageIndex,
-                isTimerRunning: isTimerRunning,
-                currentTimeLeft: localStorage.getItem('currentTimeLeft')
-              } 
-            }, '*');
-          }
-          break;
-        case 'forceReconnect':
-          // Forzar reconexión desde control remoto
-          console.log('🔄 Reconexión solicitada por control remoto');
-          forceControlReconnection();
-          break;
-        case 'latencyTest':
-          // Responder a test de latencia
-          if (event.source && event.source !== window) {
-            (event.source as Window).postMessage({ 
-              action: 'latencyResponse', 
-              data: { 
-                timestamp: data.timestamp,
-                connectionId: data.connectionId 
-              } 
-            }, '*');
-          }
-          break;
-        case 'previousStage':
-          handlePreviousStage();
-          break;
-        case 'nextStage':
-          handleNextStage();
-          break;
-        case 'pauseResume':
-          handlePauseResume();
-          break;
-        case 'setTime':
-          localStorage.setItem('currentTimeLeft', data.seconds.toString());
-          sendMessageToReflectionWindow('setTime', data);
-          break;
-        case 'addTime':
-          handleAddTime();
-          break;
-        case 'subtractTime':
-          handleSubtractTime();
-          break;
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [stages, currentStageIndex, isTimerRunning]);
+  // Sistema de comunicación eliminado - Solo Pusher
 
   useEffect(() => {
     if (showShortcutConfig) {
@@ -910,19 +885,7 @@ export const Home: React.FC = () => {
     }
   }, [showShortcutConfig, configuringShortcut]);
 
-  // Sistema de heartbeat y verificación de conexiones (eliminado - reemplazado por WebSocket)
-  // useEffect(() => {
-  //   // Verificar conexiones activas cada 5 segundos
-  //   const connectionCheckInterval = setInterval(checkActiveConnections, 5000);
-  //   
-  //   // Enviar heartbeat cada 2 segundos
-  //   const heartbeatInterval = setInterval(sendHeartbeatToControls, 2000);
-  //   
-  //   return () => {
-  //     clearInterval(connectionCheckInterval);
-  //     clearInterval(heartbeatInterval);
-  //   };
-  // }, [stages, currentStageIndex, isTimerRunning, meetingWindow]);
+  // Sistema de heartbeat eliminado - Solo Pusher
 
   // Función para manejar atajos de teclado
   useEffect(() => {
@@ -1047,12 +1010,12 @@ export const Home: React.FC = () => {
      console.log('Directorio iniciado exitosamente');
    };
 
-  // Función para forzar reconexión de controles (mantener para compatibilidad)
+  // Función para forzar reconexión de Pusher
   const forceControlReconnection = () => {
-    console.log('🔄 Forzando reconexión de controles...');
+    console.log('🔄 Forzando reconexión de Pusher...');
     addConnectionLog('Reconexión manual solicitada');
     
-    // Reconectar WebSocket si está disponible
+    // Reconectar Pusher si está disponible
     if (window.pusherService) {
       window.pusherService.disconnect();
       setTimeout(() => {
@@ -1191,84 +1154,71 @@ export const Home: React.FC = () => {
               ) : (
                 <div className="space-y-6">
                   <div className="flex justify-end space-x-3">
-                                         <button
-                       onClick={handleStartMeeting}
-                       className={`font-medium py-2 px-6 rounded-lg transition-colors ${
-                         isTimerRunning || localStorage.getItem('currentTimeLeft')
-                           ? 'bg-red-600 hover:bg-red-700 text-white' 
-                           : 'bg-green-600 hover:bg-green-700 text-white'
-                       }`}
-                     >
-                       {isTimerRunning || localStorage.getItem('currentTimeLeft') ? '🛑 Parar Directorio' : '🚀 Iniciar Directorio'}
-                     </button>
-                    
-                                         {/* Botones adicionales que aparecen cuando el directorio está iniciado */}
-                     {selectedMeeting && stages.length > 0 && (
-                       <>
-                                                   <button
-                            onClick={() => {
-                              if (meetingWindow && !meetingWindow.closed) {
-                                meetingWindow.close();
-                                setMeetingWindow(null);
-                              } else {
-                                const newMeetingWindow = window.open(
-                                  '/meeting',
-                                  'meeting',
-                                  'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
-                                );
-                                if (newMeetingWindow) {
-                                  setMeetingWindow(newMeetingWindow);
-                                  // Enviar estado actual a la ventana de reflejo
-                                  setTimeout(() => {
-                                    const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-                                    const isRunning = localStorage.getItem('isTimerRunning');
-                                    const currentStage = localStorage.getItem('currentStageIndex');
-                                    const stages = localStorage.getItem('meetingStages');
-                                    
-                                    if (newMeetingWindow && !newMeetingWindow.closed) {
-                                      newMeetingWindow.postMessage({
-                                        action: 'syncState',
-                                        data: {
-                                          currentTimeLeft: currentTimeLeft,
-                                          isTimerRunning: isRunning === 'true',
-                                          currentStageIndex: currentStage ? parseInt(currentStage) : 0,
-                                          stages: stages ? JSON.parse(stages) : []
-                                        }
-                                      }, '*');
-                                    }
-                                  }, 100);
-                                }
+                    {/* Botones adicionales que aparecen cuando el directorio está iniciado */}
+                    {selectedMeeting && stages.length > 0 && (
+                      <>
+                        <button
+                          onClick={() => {
+                            if (meetingWindow && !meetingWindow.closed) {
+                              meetingWindow.close();
+                              setMeetingWindow(null);
+                            } else {
+                              const newMeetingWindow = window.open(
+                                '/meeting',
+                                'meeting',
+                                'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
+                              );
+                              if (newMeetingWindow) {
+                                setMeetingWindow(newMeetingWindow);
+                                // Enviar estado actual a la ventana de reflejo
+                                setTimeout(() => {
+                                  const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+                                  const isRunning = localStorage.getItem('isTimerRunning');
+                                  const currentStage = localStorage.getItem('currentStageIndex');
+                                  const stages = localStorage.getItem('meetingStages');
+                                  
+                                  if (newMeetingWindow && !newMeetingWindow.closed) {
+                                    newMeetingWindow.postMessage({
+                                      action: 'syncState',
+                                      data: {
+                                        currentTimeLeft: currentTimeLeft,
+                                        isTimerRunning: isRunning === 'true',
+                                        currentStageIndex: currentStage ? parseInt(currentStage) : 0,
+                                        stages: stages ? JSON.parse(stages) : []
+                                      }
+                                    }, '*');
+                                  }
+                                }, 100);
                               }
-                            }}
-                            className={`font-medium py-2 px-4 rounded-lg transition-colors ${
-                              meetingWindow && !meetingWindow.closed
-                                ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                                : 'bg-blue-600 hover:bg-blue-700 text-white'
-                            }`}
-                            title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
-                          >
-                            {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
-                          </button>
-                         
-
-                         
-                                                   <button
-                            onClick={handleCopyControlURL}
-                            className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
-                            title="Copiar URL para control móvil"
-                          >
-                            📱 Copiar URL
-                          </button>
-                          
-                          <button
-                            onClick={forceControlReconnection}
-                            className="font-medium py-2 px-4 rounded-lg transition-colors bg-orange-600 hover:bg-orange-700 text-white"
-                            title="Forzar reconexión de controles remotos"
-                          >
-                            🔄 Reconectar
-                          </button>
-                       </>
-                     )}
+                            }
+                          }}
+                          className={`font-medium py-2 px-4 rounded-lg transition-colors ${
+                            meetingWindow && !meetingWindow.closed
+                              ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                              : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          }`}
+                          title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
+                        >
+                          {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
+                        </button>
+                        
+                        <button
+                          onClick={handleCopyControlURL}
+                          className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
+                          title="Copiar URL para control móvil"
+                        >
+                          📱 Copiar URL
+                        </button>
+                        
+                                                 <button
+                           onClick={forceControlReconnection}
+                           className="font-medium py-2 px-4 rounded-lg transition-colors bg-orange-600 hover:bg-orange-700 text-white"
+                           title="Forzar reconexión de Pusher"
+                         >
+                           🔄 Reconectar
+                         </button>
+                      </>
+                    )}
                   </div>
 
                                      <StagesList 
@@ -1286,8 +1236,8 @@ export const Home: React.FC = () => {
             </>
           )}
           
-                     {/* Panel de Control de Tiempo - mostrar cuando se inicie el directorio */}
-           {selectedMeeting && stages.length > 0 && (
+                                          {/* Panel de Control de Tiempo - mostrar cuando hay etapas */}
+            {selectedMeeting && stages.length > 0 && (
             <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-200">
                                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                      <span className="text-2xl mr-2">⏱️</span>
@@ -1324,10 +1274,10 @@ export const Home: React.FC = () => {
                       onTouchStart={handlePauseButtonMouseDown}
                       onTouchEnd={handlePauseButtonMouseUp}
                       className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 relative"
-                                             title={`Clic: Pausar/Reanudar | Mantener 1s: Resetear a 00:00 (${formatShortcut(keyboardShortcuts.pauseResume)})`}
+                                             title={`Clic: ${isTimerRunning ? 'Pausar' : (localStorage.getItem('currentTimeLeft') ? 'Reanudar' : 'Iniciar Directorio')} | Mantener 1s: Resetear a 00:00 (${formatShortcut(keyboardShortcuts.pauseResume)})`}
                     >
                       <span className="text-xl">{isTimerRunning ? '⏸️' : '▶️'}</span>
-                      <span className="text-sm">{isTimerRunning ? 'Pausar' : 'Reanudar'}</span>
+                      <span className="text-sm">{isTimerRunning ? 'Pausar' : (localStorage.getItem('currentTimeLeft') ? 'Reanudar' : 'Iniciar')}</span>
                       {isLongPress && (
                                                  <div className="absolute inset-0 bg-blue-800 rounded-lg flex items-center justify-center">
                            <span className="text-white text-sm font-bold">🔄 Reseteando...</span>
@@ -1347,7 +1297,7 @@ export const Home: React.FC = () => {
                     </button>
                   </div>
 
-                                     <div className="grid grid-cols-2 gap-3">
+                                     <div className="grid grid-cols-3 gap-3">
                      {/* Quitar Tiempo */}
                      <button
                        onClick={handleSubtractTime}
@@ -1357,6 +1307,18 @@ export const Home: React.FC = () => {
                        <span className="text-xl">➖</span>
                        <span className="text-sm">-30 segundos</span>
                      </button>
+
+                     {/* Botón Parar Directorio */}
+                     {(isTimerRunning || localStorage.getItem('currentTimeLeft')) && (
+                       <button
+                         onClick={handleStartMeeting}
+                         className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                         title="Parar directorio y limpiar estado"
+                       >
+                         <span className="text-xl">🛑</span>
+                         <span className="text-sm">Parar Directorio</span>
+                       </button>
+                     )}
 
                      {/* Agregar Tiempo */}
                      <button
@@ -1382,12 +1344,12 @@ export const Home: React.FC = () => {
                          {formatShortcut(keyboardShortcuts.addTime)}/{formatShortcut(keyboardShortcuts.subtractTime)} (Tiempo)
                        </div>
                        
-                       {/* Indicador de estado WebSocket */}
-                       <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-                         <div className="flex items-center justify-between mb-2">
-                           <span className="text-xs text-blue-700 font-medium">
-                             Estado WebSocket:
-                           </span>
+                                               {/* Indicador de estado Pusher */}
+                        <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-blue-700 font-medium">
+                              Estado Pusher:
+                            </span>
                            <span className={`text-xs px-2 py-1 rounded-full ${
                              connectionState.connected 
                                ? 'bg-green-100 text-green-700' 

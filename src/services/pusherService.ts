@@ -66,6 +66,8 @@ export class PusherService {
     if (!isValidConfig) {
       console.warn('⚠️ Credenciales de Pusher no configuradas. Usando modo fallback con localStorage.');
       this.state.error = 'Credenciales de Pusher no configuradas. Usando modo local.';
+      this.state.connected = true; // En modo fallback, consideramos conectado
+      this.state.lastConnected = Date.now();
       this.updateConnectionState();
       return;
     }
@@ -185,7 +187,9 @@ export class PusherService {
   }
 
   disconnect(): void {
-    this.pusher.disconnect();
+    if (this.pusher) {
+      this.pusher.disconnect();
+    }
     this.state.connected = false;
     this.state.connecting = false;
     this.updateConnectionState();

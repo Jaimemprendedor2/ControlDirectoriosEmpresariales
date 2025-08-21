@@ -21,7 +21,7 @@ export const Control: React.FC = () => {
   const [isLongPress, setIsLongPress] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   
-  // Estado de conexión WebSocket
+  // Estado de conexión Pusher
   const [connectionState, setConnectionState] = useState<ConnectionState>({
     connected: false,
     connecting: false,
@@ -56,7 +56,7 @@ export const Control: React.FC = () => {
     };
   };
 
-  // Inicializar WebSocket
+  // Inicializar Pusher
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const meetingId = urlParams.get('meeting');
@@ -564,7 +564,7 @@ export const Control: React.FC = () => {
                 <strong>⚠️ Control Remoto Desconectado</strong><br/>
                 {connectionState.error ? `Error: ${connectionState.error}` : 'No hay conexión con el servidor'}<br/>
                 Los controles funcionarán con sincronización local.<br/>
-                <span className="text-xs opacity-75">Asegúrate de que el servidor WebSocket esté ejecutándose.</span>
+                <span className="text-xs opacity-75">Asegúrate de que Pusher esté configurado correctamente.</span>
               </p>
             </div>
           )}
@@ -573,7 +573,7 @@ export const Control: React.FC = () => {
             <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-green-800 text-xs">
                 <strong>✅ Control Remoto Activo</strong><br/>
-                Conectado al servidor WebSocket<br/>
+                Conectado a Pusher<br/>
                 Los controles afectan directamente al cronómetro principal en tiempo real.
               </p>
             </div>

@@ -22,7 +22,7 @@ export const MeetingView: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isAlertBlinking, setIsAlertBlinking] = useState(false);
   
-  // Estado de conexión WebSocket
+  // Estado de conexión Pusher
   const [connectionState, setConnectionState] = useState<ConnectionState>({
     connected: false,
     connecting: false,
@@ -65,7 +65,7 @@ export const MeetingView: React.FC = () => {
     pusherService.sendTimerState(timerState);
   };
 
-  // Inicializar WebSocket
+  // Inicializar Pusher
   useEffect(() => {
     // Obtener ID de la sala desde localStorage o generar uno
     const meetingStages = localStorage.getItem('meetingStages');
