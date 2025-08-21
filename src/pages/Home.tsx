@@ -101,9 +101,8 @@ export const Home: React.FC = () => {
 
   // Función para obtener información de compilación
   const getBuildInfo = () => {
-    // Fecha fija de compilación (se actualiza solo cuando se hace un commit)
-    // Esta fecha se mantiene estática hasta que se actualice manualmente
-    const buildDate = new Date('2024-12-19T15:30:00'); // Fecha fija de la versión actual
+    // Usar la fecha actual del sistema
+    const buildDate = new Date();
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
