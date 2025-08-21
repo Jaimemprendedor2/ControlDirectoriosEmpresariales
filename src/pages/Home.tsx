@@ -203,10 +203,16 @@ export const Home: React.FC = () => {
     
     // Obtener el tiempo del localStorage con mejor sincronización
     const timeLeft = localStorage.getItem('currentTimeLeft');
-    const seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
+    let seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
     
     // Asegurar que el tiempo no sea negativo y no sea NaN
-    const validSeconds = Math.max(0, isNaN(seconds) ? currentStage.duration : seconds);
+    if (isNaN(seconds)) {
+      seconds = currentStage.duration;
+      // Si el valor es NaN, corregir el localStorage
+      localStorage.setItem('currentTimeLeft', seconds.toString());
+    }
+    
+    const validSeconds = Math.max(0, seconds);
     
     const minutes = Math.floor(validSeconds / 60);
     const secs = validSeconds % 60;
@@ -372,6 +378,17 @@ export const Home: React.FC = () => {
   const handlePauseResume = () => {
     const newRunningState = !isTimerRunning;
     setIsTimerRunning(newRunningState);
+    
+    // Sincronizar inmediatamente el estado del panel de control
+    if (!newRunningState) {
+      // Si se va a pausar, obtener el tiempo actual del localStorage
+      const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+      if (currentTimeLeft) {
+        // Forzar una actualización inmediata del panel de control
+        setTimerUpdate(prev => prev + 1);
+      }
+    }
+    
     sendMessageToMeetingWindow('pauseResume', { isRunning: newRunningState });
   };
 
@@ -511,7 +528,7 @@ export const Home: React.FC = () => {
 
       return () => clearInterval(interval);
     }
-  }, [meetingWindow]);
+  }, [meetingWindow, isTimerRunning]); // Agregar isTimerRunning como dependencia
 
   useEffect(() => {
     if (showShortcutConfig) {
@@ -604,6 +621,12 @@ export const Home: React.FC = () => {
        setMeetingWindow(newMeetingWindow);
        setIsTimerRunning(false); // No iniciar automáticamente
        setCurrentStageIndex(0);
+       
+       // Forzar una actualización inmediata del panel de control
+       setTimeout(() => {
+         setTimerUpdate(prev => prev + 1);
+       }, 50); // Pequeño delay para asegurar que la ventana se haya cargado
+       
        console.log('Ventana abierta exitosamente');
      }
    };
