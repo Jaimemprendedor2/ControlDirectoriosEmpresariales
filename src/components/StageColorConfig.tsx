@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TimeSelector } from './TimeSelector';
 
 interface StageColor {
   timeInSeconds: number;
@@ -69,32 +70,14 @@ export const StageColorConfig: React.FC<StageColorConfigProps> = ({
     onClose();
   };
 
-  // Funciones para convertir entre MM:SS y segundos
-  const formatTimeToMMSS = (seconds: number): string => {
+  // Función simple para formatear tiempo en MM:SS
+  const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const parseMMSSToSeconds = (timeString: string): number => {
-    if (!timeString || timeString === '') return 0;
-    
-    // Limpiar la cadena de caracteres no numéricos excepto ':'
-    const cleanString = timeString.replace(/[^\d:]/g, '');
-    const parts = cleanString.split(':');
-    
-    if (parts.length === 1) {
-      // Si solo hay un número, asumir que son segundos
-      return parseInt(parts[0]) || 0;
-    } else if (parts.length === 2) {
-      // Formato MM:SS
-      const minutes = parseInt(parts[0]) || 0;
-      const seconds = parseInt(parts[1]) || 0;
-      return (minutes * 60) + seconds;
-    }
-    
-    return 0;
-  };
+
 
   const presetColors = [
     { name: 'Verde', color: '#10B981' },
@@ -126,46 +109,14 @@ export const StageColorConfig: React.FC<StageColorConfigProps> = ({
             <h4 className="font-medium text-gray-800 mb-4">Agregar Color de Subtipo</h4>
             
                          <div className="space-y-4">
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                   Tiempo de Activación (MM:SS)
-                 </label>
-                                   <input
-                    type="text"
-                    value={formatTimeToMMSS(newTimeInSeconds)}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Permitir cualquier entrada numérica y ':'
-                      if (value === '' || /^[\d:]*$/.test(value)) {
-                        // No convertir inmediatamente, solo permitir la entrada
-                        // La conversión se hará en onBlur
-                      }
-                    }}
-                    onBlur={(e) => {
-                      // Validar y formatear al perder el foco
-                      const value = e.target.value;
-                      if (value) {
-                        const seconds = parseMMSSToSeconds(value);
-                        setNewTimeInSeconds(seconds);
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      // Permitir teclas numéricas, dos puntos, backspace, delete, tab, enter
-                      const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
-                      const isNumber = /^[0-9]$/.test(e.key);
-                      const isColon = e.key === ':';
-                      
-                      if (!isNumber && !isColon && !allowedKeys.includes(e.key)) {
-                        e.preventDefault();
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-                    placeholder="00:30"
-                  />
-                 <p className="text-xs text-gray-500 mt-1">
-                   Tiempo desde el inicio de la etapa (máximo: {formatTimeToMMSS(stage.duration)})
-                 </p>
-               </div>
+               <TimeSelector
+                 duration={newTimeInSeconds}
+                 onChange={setNewTimeInSeconds}
+                 label="Tiempo de Activación"
+               />
+               <p className="text-xs text-gray-500 mt-1">
+                 Tiempo desde el inicio de la etapa (máximo: {Math.floor(stage.duration / 60)}:{(stage.duration % 60).toString().padStart(2, '0')})
+               </p>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -267,7 +218,7 @@ export const StageColorConfig: React.FC<StageColorConfigProps> = ({
                       ></div>
                                            <div>
                        <div className="font-medium text-gray-800">
-                         {formatTimeToMMSS(color.timeInSeconds)} transcurrido
+                         {formatTime(color.timeInSeconds)} transcurrido
                        </div>
                        <div className="text-sm text-gray-600 font-mono">
                          {color.backgroundColor}
@@ -305,7 +256,7 @@ export const StageColorConfig: React.FC<StageColorConfigProps> = ({
                            backgroundColor: color.backgroundColor,
                            width: `${width}%`
                          }}
-                         title={`${formatTimeToMMSS(color.timeInSeconds)} - ${color.backgroundColor}`}
+                         title={`${formatTime(color.timeInSeconds)} - ${color.backgroundColor}`}
                        />
                      );
                    })}

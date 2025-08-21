@@ -201,17 +201,24 @@ export const Home: React.FC = () => {
   };
 
   const handleEditStage = (index: number, _stage: Stage) => {
-    console.log('handleEditStage llamado con índice:', index);
+    console.log('=== handleEditStage DEBUG ===');
+    console.log('Índice recibido:', index);
     console.log('Etapa a editar:', _stage);
     console.log('stages.length:', stages.length);
     console.log('editingIndex actual:', editingIndex);
+    console.log('selectedMeeting:', selectedMeeting);
     
     // Asegurar que el índice sea válido
     if (index >= 0 && index < stages.length) {
-      console.log('Índice válido, estableciendo editingIndex a:', index);
+      console.log('✅ Índice válido, estableciendo editingIndex a:', index);
       setEditingIndex(index);
+      
+      // Verificar que el estado se actualizó
+      setTimeout(() => {
+        console.log('🔄 editingIndex después de setState:', editingIndex);
+      }, 0);
     } else {
-      console.error('Índice de etapa inválido:', index);
+      console.error('❌ Índice de etapa inválido:', index);
     }
   };
 
@@ -538,14 +545,7 @@ export const Home: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <button
-                      onClick={handleQuickAddStage}
-                      className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
-                    >
-                      <span>➕</span>
-                      <span>Crear Etapa</span>
-                    </button>
+                  <div className="flex justify-end">
                     <button
                       onClick={handleStartMeeting}
                       className={`font-medium py-2 px-6 rounded-lg transition-colors ${

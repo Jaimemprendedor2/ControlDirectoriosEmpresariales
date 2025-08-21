@@ -68,7 +68,9 @@ export const StagesList: React.FC<StagesListProps> = ({
       </div>
 
              <div className="space-y-2">
-         {stages.map((stage, index) => (
+         {stages.map((stage, index) => {
+           console.log(`🔍 Renderizando etapa ${index}: editingIndex=${editingIndex}, index=${index}, igual=${editingIndex === index}`);
+           return (
            <div key={stage.id || index}>
              {editingIndex === index ? (
                <InlineStageEditor
@@ -124,7 +126,8 @@ export const StagesList: React.FC<StagesListProps> = ({
                                        {onEditStage && (
                       <button
                         onClick={() => {
-                          console.log('Botón de edición clickeado para etapa:', index, stage);
+                          console.log('🎯 Botón de edición clickeado para etapa:', index, stage);
+                          console.log('📝 editingIndex actual en StagesList:', editingIndex);
                           onEditStage(index, stage);
                         }}
                         className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
@@ -147,7 +150,8 @@ export const StagesList: React.FC<StagesListProps> = ({
                </div>
              )}
            </div>
-         ))}
+         );
+         })}
         
         {/* Botón para agregar nueva etapa */}
         {onAddStage && (
