@@ -31,6 +31,7 @@ export const Home: React.FC = () => {
 
   const [configuringColors, setConfiguringColors] = useState<{index: number, stage: Stage} | null>(null);
   const [meetingWindow, setMeetingWindow] = useState<Window | null>(null);
+  const [secondTimerWindow, setSecondTimerWindow] = useState<Window | null>(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -380,10 +381,70 @@ export const Home: React.FC = () => {
     }
   };
 
-  // Funciones para controlar el cronómetro
-  const sendMessageToMeetingWindow = (action: string, data?: any) => {
+  // Función para enviar mensajes a todas las ventanas de cronómetro
+  const sendMessageToAllTimerWindows = (action: string, data?: any) => {
     if (meetingWindow && !meetingWindow.closed) {
       meetingWindow.postMessage({ action, data }, '*');
+    }
+    if (secondTimerWindow && !secondTimerWindow.closed) {
+      secondTimerWindow.postMessage({ action, data }, '*');
+    }
+  };
+
+  // Función para abrir segunda vista del cronómetro
+  const handleOpenSecondTimer = () => {
+    if (secondTimerWindow && !secondTimerWindow.closed) {
+      secondTimerWindow.close();
+      setSecondTimerWindow(null);
+      return;
+    }
+
+    const newSecondWindow = window.open(
+      '/meeting',
+      'secondTimer',
+      'width=400,height=300,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
+    );
+
+    if (newSecondWindow) {
+      setSecondTimerWindow(newSecondWindow);
+      
+      // Sincronizar con el estado actual
+      setTimeout(() => {
+        const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+        const initialTime = localStorage.getItem('initialTime');
+        const isRunning = localStorage.getItem('isTimerRunning');
+        
+        if (currentTimeLeft) {
+          newSecondWindow.postMessage({ action: 'setTime', data: { seconds: parseInt(currentTimeLeft) } }, '*');
+        }
+        if (initialTime) {
+          newSecondWindow.postMessage({ action: 'setInitialTime', data: { seconds: parseInt(initialTime) } }, '*');
+        }
+        if (isRunning) {
+          newSecondWindow.postMessage({ action: 'setRunning', data: { isRunning: isRunning === 'true' } }, '*');
+        }
+      }, 100);
+    }
+  };
+
+  // Función para copiar URL del panel de control
+  const handleCopyControlURL = async () => {
+    try {
+      const controlURL = `${window.location.origin}/control?meeting=${selectedMeeting?.id}`;
+      await navigator.clipboard.writeText(controlURL);
+      
+      // Mostrar notificación temporal
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+      notification.textContent = '✅ URL copiada al portapapeles';
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 3000);
+    } catch (error) {
+      console.error('Error copiando URL:', error);
+      alert('Error al copiar la URL. Por favor, cópiala manualmente.');
     }
   };
 
@@ -397,7 +458,7 @@ export const Home: React.FC = () => {
       localStorage.setItem('initialTime', newStageTime.toString());
       // Pausar el cronómetro al cambiar de etapa
       setIsTimerRunning(false);
-      sendMessageToMeetingWindow('previousStage', { stageIndex: newIndex });
+      sendMessageToAllTimerWindows('previousStage', { stageIndex: newIndex });
     }
   };
 
@@ -411,7 +472,7 @@ export const Home: React.FC = () => {
       localStorage.setItem('initialTime', newStageTime.toString());
       // Pausar el cronómetro al cambiar de etapa
       setIsTimerRunning(false);
-      sendMessageToMeetingWindow('nextStage', { stageIndex: newIndex });
+      sendMessageToAllTimerWindows('nextStage', { stageIndex: newIndex });
     }
   };
 
@@ -425,8 +486,8 @@ export const Home: React.FC = () => {
     
     setIsTimerRunning(newRunningState);
     
-    // Enviar mensaje a la ventana emergente primero
-    sendMessageToMeetingWindow('pauseResume', { isRunning: newRunningState });
+    // Enviar mensaje a todas las ventanas emergentes
+    sendMessageToAllTimerWindows('pauseResume', { isRunning: newRunningState });
     
     // Sincronizar inmediatamente el estado del panel de control
     // Esperar un poco para que la ventana emergente procese el mensaje
@@ -443,7 +504,7 @@ export const Home: React.FC = () => {
   const handleResetToZero = () => {
     // Resetear a 00:00
     localStorage.setItem('currentTimeLeft', '0');
-    sendMessageToMeetingWindow('setTime', { seconds: 0 });
+    sendMessageToAllTimerWindows('setTime', { seconds: 0 });
     setIsTimerRunning(false);
   };
 
@@ -498,12 +559,12 @@ export const Home: React.FC = () => {
         newTime = Math.ceil(currentSeconds / 30) * 30; // Redondear hacia arriba al múltiplo de 30
       }
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToMeetingWindow('setTime', { seconds: newTime });
+      sendMessageToAllTimerWindows('setTime', { seconds: newTime });
     } else {
       // Si está funcionando: sumar 30s inmediatamente
       const newTime = currentSeconds + 30;
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToMeetingWindow('addTime', { seconds: 30 });
+      sendMessageToAllTimerWindows('addTime', { seconds: 30 });
     }
   };
 
@@ -516,12 +577,12 @@ export const Home: React.FC = () => {
       // Si está detenido: ajustar a escala de 30s
       const newTime = Math.max(0, Math.floor(currentSeconds / 30) * 30); // Redondear hacia abajo al múltiplo de 30
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToMeetingWindow('setTime', { seconds: newTime });
+      sendMessageToAllTimerWindows('setTime', { seconds: newTime });
     } else {
       // Si está funcionando: restar 30s inmediatamente
       const newTime = Math.max(0, currentSeconds - 30);
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToMeetingWindow('subtractTime', { seconds: 30 });
+      sendMessageToAllTimerWindows('subtractTime', { seconds: 30 });
     }
   };
 
@@ -578,6 +639,42 @@ export const Home: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [meetingWindow, isTimerRunning]); // Agregar isTimerRunning como dependencia
+
+  // Escuchar mensajes de la página de control móvil
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const { action, data } = event.data;
+      
+      console.log('📱 Mensaje recibido de control móvil:', { action, data });
+      
+      switch (action) {
+        case 'previousStage':
+          handlePreviousStage();
+          break;
+        case 'nextStage':
+          handleNextStage();
+          break;
+        case 'pauseResume':
+          handlePauseResume();
+          break;
+        case 'setTime':
+          localStorage.setItem('currentTimeLeft', data.seconds.toString());
+          sendMessageToAllTimerWindows('setTime', data);
+          break;
+        case 'addTime':
+          handleAddTime();
+          break;
+        case 'subtractTime':
+          handleSubtractTime();
+          break;
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
   useEffect(() => {
     if (showShortcutConfig) {
@@ -675,9 +772,13 @@ export const Home: React.FC = () => {
     
     // Si ya hay una ventana abierta, cerrarla y parar el directorio
     if (meetingWindow && !meetingWindow.closed) {
-      console.log('Cerrando ventana existente');
+      console.log('Cerrando ventanas existentes');
       meetingWindow.close();
       setMeetingWindow(null);
+      if (secondTimerWindow && !secondTimerWindow.closed) {
+        secondTimerWindow.close();
+        setSecondTimerWindow(null);
+      }
       setIsTimerRunning(false);
       return;
     }
@@ -845,7 +946,7 @@ export const Home: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  <div className="flex justify-end">
+                  <div className="flex justify-end space-x-3">
                     <button
                       onClick={handleStartMeeting}
                       className={`font-medium py-2 px-6 rounded-lg transition-colors ${
@@ -856,6 +957,31 @@ export const Home: React.FC = () => {
                     >
                       {meetingWindow && !meetingWindow.closed ? '🛑 Parar Directorio' : '🚀 Iniciar Directorio'}
                     </button>
+                    
+                    {/* Botones adicionales que aparecen cuando el directorio está iniciado */}
+                    {meetingWindow && !meetingWindow.closed && (
+                      <>
+                        <button
+                          onClick={handleOpenSecondTimer}
+                          className={`font-medium py-2 px-4 rounded-lg transition-colors ${
+                            secondTimerWindow && !secondTimerWindow.closed
+                              ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                              : 'bg-blue-600 hover:bg-blue-700 text-white'
+                          }`}
+                          title="Abrir segunda vista del cronómetro"
+                        >
+                          {secondTimerWindow && !secondTimerWindow.closed ? '🔄 Cerrar 2da Vista' : '📺 2da Vista'}
+                        </button>
+                        
+                        <button
+                          onClick={handleCopyControlURL}
+                          className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
+                          title="Copiar URL para control móvil"
+                        >
+                          📱 Copiar URL
+                        </button>
+                      </>
+                    )}
                   </div>
 
                                      <StagesList 
