@@ -1,6 +1,6 @@
 # 📋 Historial de Versiones - Control de Reunión
 
-## 🚀 Versión 1.6.1 - [2024-12-19 15:40]
+## 🚀 Versión 1.6.1 - [2025-08-21 07:44:36]
 
 ### ✅ **Cambios Realizados:**
 - **Migración completa a Pusher**: Eliminado Socket.IO, implementado PusherService
@@ -122,4 +122,4 @@
 
 ---
 
-*Última actualización: 2024-12-19 15:40*
+*Última actualización: 2025-08-21 07:44:36*
