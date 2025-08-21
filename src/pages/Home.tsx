@@ -35,12 +35,11 @@ export const Home: React.FC = () => {
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [keyboardShortcuts, setKeyboardShortcuts] = useState({
-    pauseResume: { key: 'Space', ctrl: false, alt: false, shift: false },
-    nextStage: { key: 'KeyN', ctrl: false, alt: false, shift: false },
-    previousStage: { key: 'KeyP', ctrl: false, alt: false, shift: false },
-    addTime: { key: 'Equal', ctrl: false, alt: false, shift: false },
-    subtractTime: { key: 'Minus', ctrl: false, alt: false, shift: false },
-    restartStage: { key: 'KeyR', ctrl: false, alt: false, shift: false }
+    pauseResume: { key: 'Space', ctrl: false, alt: false, shift: false, global: false },
+    nextStage: { key: 'KeyN', ctrl: false, alt: false, shift: false, global: false },
+    previousStage: { key: 'KeyP', ctrl: false, alt: false, shift: false, global: false },
+    addTime: { key: 'Equal', ctrl: false, alt: false, shift: false, global: false },
+    subtractTime: { key: 'Minus', ctrl: false, alt: false, shift: false, global: false }
   });
   const [showShortcutConfig, setShowShortcutConfig] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
@@ -66,7 +65,7 @@ export const Home: React.FC = () => {
   };
 
   // Función para formatear combinaciones de teclas
-  const formatShortcut = (shortcut: { key: string; ctrl: boolean; alt: boolean; shift: boolean }) => {
+  const formatShortcut = (shortcut: { key: string; ctrl: boolean; alt: boolean; shift: boolean; global: boolean }) => {
     const parts = [];
     if (shortcut.ctrl) parts.push('Ctrl');
     if (shortcut.alt) parts.push('Alt');
@@ -78,7 +77,6 @@ export const Home: React.FC = () => {
     else if (key === 'KeyP') key = 'P';
     else if (key === 'Equal') key = '+';
     else if (key === 'Minus') key = '-';
-    else if (key === 'KeyR') key = 'R';
     else if (key.startsWith('F')) key = key; // F1, F2, etc.
     
     parts.push(key);
@@ -395,7 +393,7 @@ export const Home: React.FC = () => {
       
       // Verificar si es una tecla de función válida (F1-F24) o tecla normal
       const validKeys = [
-        'Space', 'KeyN', 'KeyP', 'Equal', 'Minus', 'KeyR',
+        'Space', 'KeyN', 'KeyP', 'Equal', 'Minus',
         'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
         'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21', 'F22', 'F23', 'F24'
       ];
@@ -404,6 +402,7 @@ export const Home: React.FC = () => {
         setKeyboardShortcuts(prev => ({
           ...prev,
           [configuringShortcut]: {
+            ...prev[configuringShortcut as keyof typeof prev],
             key: event.code,
             ctrl: event.ctrlKey,
             alt: event.altKey,
@@ -445,13 +444,15 @@ export const Home: React.FC = () => {
   // Función para manejar atajos de teclado
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (meetingWindow && !meetingWindow.closed) {
-        // Verificar cada atajo
-        Object.entries(keyboardShortcuts).forEach(([action, shortcut]) => {
-          if (event.code === shortcut.key && 
-              event.ctrlKey === shortcut.ctrl && 
-              event.altKey === shortcut.alt && 
-              event.shiftKey === shortcut.shift) {
+      // Verificar cada atajo
+      Object.entries(keyboardShortcuts).forEach(([action, shortcut]) => {
+        if (event.code === shortcut.key && 
+            event.ctrlKey === shortcut.ctrl && 
+            event.altKey === shortcut.alt && 
+            event.shiftKey === shortcut.shift) {
+          
+          // Solo ejecutar si la ventana está activa O si el atajo es global
+          if (meetingWindow && !meetingWindow.closed || shortcut.global) {
             event.preventDefault();
             
             switch (action) {
@@ -470,13 +471,10 @@ export const Home: React.FC = () => {
               case 'subtractTime':
                 handleSubtractTime();
                 break;
-              case 'restartStage':
-                handleRestartStage();
-                break;
             }
           }
-        });
-      }
+        }
+      });
     };
 
     document.addEventListener('keydown', handleKeyPress);
@@ -762,11 +760,10 @@ export const Home: React.FC = () => {
                         Los controles afectan la ventana emergente en tiempo real
                       </div>
                                              <div className="text-xs mt-2 text-blue-600">
-                         Atajos configurados: {formatShortcut(keyboardShortcuts.pauseResume)} (Pausar/Reanudar), 
+                         Atajos configurados: {formatShortcut(keyboardShortcuts.pauseResume)} (Pausar/Reanudar/Reiniciar), 
                          {formatShortcut(keyboardShortcuts.nextStage)} (Siguiente), 
                          {formatShortcut(keyboardShortcuts.previousStage)} (Anterior), 
-                         {formatShortcut(keyboardShortcuts.addTime)}/{formatShortcut(keyboardShortcuts.subtractTime)} (Tiempo),
-                         {formatShortcut(keyboardShortcuts.restartStage)} (Reiniciar)
+                         {formatShortcut(keyboardShortcuts.addTime)}/{formatShortcut(keyboardShortcuts.subtractTime)} (Tiempo)
                        </div>
                        <div className="mt-3">
                          <button
@@ -920,126 +917,189 @@ export const Home: React.FC = () => {
            </div>
          )}
 
-         {/* Shortcuts Configuration Modal */}
-         {showShortcutsModal && (
-           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-             <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-               <div className="flex justify-between items-center mb-6">
-                 <h3 className="text-xl font-semibold">Configuración de Atajos de Teclado</h3>
-                 <button
-                   onClick={() => setShowShortcutsModal(false)}
-                   className="text-gray-400 hover:text-gray-600 text-2xl"
-                 >
-                   ✕
-                 </button>
-               </div>
-               
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Lista de atajos actuales */}
-                 <div>
-                   <h4 className="text-lg font-medium text-gray-800 mb-4">Atajos Actuales</h4>
-                   <div className="space-y-3">
-                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                       <span className="font-medium">Pausar/Reanudar:</span>
-                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.pauseResume)}</span>
-                     </div>
-                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                       <span className="font-medium">Siguiente Etapa:</span>
-                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.nextStage)}</span>
-                     </div>
-                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                       <span className="font-medium">Etapa Anterior:</span>
-                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.previousStage)}</span>
-                     </div>
-                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                       <span className="font-medium">Agregar Tiempo:</span>
-                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.addTime)}</span>
-                     </div>
-                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                       <span className="font-medium">Quitar Tiempo:</span>
-                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.subtractTime)}</span>
-                     </div>
-                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                       <span className="font-medium">Reiniciar Etapa:</span>
-                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.restartStage)}</span>
-                     </div>
-                   </div>
-                 </div>
+                   {/* Shortcuts Configuration Modal */}
+          {showShortcutsModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold">Configuración de Atajos de Teclado</h3>
+                  <button
+                    onClick={() => setShowShortcutsModal(false)}
+                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                {/* Tabla de atajos */}
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border border-gray-300 px-4 py-3 text-left font-semibold">Acción</th>
+                        <th className="border border-gray-300 px-4 py-3 text-left font-semibold">Atajo Actual</th>
+                        <th className="border border-gray-300 px-4 py-3 text-center font-semibold">Global</th>
+                        <th className="border border-gray-300 px-4 py-3 text-center font-semibold">Configurar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-3">
+                          <div className="font-medium text-blue-700">Pausar/Reanudar/Reiniciar</div>
+                          <div className="text-sm text-gray-600">Clic: Pausar/Reanudar | Mantener 1s: Reiniciar</div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3">
+                          <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.pauseResume)}</span>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={keyboardShortcuts.pauseResume.global}
+                            onChange={(e) => setKeyboardShortcuts(prev => ({
+                              ...prev,
+                              pauseResume: { ...prev.pauseResume, global: e.target.checked }
+                            }))}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <button
+                            onClick={() => handleConfigureShortcut('pauseResume')}
+                            className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors text-sm"
+                          >
+                            {configuringShortcut === 'pauseResume' ? 'Presiona...' : 'Cambiar'}
+                          </button>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-3">
+                          <div className="font-medium text-green-700">Siguiente Etapa</div>
+                          <div className="text-sm text-gray-600">Avanzar a la siguiente etapa</div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3">
+                          <span className="font-mono text-green-600">{formatShortcut(keyboardShortcuts.nextStage)}</span>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={keyboardShortcuts.nextStage.global}
+                            onChange={(e) => setKeyboardShortcuts(prev => ({
+                              ...prev,
+                              nextStage: { ...prev.nextStage, global: e.target.checked }
+                            }))}
+                            className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <button
+                            onClick={() => handleConfigureShortcut('nextStage')}
+                            className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded transition-colors text-sm"
+                          >
+                            {configuringShortcut === 'nextStage' ? 'Presiona...' : 'Cambiar'}
+                          </button>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-3">
+                          <div className="font-medium text-yellow-700">Etapa Anterior</div>
+                          <div className="text-sm text-gray-600">Volver a la etapa anterior</div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3">
+                          <span className="font-mono text-yellow-600">{formatShortcut(keyboardShortcuts.previousStage)}</span>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={keyboardShortcuts.previousStage.global}
+                            onChange={(e) => setKeyboardShortcuts(prev => ({
+                              ...prev,
+                              previousStage: { ...prev.previousStage, global: e.target.checked }
+                            }))}
+                            className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <button
+                            onClick={() => handleConfigureShortcut('previousStage')}
+                            className="px-3 py-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 rounded transition-colors text-sm"
+                          >
+                            {configuringShortcut === 'previousStage' ? 'Presiona...' : 'Cambiar'}
+                          </button>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-3">
+                          <div className="font-medium text-emerald-700">Agregar Tiempo</div>
+                          <div className="text-sm text-gray-600">Sumar 30 segundos al cronómetro</div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3">
+                          <span className="font-mono text-emerald-600">{formatShortcut(keyboardShortcuts.addTime)}</span>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={keyboardShortcuts.addTime.global}
+                            onChange={(e) => setKeyboardShortcuts(prev => ({
+                              ...prev,
+                              addTime: { ...prev.addTime, global: e.target.checked }
+                            }))}
+                            className="w-4 h-4 text-emerald-600 bg-gray-100 border-gray-300 rounded focus:ring-emerald-500"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <button
+                            onClick={() => handleConfigureShortcut('addTime')}
+                            className="px-3 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded transition-colors text-sm"
+                          >
+                            {configuringShortcut === 'addTime' ? 'Presiona...' : 'Cambiar'}
+                          </button>
+                        </td>
+                      </tr>
+                      <tr className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-3">
+                          <div className="font-medium text-red-700">Quitar Tiempo</div>
+                          <div className="text-sm text-gray-600">Restar 30 segundos al cronómetro</div>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3">
+                          <span className="font-mono text-red-600">{formatShortcut(keyboardShortcuts.subtractTime)}</span>
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={keyboardShortcuts.subtractTime.global}
+                            onChange={(e) => setKeyboardShortcuts(prev => ({
+                              ...prev,
+                              subtractTime: { ...prev.subtractTime, global: e.target.checked }
+                            }))}
+                            className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-4 py-3 text-center">
+                          <button
+                            onClick={() => handleConfigureShortcut('subtractTime')}
+                            className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded transition-colors text-sm"
+                          >
+                            {configuringShortcut === 'subtractTime' ? 'Presiona...' : 'Cambiar'}
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
 
-                 {/* Configuración de atajos */}
-                 <div>
-                   <h4 className="text-lg font-medium text-gray-800 mb-4">Configurar Atajos</h4>
-                   <div className="space-y-3">
-                     <button
-                       onClick={() => handleConfigureShortcut('pauseResume')}
-                       className="w-full p-3 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-left"
-                     >
-                       <div className="font-medium">Pausar/Reanudar</div>
-                       <div className="text-sm text-blue-600">
-                         {configuringShortcut === 'pauseResume' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.pauseResume)}
-                       </div>
-                     </button>
-                     <button
-                       onClick={() => handleConfigureShortcut('nextStage')}
-                       className="w-full p-3 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors text-left"
-                     >
-                       <div className="font-medium">Siguiente Etapa</div>
-                       <div className="text-sm text-green-600">
-                         {configuringShortcut === 'nextStage' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.nextStage)}
-                       </div>
-                     </button>
-                     <button
-                       onClick={() => handleConfigureShortcut('previousStage')}
-                       className="w-full p-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 rounded-lg transition-colors text-left"
-                     >
-                       <div className="font-medium">Etapa Anterior</div>
-                       <div className="text-sm text-yellow-600">
-                         {configuringShortcut === 'previousStage' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.previousStage)}
-                       </div>
-                     </button>
-                     <button
-                       onClick={() => handleConfigureShortcut('addTime')}
-                       className="w-full p-3 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg transition-colors text-left"
-                     >
-                       <div className="font-medium">Agregar Tiempo</div>
-                       <div className="text-sm text-emerald-600">
-                         {configuringShortcut === 'addTime' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.addTime)}
-                       </div>
-                     </button>
-                     <button
-                       onClick={() => handleConfigureShortcut('subtractTime')}
-                       className="w-full p-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors text-left"
-                     >
-                       <div className="font-medium">Quitar Tiempo</div>
-                       <div className="text-sm text-red-600">
-                         {configuringShortcut === 'subtractTime' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.subtractTime)}
-                       </div>
-                     </button>
-                     <button
-                       onClick={() => handleConfigureShortcut('restartStage')}
-                       className="w-full p-3 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors text-left"
-                     >
-                       <div className="font-medium">Reiniciar Etapa</div>
-                       <div className="text-sm text-purple-600">
-                         {configuringShortcut === 'restartStage' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.restartStage)}
-                       </div>
-                     </button>
-                   </div>
-                 </div>
-               </div>
-
-               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                 <h5 className="font-medium text-blue-800 mb-2">Información sobre Atajos</h5>
-                 <ul className="text-sm text-blue-700 space-y-1">
-                   <li>• Puedes usar combinaciones con Ctrl, Alt y Shift</li>
-                   <li>• Las teclas de función F1-F24 están disponibles</li>
-                   <li>• Los atajos solo funcionan cuando el directorio está activo</li>
-                   <li>• Ejemplos: Ctrl+F1, Alt+Shift+N, F5, etc.</li>
-                 </ul>
-               </div>
-             </div>
-           </div>
-         )}
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <h5 className="font-medium text-blue-800 mb-2">Información sobre Atajos</h5>
+                  <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• <strong>Pausar/Reanudar/Reiniciar:</strong> Mismo atajo, reiniciar se activa manteniendo presionado 1 segundo</li>
+                    <li>• <strong>Global:</strong> Los atajos marcados funcionan aunque la aplicación no esté en primer plano</li>
+                    <li>• Puedes usar combinaciones con Ctrl, Alt y Shift</li>
+                    <li>• Las teclas de función F1-F24 están disponibles</li>
+                    <li>• Ejemplos: Ctrl+F1, Alt+Shift+N, F5, etc.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
       </div>
     </div>
   );
