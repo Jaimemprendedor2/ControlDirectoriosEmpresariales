@@ -49,10 +49,11 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
             // Tiempo agotado para esta etapa
             setIsRunning(false);
             setIsWaitingForNext(true);
+            localStorage.setItem('currentTimeLeft', '0');
             return 0;
           }
           const newTime = prevTime - 1;
-          // Sincronizar con el panel de control
+          // Sincronizar inmediatamente con el panel de control
           localStorage.setItem('currentTimeLeft', newTime.toString());
           return newTime;
         });
@@ -179,6 +180,11 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
 
         case 'pauseResume':
           setIsRunning(!isRunning);
+          // Sincronizar el estado de pausa
+          if (isRunning) {
+            // Si se va a pausar, guardar el tiempo actual
+            localStorage.setItem('currentTimeLeft', timeLeft.toString());
+          }
           break;
 
         case 'restartStage':

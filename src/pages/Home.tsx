@@ -143,6 +143,7 @@ export const Home: React.FC = () => {
     const currentStage = stages[currentStageIndex];
     if (!currentStage) return "00:00";
     
+    // Obtener el tiempo del localStorage con mejor sincronización
     const timeLeft = localStorage.getItem('currentTimeLeft');
     const seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
     
@@ -151,6 +152,8 @@ export const Home: React.FC = () => {
     
     const minutes = Math.floor(validSeconds / 60);
     const secs = validSeconds % 60;
+    
+    // Usar el mismo formato que MeetingView para consistencia
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -284,6 +287,8 @@ export const Home: React.FC = () => {
     if (currentStageIndex > 0) {
       const newIndex = currentStageIndex - 1;
       setCurrentStageIndex(newIndex);
+      // Sincronizar el tiempo de la nueva etapa
+      localStorage.setItem('currentTimeLeft', stages[newIndex].duration.toString());
       sendMessageToMeetingWindow('previousStage', { stageIndex: newIndex });
     }
   };
@@ -292,6 +297,8 @@ export const Home: React.FC = () => {
     if (currentStageIndex < stages.length - 1) {
       const newIndex = currentStageIndex + 1;
       setCurrentStageIndex(newIndex);
+      // Sincronizar el tiempo de la nueva etapa
+      localStorage.setItem('currentTimeLeft', stages[newIndex].duration.toString());
       sendMessageToMeetingWindow('nextStage', { stageIndex: newIndex });
     }
   };
@@ -338,7 +345,7 @@ export const Home: React.FC = () => {
       const interval = setInterval(() => {
         // Forzar re-render del componente para actualizar el cronómetro
         setTimerUpdate(prev => prev + 1);
-      }, 1000);
+      }, 100); // Actualizar cada 100ms para mejor sincronización
 
       return () => clearInterval(interval);
     }
@@ -416,14 +423,16 @@ export const Home: React.FC = () => {
       'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
     );
     
-    if (newMeetingWindow) {
-      // Guardar las etapas en localStorage para que la nueva ventana las pueda leer
-      localStorage.setItem('meetingStages', JSON.stringify(stages));
-      setMeetingWindow(newMeetingWindow);
-      setIsTimerRunning(true);
-      setCurrentStageIndex(0);
-      console.log('Ventana abierta exitosamente');
-    }
+         if (newMeetingWindow) {
+       // Guardar las etapas en localStorage para que la nueva ventana las pueda leer
+       localStorage.setItem('meetingStages', JSON.stringify(stages));
+       // Inicializar el tiempo de la primera etapa
+       localStorage.setItem('currentTimeLeft', stages[0].duration.toString());
+       setMeetingWindow(newMeetingWindow);
+       setIsTimerRunning(true);
+       setCurrentStageIndex(0);
+       console.log('Ventana abierta exitosamente');
+     }
   };
 
   return (
@@ -558,16 +567,16 @@ export const Home: React.FC = () => {
                     </button>
                   </div>
 
-                  <StagesList 
-                    stages={stages}
-                    onRemoveStage={handleRemoveStage}
-                    onEditStage={handleEditStage}
-                    onAddStage={handleQuickAddStage}
-                    onConfigureColors={handleConfigureColors}
-                    editingIndex={editingIndex || undefined}
-                    onSaveEdit={handleSaveEdit}
-                    onCancelEdit={handleCancelEdit}
-                  />
+                                     <StagesList 
+                     stages={stages}
+                     onRemoveStage={handleRemoveStage}
+                     onEditStage={handleEditStage}
+                     onAddStage={handleQuickAddStage}
+                     onConfigureColors={handleConfigureColors}
+                     editingIndex={editingIndex !== null ? editingIndex : undefined}
+                     onSaveEdit={handleSaveEdit}
+                     onCancelEdit={handleCancelEdit}
+                   />
                 </div>
               )}
             </>
