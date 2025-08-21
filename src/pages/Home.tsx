@@ -39,11 +39,13 @@ export const Home: React.FC = () => {
     nextStage: 'KeyN',
     previousStage: 'KeyP',
     addTime: 'Equal',
-    subtractTime: 'Minus'
+    subtractTime: 'Minus',
+    restartStage: 'KeyR'
   });
   const [showShortcutConfig, setShowShortcutConfig] = useState(false);
   const [configuringShortcut, setConfiguringShortcut] = useState<string | null>(null);
   const [timerUpdate, setTimerUpdate] = useState(0); // Para forzar re-render del cronómetro
+  const [isLongPress, setIsLongPress] = useState(false); // Para manejar presión prolongada del botón
 
   // Función para obtener información de compilación
   const getBuildInfo = () => {
@@ -308,6 +310,50 @@ export const Home: React.FC = () => {
     sendMessageToMeetingWindow('pauseResume');
   };
 
+  const handleRestartStage = () => {
+    // Reiniciar la etapa actual con su tiempo original
+    const currentStage = stages[currentStageIndex];
+    if (currentStage) {
+      localStorage.setItem('currentTimeLeft', currentStage.duration.toString());
+      sendMessageToMeetingWindow('restartStage');
+      setIsTimerRunning(true);
+    }
+  };
+
+  // Funciones para manejar presión prolongada del botón
+  const handlePauseButtonMouseDown = () => {
+    const timer = setTimeout(() => {
+      setIsLongPress(true);
+      handleRestartStage();
+    }, 1000); // 1 segundo
+
+    // Guardar el timer para poder cancelarlo
+    (window as any).pauseButtonTimer = timer;
+  };
+
+  const handlePauseButtonMouseUp = () => {
+    if ((window as any).pauseButtonTimer) {
+      clearTimeout((window as any).pauseButtonTimer);
+      (window as any).pauseButtonTimer = null;
+    }
+    
+    if (!isLongPress) {
+      // Solo ejecutar pausar/reanudar si no fue una presión prolongada
+      handlePauseResume();
+    }
+    
+    // Resetear el estado de presión prolongada
+    setTimeout(() => setIsLongPress(false), 100);
+  };
+
+  const handlePauseButtonMouseLeave = () => {
+    if ((window as any).pauseButtonTimer) {
+      clearTimeout((window as any).pauseButtonTimer);
+      (window as any).pauseButtonTimer = null;
+    }
+    setIsLongPress(false);
+  };
+
   const handleAddTime = () => {
     sendMessageToMeetingWindow('addTime', { seconds: 30 });
   };
@@ -384,6 +430,10 @@ export const Home: React.FC = () => {
           case keyboardShortcuts.subtractTime:
             event.preventDefault();
             handleSubtractTime();
+            break;
+          case keyboardShortcuts.restartStage:
+            event.preventDefault();
+            handleRestartStage();
             break;
         }
       }
@@ -612,14 +662,23 @@ export const Home: React.FC = () => {
                       <span className="text-sm">Anterior</span>
                     </button>
 
-                    {/* Botón Pausar/Reanudar */}
+                    {/* Botón Pausar/Reanudar/Reiniciar */}
                     <button
-                      onClick={handlePauseResume}
-                      className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      title={`Pausar/Reanudar (${keyboardShortcuts.pauseResume.replace('Space', 'Espacio')})`}
+                      onMouseDown={handlePauseButtonMouseDown}
+                      onMouseUp={handlePauseButtonMouseUp}
+                      onMouseLeave={handlePauseButtonMouseLeave}
+                      onTouchStart={handlePauseButtonMouseDown}
+                      onTouchEnd={handlePauseButtonMouseUp}
+                      className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 relative"
+                      title={`Clic: Pausar/Reanudar | Mantener 1s: Reiniciar (${keyboardShortcuts.pauseResume.replace('Space', 'Espacio')})`}
                     >
                       <span className="text-xl">{isTimerRunning ? '⏸️' : '▶️'}</span>
                       <span className="text-sm">{isTimerRunning ? 'Pausar' : 'Reanudar'}</span>
+                      {isLongPress && (
+                        <div className="absolute inset-0 bg-blue-800 rounded-lg flex items-center justify-center">
+                          <span className="text-white text-sm font-bold">🔄 Reiniciando...</span>
+                        </div>
+                      )}
                     </button>
 
                     {/* Botón Siguiente */}
@@ -666,7 +725,8 @@ export const Home: React.FC = () => {
                         Atajos: {keyboardShortcuts.pauseResume.replace('Space', 'Espacio')} (Pausar/Reanudar), 
                         {keyboardShortcuts.nextStage.replace('KeyN', 'N')} (Siguiente), 
                         {keyboardShortcuts.previousStage.replace('KeyP', 'P')} (Anterior), 
-                        {keyboardShortcuts.addTime.replace('Equal', '+')}/{keyboardShortcuts.subtractTime.replace('Minus', '-')} (Tiempo)
+                        {keyboardShortcuts.addTime.replace('Equal', '+')}/{keyboardShortcuts.subtractTime.replace('Minus', '-')} (Tiempo),
+                        {keyboardShortcuts.restartStage.replace('KeyR', 'R')} (Reiniciar)
                       </div>
                       <div className="mt-3 space-y-2">
                         <div className="text-xs font-medium text-gray-700">Configurar Atajos:</div>
@@ -700,6 +760,12 @@ export const Home: React.FC = () => {
                             className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs rounded transition-colors"
                           >
                             {configuringShortcut === 'subtractTime' ? 'Presiona una tecla...' : `-Tiempo: ${keyboardShortcuts.subtractTime.replace('Minus', '-')}`}
+                          </button>
+                          <button
+                            onClick={() => handleConfigureShortcut('restartStage')}
+                            className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs rounded transition-colors"
+                          >
+                            {configuringShortcut === 'restartStage' ? 'Presiona una tecla...' : `Reiniciar: ${keyboardShortcuts.restartStage.replace('KeyR', 'R')}`}
                           </button>
                         </div>
                       </div>
@@ -822,13 +888,14 @@ export const Home: React.FC = () => {
               <p className="text-gray-600 mb-4">
                 Presiona la tecla que deseas usar para esta acción
               </p>
-              <div className="text-2xl font-mono text-blue-600 mb-4">
-                {configuringShortcut === 'pauseResume' && 'Pausar/Reanudar'}
-                {configuringShortcut === 'nextStage' && 'Siguiente Etapa'}
-                {configuringShortcut === 'previousStage' && 'Etapa Anterior'}
-                {configuringShortcut === 'addTime' && 'Agregar Tiempo'}
-                {configuringShortcut === 'subtractTime' && 'Quitar Tiempo'}
-              </div>
+                             <div className="text-2xl font-mono text-blue-600 mb-4">
+                 {configuringShortcut === 'pauseResume' && 'Pausar/Reanudar'}
+                 {configuringShortcut === 'nextStage' && 'Siguiente Etapa'}
+                 {configuringShortcut === 'previousStage' && 'Etapa Anterior'}
+                 {configuringShortcut === 'addTime' && 'Agregar Tiempo'}
+                 {configuringShortcut === 'subtractTime' && 'Quitar Tiempo'}
+                 {configuringShortcut === 'restartStage' && 'Reiniciar Etapa'}
+               </div>
               <button
                 onClick={() => {
                   setShowShortcutConfig(false);
