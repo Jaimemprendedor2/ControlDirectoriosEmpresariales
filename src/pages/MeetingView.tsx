@@ -25,7 +25,7 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
   });
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [isRunning, setIsRunning] = useState(true);
+  const [isRunning, setIsRunning] = useState(false); // No iniciar automáticamente
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
   const [isAlertBlinking, setIsAlertBlinking] = useState(false);
   const [initialTime, setInitialTime] = useState<number>(0); // Tiempo inicial configurado
@@ -179,7 +179,7 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
             localStorage.setItem('currentTimeLeft', newStageTime.toString());
             localStorage.setItem('initialTime', newStageTime.toString());
             setIsWaitingForNext(false);
-            setIsRunning(true);
+            setIsRunning(false); // Pausar al cambiar de etapa
           }
           break;
 
@@ -193,7 +193,7 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
             localStorage.setItem('currentTimeLeft', newStageTime.toString());
             localStorage.setItem('initialTime', newStageTime.toString());
             setIsWaitingForNext(false);
-            setIsRunning(true);
+            setIsRunning(false); // Pausar al cambiar de etapa
           }
           break;
 
@@ -210,8 +210,10 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
               localStorage.setItem('currentTimeLeft', initialTimeValue.toString());
             }
           } else {
-            // Si se va a pausar, guardar el tiempo actual
+            // Si se va a pausar, guardar el tiempo actual inmediatamente
             localStorage.setItem('currentTimeLeft', timeLeft.toString());
+            // Asegurar que el tiempo se mantiene sincronizado
+            console.log('Pausando cronómetro, tiempo guardado:', timeLeft);
           }
           break;
 

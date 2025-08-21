@@ -157,6 +157,42 @@ export const Home: React.FC = () => {
     loadMeetingWithStages(meeting.id);
   };
 
+  // Eliminar un directorio
+  const handleDeleteMeeting = async () => {
+    if (!selectedMeeting) return;
+
+    // Confirmar la eliminación
+    const confirmDelete = window.confirm(
+      `¿Estás seguro de que quieres eliminar el directorio "${selectedMeeting.title}"?\n\nEsta acción no se puede deshacer y eliminará todas las etapas asociadas.`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      // Cerrar la ventana de reunión si está abierta
+      if (meetingWindow && !meetingWindow.closed) {
+        meetingWindow.close();
+        setMeetingWindow(null);
+        setIsTimerRunning(false);
+      }
+
+      // Eliminar el directorio de la base de datos
+      await MeetingService.deleteMeeting(selectedMeeting.id);
+      
+      // Limpiar el estado local
+      setSelectedMeeting(null);
+      setStages([]);
+      
+      // Recargar la lista de directorios
+      await loadMeetings();
+      
+      alert('Directorio eliminado exitosamente');
+    } catch (error) {
+      console.error('Error eliminando directorio:', error);
+      alert('Error al eliminar el directorio');
+    }
+  };
+
   // Función para obtener el tiempo actual del cronómetro
   const getCurrentTime = () => {
     // Usar timerUpdate para forzar la actualización
@@ -169,8 +205,8 @@ export const Home: React.FC = () => {
     const timeLeft = localStorage.getItem('currentTimeLeft');
     const seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
     
-    // Asegurar que el tiempo no sea negativo
-    const validSeconds = Math.max(0, seconds);
+    // Asegurar que el tiempo no sea negativo y no sea NaN
+    const validSeconds = Math.max(0, isNaN(seconds) ? currentStage.duration : seconds);
     
     const minutes = Math.floor(validSeconds / 60);
     const secs = validSeconds % 60;
@@ -313,6 +349,8 @@ export const Home: React.FC = () => {
       const newStageTime = stages[newIndex].duration;
       localStorage.setItem('currentTimeLeft', newStageTime.toString());
       localStorage.setItem('initialTime', newStageTime.toString());
+      // Pausar el cronómetro al cambiar de etapa
+      setIsTimerRunning(false);
       sendMessageToMeetingWindow('previousStage', { stageIndex: newIndex });
     }
   };
@@ -325,6 +363,8 @@ export const Home: React.FC = () => {
       const newStageTime = stages[newIndex].duration;
       localStorage.setItem('currentTimeLeft', newStageTime.toString());
       localStorage.setItem('initialTime', newStageTime.toString());
+      // Pausar el cronómetro al cambiar de etapa
+      setIsTimerRunning(false);
       sendMessageToMeetingWindow('nextStage', { stageIndex: newIndex });
     }
   };
@@ -562,7 +602,7 @@ export const Home: React.FC = () => {
        localStorage.setItem('currentTimeLeft', initialStageTime.toString());
        localStorage.setItem('initialTime', initialStageTime.toString()); // Guardar tiempo inicial
        setMeetingWindow(newMeetingWindow);
-       setIsTimerRunning(true);
+       setIsTimerRunning(false); // No iniciar automáticamente
        setCurrentStageIndex(0);
        console.log('Ventana abierta exitosamente');
      }
@@ -663,12 +703,22 @@ export const Home: React.FC = () => {
                     {selectedMeeting.title}
                   </h2>
                 </div>
-                <button
-                  onClick={() => setShowNewMeetingModal(true)}
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
-                >
-                  🔄 Nuevo Directorio
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleDeleteMeeting}
+                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
+                    title="Eliminar directorio"
+                  >
+                    <span>🗑️</span>
+                    <span>Eliminar Directorio</span>
+                  </button>
+                  <button
+                    onClick={() => setShowNewMeetingModal(true)}
+                    className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                  >
+                    🔄 Nuevo Directorio
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -776,27 +826,27 @@ export const Home: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Agregar Tiempo */}
-                    <button
-                      onClick={handleAddTime}
-                      className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                                             title={`+30 segundos (${formatShortcut(keyboardShortcuts.addTime)})`}
-                    >
-                      <span className="text-xl">➕</span>
-                      <span className="text-sm">+30 segundos</span>
-                    </button>
+                                     <div className="grid grid-cols-2 gap-3">
+                     {/* Quitar Tiempo */}
+                     <button
+                       onClick={handleSubtractTime}
+                       className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                                              title={`-30 segundos (${formatShortcut(keyboardShortcuts.subtractTime)})`}
+                     >
+                       <span className="text-xl">➖</span>
+                       <span className="text-sm">-30 segundos</span>
+                     </button>
 
-                    {/* Quitar Tiempo */}
-                    <button
-                      onClick={handleSubtractTime}
-                      className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                                             title={`-30 segundos (${formatShortcut(keyboardShortcuts.subtractTime)})`}
-                    >
-                      <span className="text-xl">➖</span>
-                      <span className="text-sm">-30 segundos</span>
-                    </button>
-                  </div>
+                     {/* Agregar Tiempo */}
+                     <button
+                       onClick={handleAddTime}
+                       className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                                              title={`+30 segundos (${formatShortcut(keyboardShortcuts.addTime)})`}
+                     >
+                       <span className="text-xl">➕</span>
+                       <span className="text-sm">+30 segundos</span>
+                     </button>
+                   </div>
 
                   <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                     <div className="text-sm text-gray-600">
