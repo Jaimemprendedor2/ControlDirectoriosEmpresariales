@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { CsvDropzone } from '../components/CsvDropzone';
 import { StagesList } from '../components/StagesList';
 import { StageColorConfig } from '../components/StageColorConfig';
+import { MeetingService } from '../services/meetingService';
+import { Meeting } from '../lib/supabase';
 
 interface Stage {
   id?: string;
@@ -21,6 +23,11 @@ interface Stage {
 export const Home: React.FC = () => {
   const [stages, setStages] = useState<Stage[]>([]);
   const [showImport, setShowImport] = useState(false);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [showNewMeetingModal, setShowNewMeetingModal] = useState(false);
+  const [newMeetingName, setNewMeetingName] = useState('');
+  const [newMeetingDate, setNewMeetingDate] = useState('');
 
   const [configuringColors, setConfiguringColors] = useState<{index: number, stage: Stage} | null>(null);
   const [meetingWindow, setMeetingWindow] = useState<Window | null>(null);
@@ -41,7 +48,7 @@ export const Home: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Fecha fija de compilación (se actualiza cuando se hace un nuevo build)
-    const buildDate = new Date('2024-12-19T16:30:00-03:00'); // Fecha de Santiago, Chile
+    const buildDate = new Date();
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -53,6 +60,79 @@ export const Home: React.FC = () => {
       hour12: false 
     });
     return `Compilado: ${date} ${time}`;
+  };
+
+  // Cargar directorios desde la base de datos
+  const loadMeetings = async () => {
+    try {
+      const meetingsData = await MeetingService.getMeetings();
+      setMeetings(meetingsData);
+    } catch (error) {
+      console.error('Error cargando directorios:', error);
+    }
+  };
+
+  // Crear nuevo directorio
+  const handleCreateNewMeeting = async () => {
+    if (!newMeetingName.trim()) {
+      alert('Por favor ingresa un nombre para el directorio');
+      return;
+    }
+
+    try {
+      // Crear el directorio
+      const meeting = await MeetingService.createMeeting(
+        newMeetingName,
+        `Directorio creado el ${newMeetingDate || new Date().toLocaleDateString('es-CL')}`
+      );
+
+      // Crear la etapa "Inicio" automáticamente
+      await MeetingService.addStage(meeting.id, 'Inicio', 300); // 5 minutos = 300 segundos
+
+      // Cargar el directorio recién creado
+      await loadMeetingWithStages(meeting.id);
+      setSelectedMeeting(meeting);
+      
+      // Cerrar modal y limpiar campos
+      setShowNewMeetingModal(false);
+      setNewMeetingName('');
+      setNewMeetingDate('');
+      
+      // Recargar la lista de directorios
+      await loadMeetings();
+    } catch (error) {
+      console.error('Error creando directorio:', error);
+      alert('Error al crear el directorio');
+    }
+  };
+
+  // Cargar un directorio específico con sus etapas
+  const loadMeetingWithStages = async (meetingId: string) => {
+    try {
+      const { meeting, stages: meetingStages } = await MeetingService.getMeetingWithStages(meetingId);
+      
+      // Convertir MeetingStage[] a Stage[]
+      const convertedStages: Stage[] = meetingStages.map(stage => ({
+        id: stage.id,
+        title: stage.title,
+        description: '',
+        duration: stage.duration,
+        order_index: stage.order_index,
+        is_completed: stage.is_completed,
+        alertColor: '#FF0000',
+        alertSeconds: 15
+      }));
+      
+      setStages(convertedStages);
+      setSelectedMeeting(meeting);
+    } catch (error) {
+      console.error('Error cargando directorio:', error);
+    }
+  };
+
+  // Seleccionar un directorio de la lista
+  const handleSelectMeeting = (meeting: Meeting) => {
+    loadMeetingWithStages(meeting.id);
   };
 
   // Función para obtener el tiempo actual del cronómetro
@@ -89,17 +169,25 @@ export const Home: React.FC = () => {
 
 
 
-  const handleQuickAddStage = () => {
-    const newStage = {
-      title: '',
-      description: '',
-      duration: 30,
-      order_index: stages.length + 1,
-      alertColor: '#FF0000',
-      alertSeconds: 15
-    };
-    setStages([...stages, newStage]);
-    setEditingIndex(stages.length);
+  const handleQuickAddStage = async () => {
+    if (!selectedMeeting) {
+      alert('Selecciona un directorio primero');
+      return;
+    }
+
+    try {
+      // Crear la etapa en la base de datos
+      await MeetingService.addStage(selectedMeeting.id, 'Nueva Etapa', 30);
+      
+      // Recargar las etapas del directorio
+      await loadMeetingWithStages(selectedMeeting.id);
+      
+      // Poner en modo edición la última etapa añadida
+      setEditingIndex(stages.length);
+    } catch (error) {
+      console.error('Error agregando etapa:', error);
+      alert('Error al agregar la etapa');
+    }
   };
 
   const handleRemoveStage = (index: number) => {
@@ -206,6 +294,11 @@ export const Home: React.FC = () => {
     }
   };
 
+  // Cargar directorios al iniciar el componente
+  useEffect(() => {
+    loadMeetings();
+  }, []);
+
   // Sincronizar el cronómetro del panel de control con la ventana emergente
   useEffect(() => {
     if (meetingWindow && !meetingWindow.closed) {
@@ -298,86 +391,145 @@ export const Home: React.FC = () => {
           </h1>
         </header>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
-              Configurar Directorio
-            </h2>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowImport(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
-              >
-                <span>📁</span>
-                <span>Importar CSV</span>
-              </button>
-                             <button
-                 onClick={handleQuickAddStage}
-                 className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
-               >
-                 <span>➕</span>
-                 <span>Crear Etapa</span>
-               </button>
-              <button
-                onClick={() => {
-                  setStages([]);
-                  localStorage.removeItem('meetingStages');
-                }}
-                className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
-              >
-                🔄 Nuevo Directorio
-              </button>
-            </div>
-          </div>
-
-          {stages.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">📋</div>
-              <h2 className="text-xl font-semibold text-gray-700 mb-4">
-                Directorio Empresarial
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Este directorio no tiene etapas configuradas. Agrega etapas para comenzar la configuración.
-              </p>
-
-              <div className="mt-8 p-4 bg-blue-50 rounded-lg max-w-md mx-auto">
-                <h3 className="font-semibold text-blue-800 mb-2">Atajos de Teclado:</h3>
-                <div className="text-sm text-blue-700 space-y-1">
-                  <div><kbd className="bg-blue-200 px-2 py-1 rounded">Espacio</kbd> - Play/Pause</div>
-                  <div><kbd className="bg-blue-200 px-2 py-1 rounded">N</kbd> - Siguiente etapa</div>
-                  <div><kbd className="bg-blue-200 px-2 py-1 rounded">P</kbd> - Etapa anterior</div>
-                  <div><kbd className="bg-blue-200 px-2 py-1 rounded">R</kbd> - Reiniciar etapa</div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
+                <div className="bg-white rounded-lg shadow-md p-6">
+          {!selectedMeeting ? (
+            <div>
+              <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">
-                  Configurar Directorio
+                  Directorios Empresariales
                 </h2>
                 <button
-                  onClick={handleStartMeeting}
-                  className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+                  onClick={() => setShowNewMeetingModal(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
                 >
-                  🚀 Iniciar Directorio
+                  <span>➕</span>
+                  <span>Nuevo Directorio</span>
                 </button>
               </div>
 
-              <StagesList 
-                stages={stages}
-                onRemoveStage={handleRemoveStage}
-                onEditStage={handleEditStage}
-                onAddStage={handleQuickAddStage}
-                onConfigureColors={handleConfigureColors}
-                editingIndex={editingIndex || undefined}
-                onSaveEdit={handleSaveEdit}
-                onCancelEdit={handleCancelEdit}
-              />
+              {meetings.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📁</div>
+                  <h2 className="text-xl font-semibold text-gray-700 mb-4">
+                    No hay directorios creados
+                  </h2>
+                  <p className="text-gray-600 mb-6">
+                    Crea tu primer directorio empresarial para comenzar.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-4">
+                    Selecciona un directorio:
+                  </h3>
+                  {meetings.map((meeting) => (
+                    <div
+                      key={meeting.id}
+                      onClick={() => handleSelectMeeting(meeting)}
+                      className="bg-gray-50 hover:bg-gray-100 rounded-lg p-4 cursor-pointer transition-colors border border-gray-200 hover:border-gray-300"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="text-lg font-medium text-gray-800">
+                            {meeting.title}
+                          </h4>
+                          <p className="text-sm text-gray-600">
+                            {meeting.description}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-gray-500">
+                            Creado: {new Date(meeting.created_at).toLocaleDateString('es-CL')}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(meeting.created_at).toLocaleTimeString('es-CL', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <button
+                    onClick={() => {
+                      setSelectedMeeting(null);
+                      setStages([]);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm mb-2 flex items-center space-x-1"
+                  >
+                    <span>←</span>
+                    <span>Volver a directorios</span>
+                  </button>
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    {selectedMeeting.title}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setShowNewMeetingModal(true)}
+                  className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                >
+                  🔄 Nuevo Directorio
+                </button>
+              </div>
+            </div>
+          )}
 
-              {/* Panel de Control de Tiempo - mostrar cuando se inicie el directorio */}
-              {meetingWindow && !meetingWindow.closed && (
-                <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-200">
+          {selectedMeeting && (
+            <>
+              {stages.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">📋</div>
+                  <h2 className="text-xl font-semibold text-gray-700 mb-4">
+                    Directorio Empresarial
+                  </h2>
+                  <p className="text-gray-600 mb-6">
+                    Este directorio no tiene etapas configuradas.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <button
+                      onClick={handleQuickAddStage}
+                      className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
+                    >
+                      <span>➕</span>
+                      <span>Crear Etapa</span>
+                    </button>
+                    <button
+                      onClick={handleStartMeeting}
+                      className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+                    >
+                      🚀 Iniciar Directorio
+                    </button>
+                  </div>
+
+                  <StagesList 
+                    stages={stages}
+                    onRemoveStage={handleRemoveStage}
+                    onEditStage={handleEditStage}
+                    onAddStage={handleQuickAddStage}
+                    onConfigureColors={handleConfigureColors}
+                    editingIndex={editingIndex || undefined}
+                    onSaveEdit={handleSaveEdit}
+                    onCancelEdit={handleCancelEdit}
+                  />
+                </div>
+              )}
+            </>
+          )}
+          
+          {/* Panel de Control de Tiempo - mostrar cuando se inicie el directorio */}
+          {meetingWindow && !meetingWindow.closed && (
+            <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-200">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <span className="text-2xl mr-2">⏱️</span>
                     Panel de Control del Directorio
@@ -500,9 +652,82 @@ export const Home: React.FC = () => {
                   </div>
                 </div>
               )}
-            </div>
-          )}
         </div>
+
+        {/* Modal para Nuevo Directorio */}
+        {showNewMeetingModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Crear Nuevo Directorio</h3>
+                <button
+                  onClick={() => {
+                    setShowNewMeetingModal(false);
+                    setNewMeetingName('');
+                    setNewMeetingDate('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="meetingName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Nombre del Directorio *
+                  </label>
+                  <input
+                    type="text"
+                    id="meetingName"
+                    value={newMeetingName}
+                    onChange={(e) => setNewMeetingName(e.target.value)}
+                    placeholder="Ej: Directorio Mensual Enero 2024"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="meetingDate" className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha (opcional)
+                  </label>
+                  <input
+                    type="date"
+                    id="meetingDate"
+                    value={newMeetingDate}
+                    onChange={(e) => setNewMeetingDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <p className="text-sm text-blue-700">
+                    ℹ️ Se creará automáticamente una etapa "Inicio" de 5 minutos que podrás editar después.
+                  </p>
+                </div>
+                
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setShowNewMeetingModal(false);
+                      setNewMeetingName('');
+                      setNewMeetingDate('');
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-md transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleCreateNewMeeting}
+                    className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors"
+                  >
+                    Crear Directorio
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* CSV Import Modal */}
         {showImport && (
