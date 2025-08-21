@@ -22,6 +22,179 @@ export const Control: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('Desconectado');
 
+  // Sistema robusto de conexión
+  const [connectionId] = useState(`control-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [lastHeartbeat, setLastHeartbeat] = useState<number>(Date.now());
+  const [heartbeatInterval, setHeartbeatInterval] = useState<NodeJS.Timeout | null>(null);
+  const [reconnectionTimer, setReconnectionTimer] = useState<NodeJS.Timeout | null>(null);
+  const [connectionQuality, setConnectionQuality] = useState<'excellent' | 'good' | 'poor' | 'disconnected'>('disconnected');
+  const [connectionLatency, setConnectionLatency] = useState<number>(0);
+
+  // Función para generar un ID único de conexión
+  const generateConnectionId = () => {
+    return `control-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // Función para medir latencia de conexión
+  const measureConnectionLatency = (): Promise<number> => {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+      
+      if (window.opener && !window.opener.closed && isConnected) {
+        try {
+          window.opener.postMessage({ 
+            action: 'latencyTest', 
+            data: { 
+              timestamp: startTime,
+              connectionId: connectionId 
+            } 
+          }, '*');
+          
+          // Esperar respuesta con timeout
+          const timeout = setTimeout(() => {
+            resolve(999); // Timeout
+          }, 1000);
+          
+          const handleLatencyResponse = (event: MessageEvent) => {
+            if (event.data.action === 'latencyResponse' && event.data.data.connectionId === connectionId) {
+              clearTimeout(timeout);
+              window.removeEventListener('message', handleLatencyResponse);
+              const latency = Date.now() - startTime;
+              resolve(latency);
+            }
+          };
+          
+          window.addEventListener('message', handleLatencyResponse);
+        } catch (error) {
+          resolve(999); // Error
+        }
+      } else {
+        resolve(999); // No conectado
+      }
+    });
+  };
+
+  // Función para evaluar calidad de conexión
+  const evaluateConnectionQuality = (latency: number): 'excellent' | 'good' | 'poor' | 'disconnected' => {
+    if (latency >= 999) return 'disconnected';
+    if (latency < 50) return 'excellent';
+    if (latency < 200) return 'good';
+    return 'poor';
+  };
+
+  // Función para enviar heartbeat
+  const sendHeartbeat = () => {
+    const now = Date.now();
+    setLastHeartbeat(now);
+    
+    if (window.opener && !window.opener.closed && isConnected) {
+      try {
+        window.opener.postMessage({ 
+          action: 'heartbeat', 
+          data: { 
+            timestamp: now,
+            connectionId: connectionId,
+            latency: connectionLatency
+          } 
+        }, '*');
+      } catch (error) {
+        console.log('Error enviando heartbeat:', error);
+        handleConnectionError();
+      }
+    } else {
+      // Fallback: enviar a localStorage
+      localStorage.setItem('controlHeartbeat', JSON.stringify({
+        timestamp: now,
+        connectionId: connectionId,
+        latency: connectionLatency
+      }));
+    }
+  };
+
+  // Función para manejar errores de conexión
+  const handleConnectionError = () => {
+    console.log('🔌 Error de conexión detectado, iniciando reconexión...');
+    setIsConnected(false);
+    setConnectionStatus('Reconectando...');
+    setConnectionQuality('disconnected');
+    
+    // Limpiar timers existentes
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+      setHeartbeatInterval(null);
+    }
+    if (reconnectionTimer) {
+      clearTimeout(reconnectionTimer);
+      setReconnectionTimer(null);
+    }
+    
+    // Intentar reconexión
+    attemptReconnection();
+  };
+
+  // Función para intentar reconexión
+  const attemptReconnection = () => {
+    const maxAttempts = 5;
+    const attemptDelay = Math.min(1000 * Math.pow(2, connectionAttempts), 10000); // Exponential backoff
+    
+    if (connectionAttempts >= maxAttempts) {
+      console.log('❌ Máximo de intentos de reconexión alcanzado');
+      setConnectionStatus('Error de conexión');
+      setConnectionQuality('disconnected');
+      return;
+    }
+    
+    setConnectionAttempts(prev => prev + 1);
+    setConnectionStatus(`Reconectando... (${connectionAttempts + 1}/${maxAttempts})`);
+    
+    const timer = setTimeout(() => {
+      checkConnection();
+      measureAndUpdateConnectionQuality();
+    }, attemptDelay);
+    
+    setReconnectionTimer(timer);
+  };
+
+  // Función para medir y actualizar calidad de conexión
+  const measureAndUpdateConnectionQuality = async () => {
+    const latency = await measureConnectionLatency();
+    setConnectionLatency(latency);
+    
+    const quality = evaluateConnectionQuality(latency);
+    setConnectionQuality(quality);
+    
+    // Si la conexión es buena, resetear intentos
+    if (quality !== 'disconnected') {
+      setConnectionAttempts(0);
+    }
+  };
+
+  // Función para forzar reconexión manual
+  const forceReconnection = () => {
+    console.log('🔄 Reconexión manual solicitada');
+    setConnectionAttempts(0);
+    handleConnectionError();
+  };
+
+  // Función para registrar conexión con el servidor principal
+  const registerWithMainServer = () => {
+    if (window.opener && !window.opener.closed) {
+      try {
+        window.opener.postMessage({ 
+          action: 'registerConnection', 
+          data: { 
+            connectionId: connectionId,
+            timestamp: Date.now(),
+            userAgent: navigator.userAgent
+          } 
+        }, '*');
+      } catch (error) {
+        console.log('Error registrando conexión:', error);
+      }
+    }
+  };
+
   // Función para formatear tiempo
   const formatTime = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -31,15 +204,30 @@ export const Control: React.FC = () => {
 
   // Función para enviar mensajes a la ventana principal
   const sendMessageToMain = (action: string, data?: any) => {
-    if (window.opener && !window.opener.closed && isConnected) {
+    if (window.opener && !window.opener.closed && isConnected && connectionQuality !== 'disconnected') {
       try {
-        window.opener.postMessage({ action, data }, '*');
-        console.log('📱 Enviando mensaje a ventana principal:', { action, data });
+        const messageData = {
+          action,
+          data: {
+            ...data,
+            connectionId: connectionId,
+            timestamp: Date.now(),
+            latency: connectionLatency
+          }
+        };
+        
+        window.opener.postMessage(messageData, '*');
+        console.log('📱 Enviando mensaje a ventana principal:', { action, data, connectionId });
+        
+        // Medir latencia después de enviar mensaje
+        setTimeout(() => {
+          measureAndUpdateConnectionQuality();
+        }, 100);
+        
         return true;
       } catch (error) {
         console.log('Error enviando mensaje a ventana principal:', error);
-        setIsConnected(false);
-        setConnectionStatus('Error de conexión');
+        handleConnectionError();
         return false;
       }
     } else {
@@ -278,25 +466,86 @@ export const Control: React.FC = () => {
     // Sincronizar cada 500ms para mayor responsividad
     const syncInterval = setInterval(syncWithLocalStorage, 500);
     
+    // Enviar heartbeat cada 2 segundos
+    const heartbeatTimer = setInterval(sendHeartbeat, 2000);
+    setHeartbeatInterval(heartbeatTimer);
+    
+    // Medir calidad de conexión cada 10 segundos
+    const qualityTimer = setInterval(measureAndUpdateConnectionQuality, 10000);
+    
     // Verificación inicial
     checkConnection();
     syncWithLocalStorage();
+    registerWithMainServer();
+    measureAndUpdateConnectionQuality();
     
     return () => {
       clearInterval(connectionInterval);
       clearInterval(syncInterval);
+      clearInterval(heartbeatTimer);
+      clearInterval(qualityTimer);
     };
-  }, []);
+  }, [connectionId]);
 
   // Escuchar respuestas de la ventana principal
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      const { action } = event.data;
+      const { action, data } = event.data;
       
-      if (action === 'pong') {
-        console.log('📡 Pong recibido de ventana principal');
-        setIsConnected(true);
-        setConnectionStatus('Conectado');
+      switch (action) {
+        case 'pong':
+          console.log('📡 Pong recibido de ventana principal');
+          setIsConnected(true);
+          setConnectionStatus('Conectado');
+          break;
+        case 'heartbeat':
+          console.log('💓 Heartbeat recibido de ventana principal');
+          if (data.connectionId === connectionId) {
+            setLastHeartbeat(Date.now());
+            // Responder al heartbeat
+            if (event.source && event.source !== window) {
+              (event.source as Window).postMessage({ 
+                action: 'heartbeat', 
+                data: { 
+                  timestamp: Date.now(),
+                  connectionId: connectionId,
+                  latency: connectionLatency
+                } 
+              }, '*');
+            }
+          }
+          break;
+        case 'connectionRegistered':
+          console.log('✅ Conexión registrada exitosamente');
+          setIsConnected(true);
+          setConnectionStatus('Conectado');
+          setConnectionAttempts(0);
+          // Sincronizar estado
+          if (data.stages) {
+            setStages(data.stages);
+          }
+          if (data.currentStageIndex !== undefined) {
+            setCurrentStageIndex(data.currentStageIndex);
+          }
+          if (data.isTimerRunning !== undefined) {
+            setIsTimerRunning(data.isTimerRunning);
+          }
+          if (data.currentTimeLeft) {
+            setCurrentTimeLeft(parseInt(data.currentTimeLeft));
+          }
+          break;
+        case 'forceReconnect':
+          console.log('🔄 Reconexión forzada solicitada por servidor principal');
+          forceReconnection();
+          break;
+        case 'latencyResponse':
+          if (data.connectionId === connectionId) {
+            const latency = Date.now() - data.timestamp;
+            setConnectionLatency(latency);
+            const quality = evaluateConnectionQuality(latency);
+            setConnectionQuality(quality);
+          }
+          break;
       }
     };
 
@@ -304,7 +553,7 @@ export const Control: React.FC = () => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [connectionId, connectionLatency]);
 
   // Cargar datos al iniciar
   useEffect(() => {
@@ -367,6 +616,21 @@ export const Control: React.FC = () => {
             }`}></span>
             {connectionStatus}
           </div>
+          
+          {/* Indicador de calidad de conexión */}
+          {isConnected && (
+            <div className="mt-2 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+              <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
+                connectionQuality === 'excellent' ? 'bg-green-500' :
+                connectionQuality === 'good' ? 'bg-yellow-500' :
+                connectionQuality === 'poor' ? 'bg-orange-500' : 'bg-red-500'
+              }`}></span>
+              {connectionQuality === 'excellent' ? 'Excelente' :
+               connectionQuality === 'good' ? 'Buena' :
+               connectionQuality === 'poor' ? 'Pobre' : 'Desconectado'} 
+              {connectionLatency > 0 && connectionLatency < 999 && ` (${connectionLatency}ms)`}
+            </div>
+          )}
         </header>
 
         {/* Cronómetro principal */}
@@ -469,6 +733,15 @@ export const Control: React.FC = () => {
         <div className="mt-6 text-center text-sm text-gray-400">
           <p>Mantén presionado el botón central por 1 segundo para resetear</p>
           <p className="mt-1">Sincronizado con el panel principal</p>
+          
+          {/* Botón de reconexión manual */}
+          <button
+            onClick={forceReconnection}
+            className="mt-3 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded-lg transition-colors"
+            title="Forzar reconexión manual"
+          >
+            🔄 Reconectar Manualmente
+          </button>
           
           {!isConnected && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">

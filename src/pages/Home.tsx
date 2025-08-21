@@ -225,7 +225,7 @@ export const Home: React.FC = () => {
     }
   };
 
-  // Función para obtener el tiempo actual del cronómetro
+  // Función para obtener el tiempo actual del cronómetro principal
   const getCurrentTime = () => {
     // Usar timerUpdate para forzar la actualización
     timerUpdate; // Esto hace que la función se ejecute cada vez que timerUpdate cambie
@@ -233,15 +233,7 @@ export const Home: React.FC = () => {
     const currentStage = stages[currentStageIndex];
     if (!currentStage) return "00:00";
     
-    // Solo usar localStorage si el cronómetro está corriendo o pausado
-    // Si no hay ventana abierta, usar el tiempo de la etapa
-    if (!meetingWindow || meetingWindow.closed) {
-      const minutes = Math.floor(currentStage.duration / 60);
-      const secs = currentStage.duration % 60;
-      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    
-    // Obtener el tiempo del localStorage con mejor sincronización
+    // El cronómetro principal siempre usa localStorage
     const timeLeft = localStorage.getItem('currentTimeLeft');
     let seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
     
@@ -258,7 +250,6 @@ export const Home: React.FC = () => {
     const minutes = Math.floor(validSeconds / 60);
     const secs = validSeconds % 60;
     
-    // Usar el mismo formato que MeetingView para consistencia
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -381,12 +372,11 @@ export const Home: React.FC = () => {
     }
   };
 
-  // Función para enviar mensajes a todas las ventanas de cronómetro
-  const sendMessageToAllTimerWindows = (action: string, data?: any) => {
+  // Función para enviar mensajes a la ventana de reflejo
+  const sendMessageToReflectionWindow = (action: string, data?: any) => {
     if (meetingWindow && !meetingWindow.closed) {
       meetingWindow.postMessage({ action, data }, '*');
     }
-    // La segunda vista ha sido eliminada, por lo que no se envían mensajes a ella
   };
 
   // Función para abrir segunda vista del cronómetro (ELIMINADA)
@@ -425,7 +415,7 @@ export const Home: React.FC = () => {
       localStorage.setItem('initialTime', newStageTime.toString());
       // Pausar el cronómetro al cambiar de etapa
       setIsTimerRunning(false);
-      sendMessageToAllTimerWindows('previousStage', { stageIndex: newIndex });
+      sendMessageToReflectionWindow('previousStage', { stageIndex: newIndex });
     }
   };
 
@@ -439,7 +429,7 @@ export const Home: React.FC = () => {
       localStorage.setItem('initialTime', newStageTime.toString());
       // Pausar el cronómetro al cambiar de etapa
       setIsTimerRunning(false);
-      sendMessageToAllTimerWindows('nextStage', { stageIndex: newIndex });
+      sendMessageToReflectionWindow('nextStage', { stageIndex: newIndex });
     }
   };
 
@@ -447,17 +437,15 @@ export const Home: React.FC = () => {
     const newRunningState = !isTimerRunning;
     console.log('🔄 handlePauseResume:', { 
       from: isTimerRunning, 
-      to: newRunningState,
-      meetingWindow: meetingWindow ? !meetingWindow.closed : false 
+      to: newRunningState
     });
     
     setIsTimerRunning(newRunningState);
     
-    // Enviar mensaje a todas las ventanas emergentes
-    sendMessageToAllTimerWindows('pauseResume', { isRunning: newRunningState });
+    // Enviar mensaje a la ventana de reflejo
+    sendMessageToReflectionWindow('pauseResume', { isRunning: newRunningState });
     
     // Sincronizar inmediatamente el estado del panel de control
-    // Esperar un poco para que la ventana emergente procese el mensaje
     setTimeout(() => {
       const currentTimeLeft = localStorage.getItem('currentTimeLeft');
       console.log('💾 Tiempo en localStorage después de pausa:', currentTimeLeft);
@@ -471,7 +459,7 @@ export const Home: React.FC = () => {
   const handleResetToZero = () => {
     // Resetear a 00:00
     localStorage.setItem('currentTimeLeft', '0');
-    sendMessageToAllTimerWindows('setTime', { seconds: 0 });
+    sendMessageToReflectionWindow('setTime', { seconds: 0 });
     setIsTimerRunning(false);
   };
 
@@ -526,12 +514,12 @@ export const Home: React.FC = () => {
         newTime = Math.ceil(currentSeconds / 30) * 30; // Redondear hacia arriba al múltiplo de 30
       }
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToAllTimerWindows('setTime', { seconds: newTime });
+      sendMessageToReflectionWindow('setTime', { seconds: newTime });
     } else {
       // Si está funcionando: sumar 30s inmediatamente
       const newTime = currentSeconds + 30;
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToAllTimerWindows('addTime', { seconds: 30 });
+      sendMessageToReflectionWindow('addTime', { seconds: 30 });
     }
   };
 
@@ -544,12 +532,12 @@ export const Home: React.FC = () => {
       // Si está detenido: ajustar a escala de 30s
       const newTime = Math.max(0, Math.floor(currentSeconds / 30) * 30); // Redondear hacia abajo al múltiplo de 30
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToAllTimerWindows('setTime', { seconds: newTime });
+      sendMessageToReflectionWindow('setTime', { seconds: newTime });
     } else {
       // Si está funcionando: restar 30s inmediatamente
       const newTime = Math.max(0, currentSeconds - 30);
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToAllTimerWindows('subtractTime', { seconds: 30 });
+      sendMessageToReflectionWindow('subtractTime', { seconds: 30 });
     }
   };
 
@@ -595,17 +583,36 @@ export const Home: React.FC = () => {
     loadMeetings();
   }, []);
 
-  // Sincronizar el cronómetro del panel de control con la ventana emergente
+  // Timer principal del cronómetro
   useEffect(() => {
-    if (meetingWindow && !meetingWindow.closed) {
-      const interval = setInterval(() => {
-        // Forzar re-render del componente para actualizar el cronómetro
-        setTimerUpdate(prev => prev + 1);
-      }, 100); // Actualizar cada 100ms para mejor sincronización
-
-      return () => clearInterval(interval);
+    let interval: NodeJS.Timeout;
+    
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        // Actualizar el tiempo en localStorage y forzar re-render
+        const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+        if (currentTimeLeft) {
+          const seconds = parseInt(currentTimeLeft);
+          if (!isNaN(seconds) && seconds > 0) {
+            const newTime = seconds - 1;
+            localStorage.setItem('currentTimeLeft', newTime.toString());
+            setTimerUpdate(prev => prev + 1);
+            
+            // Si el tiempo llega a 0, pausar automáticamente
+            if (newTime === 0) {
+              setIsTimerRunning(false);
+            }
+          }
+        }
+      }, 1000);
     }
-  }, [meetingWindow, isTimerRunning]); // Agregar isTimerRunning como dependencia
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isTimerRunning]);
 
   // Escuchar mensajes de la página de control móvil
   useEffect(() => {
@@ -622,6 +629,48 @@ export const Home: React.FC = () => {
             console.log('📡 Ping respondido al control remoto');
           }
           break;
+        case 'heartbeat':
+          // Actualizar heartbeat de la conexión
+          if (data.connectionId) {
+            updateConnectionHeartbeat(data.connectionId);
+          }
+          break;
+        case 'registerConnection':
+          // Registrar nueva conexión de control
+          if (data.connectionId) {
+            registerControlConnection(data.connectionId);
+            // Responder con estado actual
+            if (event.source && event.source !== window) {
+              (event.source as Window).postMessage({ 
+                action: 'connectionRegistered', 
+                data: { 
+                  connectionId: data.connectionId,
+                  stages: stages,
+                  currentStageIndex: currentStageIndex,
+                  isTimerRunning: isTimerRunning,
+                  currentTimeLeft: localStorage.getItem('currentTimeLeft')
+                } 
+              }, '*');
+            }
+          }
+          break;
+        case 'forceReconnect':
+          // Forzar reconexión desde control remoto
+          console.log('🔄 Reconexión solicitada por control remoto');
+          forceControlReconnection();
+          break;
+        case 'latencyTest':
+          // Responder a test de latencia
+          if (event.source && event.source !== window) {
+            (event.source as Window).postMessage({ 
+              action: 'latencyResponse', 
+              data: { 
+                timestamp: data.timestamp,
+                connectionId: data.connectionId 
+              } 
+            }, '*');
+          }
+          break;
         case 'previousStage':
           handlePreviousStage();
           break;
@@ -633,7 +682,7 @@ export const Home: React.FC = () => {
           break;
         case 'setTime':
           localStorage.setItem('currentTimeLeft', data.seconds.toString());
-          sendMessageToAllTimerWindows('setTime', data);
+          sendMessageToReflectionWindow('setTime', data);
           break;
         case 'addTime':
           handleAddTime();
@@ -648,7 +697,7 @@ export const Home: React.FC = () => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [stages, currentStageIndex, isTimerRunning]);
 
   useEffect(() => {
     if (showShortcutConfig) {
@@ -658,6 +707,20 @@ export const Home: React.FC = () => {
       };
     }
   }, [showShortcutConfig, configuringShortcut]);
+
+  // Sistema de heartbeat y verificación de conexiones
+  useEffect(() => {
+    // Verificar conexiones activas cada 5 segundos
+    const connectionCheckInterval = setInterval(checkActiveConnections, 5000);
+    
+    // Enviar heartbeat cada 2 segundos
+    const heartbeatInterval = setInterval(sendHeartbeatToControls, 2000);
+    
+    return () => {
+      clearInterval(connectionCheckInterval);
+      clearInterval(heartbeatInterval);
+    };
+  }, [stages, currentStageIndex, isTimerRunning, meetingWindow]);
 
   // Función para manejar atajos de teclado
   useEffect(() => {
@@ -739,42 +802,146 @@ export const Home: React.FC = () => {
     };
   }, [meetingWindow, keyboardShortcuts]);
 
-      const handleStartMeeting = () => {
-    console.log('handleStartMeeting llamado');
-    console.log('meetingWindow:', meetingWindow);
-    console.log('stages.length:', stages.length);
+             const handleStartMeeting = () => {
+     console.log('handleStartMeeting llamado');
+     console.log('stages.length:', stages.length);
+     
+     // Si el directorio ya está iniciado, pararlo
+     if (isTimerRunning || localStorage.getItem('currentTimeLeft')) {
+       console.log('Parando directorio');
+       setIsTimerRunning(false);
+       localStorage.removeItem('currentTimeLeft');
+       localStorage.removeItem('initialTime');
+       localStorage.removeItem('isTimerRunning');
+       localStorage.removeItem('currentStageIndex');
+       localStorage.removeItem('meetingStages');
+       setCurrentStageIndex(0);
+       setTimerUpdate(prev => prev + 1);
+       return;
+     }
+
+     // Si no hay etapas, mostrar error
+     if (stages.length === 0) {
+       alert('Agrega al menos una etapa antes de iniciar el directorio');
+       return;
+     }
+     
+     console.log('Iniciando directorio con cronómetro principal');
+     // Inicializar el directorio con el cronómetro principal
+     localStorage.setItem('meetingStages', JSON.stringify(stages));
+     const initialStageTime = stages[0].duration;
+     localStorage.setItem('currentTimeLeft', initialStageTime.toString());
+     localStorage.setItem('initialTime', initialStageTime.toString());
+     localStorage.setItem('isTimerRunning', 'false');
+     localStorage.setItem('currentStageIndex', '0');
+     setCurrentStageIndex(0);
+     setIsTimerRunning(false);
+     
+     // Forzar una actualización inmediata del panel de control
+     setTimeout(() => {
+       setTimerUpdate(prev => prev + 1);
+     }, 50);
+     
+     console.log('Directorio iniciado exitosamente');
+   };
+
+  // Sistema de verificación de conexión robusto
+  const [controlConnections, setControlConnections] = useState<Set<string>>(new Set());
+  const [connectionHeartbeat, setConnectionHeartbeat] = useState<Map<string, number>>(new Map());
+  const [lastPingTime, setLastPingTime] = useState<number>(Date.now());
+
+  // Función para verificar conexiones activas
+  const checkActiveConnections = () => {
+    const now = Date.now();
+    const activeConnections = new Set<string>();
+    const updatedHeartbeat = new Map<string, number>();
+
+    // Verificar cada conexión
+    controlConnections.forEach(connectionId => {
+      const lastHeartbeat = connectionHeartbeat.get(connectionId) || 0;
+      if (now - lastHeartbeat < 10000) { // 10 segundos de timeout
+        activeConnections.add(connectionId);
+        updatedHeartbeat.set(connectionId, lastHeartbeat);
+      } else {
+        console.log(`🔌 Conexión ${connectionId} expirada, removiendo...`);
+      }
+    });
+
+    setControlConnections(activeConnections);
+    setConnectionHeartbeat(updatedHeartbeat);
+  };
+
+  // Función para enviar heartbeat a todos los controles conectados
+  const sendHeartbeatToControls = () => {
+    const now = Date.now();
+    setLastPingTime(now);
     
-    // Si ya hay una ventana abierta, cerrarla y parar el directorio
+    // Enviar heartbeat a todas las ventanas abiertas
     if (meetingWindow && !meetingWindow.closed) {
-      console.log('Cerrando ventanas existentes');
-      meetingWindow.close();
-      setMeetingWindow(null);
-      setIsTimerRunning(false);
-      return;
+      try {
+        meetingWindow.postMessage({ 
+          action: 'heartbeat', 
+          data: { 
+            timestamp: now,
+            connectionId: 'main-window',
+            stages: stages,
+            currentStageIndex: currentStageIndex,
+            isTimerRunning: isTimerRunning
+          } 
+        }, '*');
+      } catch (error) {
+        console.log('Error enviando heartbeat a ventana principal:', error);
+      }
     }
 
-    // Si no hay etapas, mostrar error
-    if (stages.length === 0) {
-      alert('Agrega al menos una etapa antes de iniciar el directorio');
-      return;
-    }
+    // Broadcast a todas las ventanas de control
+    window.postMessage({ 
+      action: 'heartbeat', 
+      data: { 
+        timestamp: now,
+        connectionId: 'main-broadcast',
+        stages: stages,
+        currentStageIndex: currentStageIndex,
+        isTimerRunning: isTimerRunning
+      } 
+    }, '*');
+  };
+
+  // Función para registrar una nueva conexión de control
+  const registerControlConnection = (connectionId: string) => {
+    const now = Date.now();
+    setControlConnections(prev => new Set([...prev, connectionId]));
+    setConnectionHeartbeat(prev => new Map(prev).set(connectionId, now));
+    console.log(`✅ Nueva conexión de control registrada: ${connectionId}`);
+  };
+
+  // Función para actualizar heartbeat de una conexión
+  const updateConnectionHeartbeat = (connectionId: string) => {
+    const now = Date.now();
+    setConnectionHeartbeat(prev => new Map(prev).set(connectionId, now));
+  };
+
+  // Función para forzar reconexión de controles
+  const forceControlReconnection = () => {
+    console.log('🔄 Forzando reconexión de controles...');
     
-    console.log('Iniciando directorio independientemente de la ventana del cronómetro');
-    // Inicializar el directorio sin abrir ventana emergente automáticamente
-    localStorage.setItem('meetingStages', JSON.stringify(stages));
-    const initialStageTime = stages[0].duration;
-    localStorage.setItem('currentTimeLeft', initialStageTime.toString());
-    localStorage.setItem('initialTime', initialStageTime.toString());
-    localStorage.setItem('isTimerRunning', 'false');
-    setCurrentStageIndex(0);
-    setIsTimerRunning(false);
+    // Enviar señal de reconexión
+    window.postMessage({ 
+      action: 'forceReconnect', 
+      data: { 
+        timestamp: Date.now(),
+        reason: 'manual_reconnect'
+      } 
+    }, '*');
+
+    // Limpiar conexiones existentes
+    setControlConnections(new Set());
+    setConnectionHeartbeat(new Map());
     
-    // Forzar una actualización inmediata del panel de control
+    // Enviar estado actual para sincronización
     setTimeout(() => {
-      setTimerUpdate(prev => prev + 1);
-    }, 50);
-    
-    console.log('Directorio iniciado exitosamente');
+      sendHeartbeatToControls();
+    }, 100);
   };
 
   return (
@@ -907,55 +1074,82 @@ export const Home: React.FC = () => {
               ) : (
                 <div className="space-y-6">
                   <div className="flex justify-end space-x-3">
-                    <button
-                      onClick={handleStartMeeting}
-                      className={`font-medium py-2 px-6 rounded-lg transition-colors ${
-                        meetingWindow && !meetingWindow.closed 
-                          ? 'bg-red-600 hover:bg-red-700 text-white' 
-                          : 'bg-green-600 hover:bg-green-700 text-white'
-                      }`}
-                    >
-                      {meetingWindow && !meetingWindow.closed ? '🛑 Parar Directorio' : '🚀 Iniciar Directorio'}
-                    </button>
+                                         <button
+                       onClick={handleStartMeeting}
+                       className={`font-medium py-2 px-6 rounded-lg transition-colors ${
+                         isTimerRunning || localStorage.getItem('currentTimeLeft')
+                           ? 'bg-red-600 hover:bg-red-700 text-white' 
+                           : 'bg-green-600 hover:bg-green-700 text-white'
+                       }`}
+                     >
+                       {isTimerRunning || localStorage.getItem('currentTimeLeft') ? '🛑 Parar Directorio' : '🚀 Iniciar Directorio'}
+                     </button>
                     
                                          {/* Botones adicionales que aparecen cuando el directorio está iniciado */}
                      {selectedMeeting && stages.length > 0 && (
                        <>
-                         <button
-                           onClick={() => {
-                             if (meetingWindow && !meetingWindow.closed) {
-                               meetingWindow.close();
-                               setMeetingWindow(null);
-                             } else {
-                               const newMeetingWindow = window.open(
-                                 '/meeting',
-                                 'meeting',
-                                 'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
-                               );
-                               if (newMeetingWindow) {
-                                 setMeetingWindow(newMeetingWindow);
-                               }
-                             }
-                           }}
-                           className={`font-medium py-2 px-4 rounded-lg transition-colors ${
-                             meetingWindow && !meetingWindow.closed
-                               ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                               : 'bg-blue-600 hover:bg-blue-700 text-white'
-                           }`}
-                           title="Abrir/cerrar ventana emergente del cronómetro"
-                         >
-                           {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Ventana' : '📺 Abrir Ventana'}
-                         </button>
+                                                   <button
+                            onClick={() => {
+                              if (meetingWindow && !meetingWindow.closed) {
+                                meetingWindow.close();
+                                setMeetingWindow(null);
+                              } else {
+                                const newMeetingWindow = window.open(
+                                  '/meeting',
+                                  'meeting',
+                                  'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
+                                );
+                                if (newMeetingWindow) {
+                                  setMeetingWindow(newMeetingWindow);
+                                  // Enviar estado actual a la ventana de reflejo
+                                  setTimeout(() => {
+                                    const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+                                    const isRunning = localStorage.getItem('isTimerRunning');
+                                    const currentStage = localStorage.getItem('currentStageIndex');
+                                    const stages = localStorage.getItem('meetingStages');
+                                    
+                                    if (newMeetingWindow && !newMeetingWindow.closed) {
+                                      newMeetingWindow.postMessage({
+                                        action: 'syncState',
+                                        data: {
+                                          currentTimeLeft: currentTimeLeft,
+                                          isTimerRunning: isRunning === 'true',
+                                          currentStageIndex: currentStage ? parseInt(currentStage) : 0,
+                                          stages: stages ? JSON.parse(stages) : []
+                                        }
+                                      }, '*');
+                                    }
+                                  }, 100);
+                                }
+                              }
+                            }}
+                            className={`font-medium py-2 px-4 rounded-lg transition-colors ${
+                              meetingWindow && !meetingWindow.closed
+                                ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            }`}
+                            title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
+                          >
+                            {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
+                          </button>
                          
 
                          
-                         <button
-                           onClick={handleCopyControlURL}
-                           className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
-                           title="Copiar URL para control móvil"
-                         >
-                           📱 Copiar URL
-                         </button>
+                                                   <button
+                            onClick={handleCopyControlURL}
+                            className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
+                            title="Copiar URL para control móvil"
+                          >
+                            📱 Copiar URL
+                          </button>
+                          
+                          <button
+                            onClick={forceControlReconnection}
+                            className="font-medium py-2 px-4 rounded-lg transition-colors bg-orange-600 hover:bg-orange-700 text-white"
+                            title="Forzar reconexión de controles remotos"
+                          >
+                            🔄 Reconectar
+                          </button>
                        </>
                      )}
                   </div>
@@ -978,10 +1172,10 @@ export const Home: React.FC = () => {
                      {/* Panel de Control de Tiempo - mostrar cuando se inicie el directorio */}
            {selectedMeeting && stages.length > 0 && (
             <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-200">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <span className="text-2xl mr-2">⏱️</span>
-                    Panel de Control del Directorio
-                  </h3>
+                                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                     <span className="text-2xl mr-2">⏱️</span>
+                     Cronómetro Principal del Directorio
+                   </h3>
                   
                   {/* Vista del Cronómetro */}
                   <div className="bg-gray-900 rounded-lg p-4 mb-4 text-center">
@@ -1058,17 +1252,30 @@ export const Home: React.FC = () => {
                      </button>
                    </div>
 
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <div className="text-sm text-gray-600">
-                      <div className="font-medium">Etapa actual: {currentStageIndex + 1} de {stages.length}</div>
-                      <div className="text-xs mt-1">
-                        Los controles afectan la ventana emergente en tiempo real
-                      </div>
-                                             <div className="text-xs mt-2 text-blue-600">
+                                     <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                     <div className="text-sm text-gray-600">
+                       <div className="font-medium">Etapa actual: {currentStageIndex + 1} de {stages.length}</div>
+                                               <div className="text-xs mt-1">
+                          Cronómetro principal - Los controles afectan directamente el tiempo
+                        </div>
+                       <div className="text-xs mt-2 text-blue-600">
                          Atajos configurados: {formatShortcut(keyboardShortcuts.pauseResume)} (Pausar/Reanudar/Resetear), 
                          {formatShortcut(keyboardShortcuts.nextStage)} (Siguiente), 
                          {formatShortcut(keyboardShortcuts.previousStage)} (Anterior), 
                          {formatShortcut(keyboardShortcuts.addTime)}/{formatShortcut(keyboardShortcuts.subtractTime)} (Tiempo)
+                       </div>
+                       
+                       {/* Indicador de conexiones activas */}
+                       <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
+                         <div className="flex items-center justify-between">
+                           <span className="text-xs text-blue-700">
+                             <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                             Controles conectados: {controlConnections.size}
+                           </span>
+                           <span className="text-xs text-blue-600">
+                             Último heartbeat: {new Date(lastPingTime).toLocaleTimeString()}
+                           </span>
+                         </div>
                        </div>
                                                <div className="mt-3 flex space-x-2">
                           <button

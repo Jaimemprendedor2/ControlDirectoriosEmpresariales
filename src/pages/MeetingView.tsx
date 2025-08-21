@@ -13,61 +13,65 @@ interface Stage {
   alertColor?: string;
 }
 
-interface MeetingViewProps {
-  stages: Stage[];
-}
-
-export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) => {
-  // Leer las etapas del localStorage si no se pasan como props
-  const [stages] = useState<Stage[]>(() => {
-    const storedStages = localStorage.getItem('meetingStages');
-    return storedStages ? JSON.parse(storedStages) : propStages;
-  });
+export const MeetingView: React.FC = () => {
+  // Estados para reflejar el cronómetro principal
+  const [stages, setStages] = useState<Stage[]>([]);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [isRunning, setIsRunning] = useState(false); // No iniciar automáticamente
-  const [isWaitingForNext, setIsWaitingForNext] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const [isAlertBlinking, setIsAlertBlinking] = useState(false);
-  const [initialTime, setInitialTime] = useState<number>(0); // Tiempo inicial configurado
 
   const currentStage = stages[currentStageIndex];
 
-  // Inicializar el cronómetro
+  // Sincronizar con el cronómetro principal cada 100ms
   useEffect(() => {
-    if (stages.length > 0) {
-      const stageTime = stages[0].duration;
-      setTimeLeft(stageTime);
-      setInitialTime(stageTime);
-      localStorage.setItem('initialTime', stageTime.toString());
-    }
-  }, [stages]);
+    const syncWithMainTimer = () => {
+      // Obtener datos del localStorage (cronómetro principal)
+      const storedStages = localStorage.getItem('meetingStages');
+      const storedTimeLeft = localStorage.getItem('currentTimeLeft');
+      const storedIsRunning = localStorage.getItem('isTimerRunning');
+      const storedCurrentStage = localStorage.getItem('currentStageIndex');
 
-  // Manejar el cronómetro
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+      // Sincronizar etapas
+      if (storedStages) {
+        try {
+          const parsedStages = JSON.parse(storedStages);
+          setStages(parsedStages);
+        } catch (error) {
+          console.log('Error parsing stages:', error);
+        }
+      }
 
-    if (isRunning && !isWaitingForNext && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            // Tiempo agotado para esta etapa
-            setIsRunning(false);
-            setIsWaitingForNext(true);
-            localStorage.setItem('currentTimeLeft', '0');
-            return 0;
-          }
-          const newTime = prevTime - 1;
-          // Sincronizar inmediatamente con el panel de control
-          localStorage.setItem('currentTimeLeft', newTime.toString());
-          return newTime;
-        });
-      }, 1000);
-    }
+      // Sincronizar tiempo
+      if (storedTimeLeft) {
+        const seconds = parseInt(storedTimeLeft);
+        if (!isNaN(seconds)) {
+          setTimeLeft(seconds);
+        }
+      }
 
-    return () => {
-      if (interval) clearInterval(interval);
+      // Sincronizar estado de ejecución
+      if (storedIsRunning) {
+        setIsRunning(storedIsRunning === 'true');
+      }
+
+      // Sincronizar etapa actual
+      if (storedCurrentStage) {
+        const stageIndex = parseInt(storedCurrentStage);
+        if (!isNaN(stageIndex)) {
+          setCurrentStageIndex(stageIndex);
+        }
+      }
     };
-  }, [isRunning, isWaitingForNext, timeLeft]);
+
+    // Sincronización inicial
+    syncWithMainTimer();
+
+    // Sincronizar cada 100ms para reflejo en tiempo real
+    const interval = setInterval(syncWithMainTimer, 100);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Manejar el parpadeo de alerta cuando el tiempo llega a cero
   useEffect(() => {
@@ -114,150 +118,25 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
     return applicableColors.length > 0 ? applicableColors[0].backgroundColor : '#000000';
   };
 
-  // Pasar a la siguiente etapa
-  const handleNextStage = () => {
-    if (currentStageIndex < stages.length - 1) {
-      const nextIndex = currentStageIndex + 1;
-      const nextStageTime = stages[nextIndex].duration;
-      setCurrentStageIndex(nextIndex);
-      setTimeLeft(nextStageTime);
-      setInitialTime(nextStageTime); // Actualizar tiempo inicial
-      localStorage.setItem('initialTime', nextStageTime.toString());
-      setIsWaitingForNext(false);
-      setIsRunning(true);
-    } else {
-      // Reunión terminada
-      setIsWaitingForNext(false);
-      setIsRunning(false);
-      // Cerrar la ventana
-      window.close();
-    }
-  };
-
-  // Manejar atajos de teclado
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      switch (event.code) {
-        case 'Space':
-          event.preventDefault();
-          if (isWaitingForNext) {
-            handleNextStage();
-          } else if (timeLeft === 0) {
-            // Si está en 00:00, reiniciar con tiempo inicial
-            setTimeLeft(initialTime);
-            localStorage.setItem('currentTimeLeft', initialTime.toString());
-            setIsRunning(true);
-            setIsWaitingForNext(false);
-          }
-          break;
-        case 'Escape':
-          event.preventDefault();
-          window.close();
-          break;
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyPress);
-    return () => {
-      document.removeEventListener('keydown', handleKeyPress);
-    };
-  }, [isWaitingForNext, timeLeft, initialTime]);
-
-  // Escuchar mensajes de la ventana principal
+  // Escuchar mensajes de sincronización desde la ventana principal
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const { action, data } = event.data;
 
-      switch (action) {
-        case 'previousStage':
-          if (currentStageIndex > 0) {
-            const newIndex = currentStageIndex - 1;
-            const newStageTime = stages[newIndex].duration;
-            setCurrentStageIndex(newIndex);
-            setTimeLeft(newStageTime);
-            setInitialTime(newStageTime); // Actualizar tiempo inicial
-            localStorage.setItem('currentTimeLeft', newStageTime.toString());
-            localStorage.setItem('initialTime', newStageTime.toString());
-            setIsWaitingForNext(false);
-            setIsRunning(false); // Pausar al cambiar de etapa
-          }
-          break;
-
-        case 'nextStage':
-          if (currentStageIndex < stages.length - 1) {
-            const newIndex = currentStageIndex + 1;
-            const newStageTime = stages[newIndex].duration;
-            setCurrentStageIndex(newIndex);
-            setTimeLeft(newStageTime);
-            setInitialTime(newStageTime); // Actualizar tiempo inicial
-            localStorage.setItem('currentTimeLeft', newStageTime.toString());
-            localStorage.setItem('initialTime', newStageTime.toString());
-            setIsWaitingForNext(false);
-            setIsRunning(false); // Pausar al cambiar de etapa
-          }
-          break;
-
-        case 'pauseResume':
-          const newRunningState = data?.isRunning !== undefined ? data.isRunning : !isRunning;
-          setIsRunning(newRunningState);
-          // Sincronizar el estado de pausa
-          if (newRunningState) {
-            // Si se va a reanudar y está en 00:00, reiniciar con tiempo inicial
-            if (timeLeft === 0) {
-              const storedInitialTime = localStorage.getItem('initialTime');
-              const initialTimeValue = storedInitialTime ? parseInt(storedInitialTime) : initialTime;
-              setTimeLeft(initialTimeValue);
-              localStorage.setItem('currentTimeLeft', initialTimeValue.toString());
-            }
-          } else {
-            // Si se va a pausar, guardar el tiempo actual inmediatamente
-            localStorage.setItem('currentTimeLeft', timeLeft.toString());
-            // Asegurar que el tiempo se mantiene sincronizado
-            console.log('Pausando cronómetro, tiempo guardado:', timeLeft);
-          }
-          break;
-
-        case 'restartStage':
-          setTimeLeft(currentStage.duration);
-          setInitialTime(currentStage.duration); // Actualizar tiempo inicial
-          localStorage.setItem('currentTimeLeft', currentStage.duration.toString());
-          localStorage.setItem('initialTime', currentStage.duration.toString());
-          setIsWaitingForNext(false);
-          setIsRunning(true);
-          break;
-
-        case 'addTime':
-          setTimeLeft(prev => {
-            const newTime = prev + (data?.seconds || 30);
-            localStorage.setItem('currentTimeLeft', newTime.toString());
-            // Actualizar tiempo inicial si está funcionando
-            if (isRunning) {
-              setInitialTime(newTime);
-              localStorage.setItem('initialTime', newTime.toString());
-            }
-            return newTime;
-          });
-          break;
-
-        case 'subtractTime':
-          setTimeLeft(prev => {
-            const newTime = Math.max(0, prev - (data?.seconds || 30));
-            localStorage.setItem('currentTimeLeft', newTime.toString());
-            // Actualizar tiempo inicial si está funcionando
-            if (isRunning) {
-              setInitialTime(newTime);
-              localStorage.setItem('initialTime', newTime.toString());
-            }
-            return newTime;
-          });
-          break;
-
-        case 'setTime':
-          const newTime = data?.seconds || 0;
-          setTimeLeft(newTime);
-          localStorage.setItem('currentTimeLeft', newTime.toString());
-          // No actualizar tiempo inicial cuando se establece manualmente
-          break;
+      if (action === 'syncState') {
+        // Sincronizar estado completo desde el cronómetro principal
+        if (data.currentTimeLeft !== undefined) {
+          setTimeLeft(data.currentTimeLeft);
+        }
+        if (data.isTimerRunning !== undefined) {
+          setIsRunning(data.isTimerRunning);
+        }
+        if (data.currentStageIndex !== undefined) {
+          setCurrentStageIndex(data.currentStageIndex);
+        }
+        if (data.stages) {
+          setStages(data.stages);
+        }
       }
     };
 
@@ -265,18 +144,18 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [currentStageIndex, stages, isRunning, currentStage]);
+  }, []);
 
   if (!currentStage) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">⚠️</div>
+          <div className="text-6xl mb-4">⏳</div>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            No hay etapas configuradas
+            Reflejo del Cronómetro Principal
           </h1>
           <p className="text-gray-600">
-            Cierra esta ventana y configura las etapas del directorio
+            Esperando sincronización con el panel principal...
           </p>
         </div>
       </div>
@@ -305,6 +184,11 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
       <h1 className="text-6xl font-bold text-white text-center px-8">
         {currentStage.title}
       </h1>
+
+      {/* Indicador de que es un reflejo */}
+      <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded-lg text-sm">
+        📺 Reflejo
+      </div>
     </div>
   );
 };
