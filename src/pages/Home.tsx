@@ -325,8 +325,9 @@ export const Home: React.FC = () => {
   };
 
   const handlePauseResume = () => {
-    setIsTimerRunning(!isTimerRunning);
-    sendMessageToMeetingWindow('pauseResume');
+    const newRunningState = !isTimerRunning;
+    setIsTimerRunning(newRunningState);
+    sendMessageToMeetingWindow('pauseResume', { isRunning: newRunningState });
   };
 
   const handleRestartStage = () => {
@@ -341,6 +342,9 @@ export const Home: React.FC = () => {
 
   // Funciones para manejar presión prolongada del botón
   const handlePauseButtonMouseDown = () => {
+    // Resetear el estado de presión prolongada al inicio
+    setIsLongPress(false);
+    
     const timer = setTimeout(() => {
       setIsLongPress(true);
       handleRestartStage();
@@ -356,13 +360,13 @@ export const Home: React.FC = () => {
       (window as any).pauseButtonTimer = null;
     }
     
+    // Solo ejecutar pausar/reanudar si no fue una presión prolongada
     if (!isLongPress) {
-      // Solo ejecutar pausar/reanudar si no fue una presión prolongada
       handlePauseResume();
     }
     
-    // Resetear el estado de presión prolongada
-    setTimeout(() => setIsLongPress(false), 100);
+    // Resetear el estado de presión prolongada después de un breve delay
+    setTimeout(() => setIsLongPress(false), 200);
   };
 
   const handlePauseButtonMouseLeave = () => {
@@ -374,11 +378,35 @@ export const Home: React.FC = () => {
   };
 
   const handleAddTime = () => {
-    sendMessageToMeetingWindow('addTime', { seconds: 30 });
+    // Obtener el tiempo actual del localStorage
+    const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+    const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
+    
+    // Si el cronómetro está pausado, ajustar a tiempos exactos de 30 segundos
+    if (!isTimerRunning) {
+      const newTime = Math.ceil(currentSeconds / 30) * 30;
+      localStorage.setItem('currentTimeLeft', newTime.toString());
+      sendMessageToMeetingWindow('setTime', { seconds: newTime });
+    } else {
+      // Si está funcionando, simplemente agregar 30 segundos
+      sendMessageToMeetingWindow('addTime', { seconds: 30 });
+    }
   };
 
   const handleSubtractTime = () => {
-    sendMessageToMeetingWindow('subtractTime', { seconds: 30 });
+    // Obtener el tiempo actual del localStorage
+    const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+    const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
+    
+    // Si el cronómetro está pausado, ajustar a tiempos exactos de 30 segundos
+    if (!isTimerRunning) {
+      const newTime = Math.max(0, Math.floor(currentSeconds / 30) * 30);
+      localStorage.setItem('currentTimeLeft', newTime.toString());
+      sendMessageToMeetingWindow('setTime', { seconds: newTime });
+    } else {
+      // Si está funcionando, simplemente restar 30 segundos
+      sendMessageToMeetingWindow('subtractTime', { seconds: 30 });
+    }
   };
 
   // Funciones para configurar atajos de teclado
@@ -452,7 +480,9 @@ export const Home: React.FC = () => {
             event.shiftKey === shortcut.shift) {
           
           // Solo ejecutar si la ventana está activa O si el atajo es global
-          if (meetingWindow && !meetingWindow.closed || shortcut.global) {
+          const shouldExecute = (meetingWindow && !meetingWindow.closed) || shortcut.global;
+          
+          if (shouldExecute) {
             event.preventDefault();
             
             switch (action) {

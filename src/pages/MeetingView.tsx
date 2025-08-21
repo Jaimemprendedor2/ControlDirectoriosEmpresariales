@@ -179,9 +179,12 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
           break;
 
         case 'pauseResume':
-          setIsRunning(!isRunning);
+          const newRunningState = data?.isRunning !== undefined ? data.isRunning : !isRunning;
+          setIsRunning(newRunningState);
           // Sincronizar el estado de pausa
-          if (isRunning) {
+          if (newRunningState) {
+            // Si se va a reanudar, no hacer nada especial
+          } else {
             // Si se va a pausar, guardar el tiempo actual
             localStorage.setItem('currentTimeLeft', timeLeft.toString());
           }
@@ -208,6 +211,12 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
             localStorage.setItem('currentTimeLeft', newTime.toString());
             return newTime;
           });
+          break;
+
+        case 'setTime':
+          const newTime = data?.seconds || 0;
+          setTimeLeft(newTime);
+          localStorage.setItem('currentTimeLeft', newTime.toString());
           break;
       }
     };
