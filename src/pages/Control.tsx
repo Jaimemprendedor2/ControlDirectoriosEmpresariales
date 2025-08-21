@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MeetingService } from '../services/meetingService';
 import { Meeting } from '../lib/supabase';
-import { createWebSocketService, getWebSocketService, clearWebSocketService, ConnectionState, CommandData } from '../services/websocketService';
+import { createPusherService, getPusherService, clearPusherService, ConnectionState, CommandData } from '../services/pusherService';
 
 interface Stage {
   id?: string;
@@ -48,14 +48,12 @@ export const Control: React.FC = () => {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Función para obtener URL del servidor WebSocket
-  const getWebSocketUrl = (): string => {
-    // En desarrollo, usar localhost:3001
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return 'http://localhost:3001';
-    }
-    // En producción, usar el mismo dominio con puerto 3001
-    return `${window.location.protocol}//${window.location.hostname}:3001`;
+  // Función para obtener configuración de Pusher
+  const getPusherConfig = () => {
+    return {
+      appKey: import.meta.env.VITE_PUSHER_KEY || 'tu_pusher_key_aqui',
+      cluster: import.meta.env.VITE_PUSHER_CLUSTER || 'tu_cluster_aqui'
+    };
   };
 
   // Inicializar WebSocket
@@ -68,18 +66,16 @@ export const Control: React.FC = () => {
       return;
     }
 
-    // Crear servicio WebSocket
-    const wsService = createWebSocketService({
-      url: getWebSocketUrl(),
-      room: `meeting-${meetingId}`,
-      type: 'controller',
-      autoReconnect: true,
-      maxReconnectAttempts: 10,
-      reconnectDelay: 1000
+    // Crear servicio Pusher
+    const pusherConfig = getPusherConfig();
+    const pusherService = createPusherService({
+      appKey: pusherConfig.appKey,
+      cluster: pusherConfig.cluster,
+      room: meetingId
     });
 
     // Configurar callbacks
-    wsService.onConnectionChange((state) => {
+    pusherService.onConnectionChange((state) => {
       setConnectionState(state);
       addConnectionLog(`Estado de conexión: ${state.connected ? 'Conectado' : 'Desconectado'}`);
       if (state.error) {
@@ -87,20 +83,20 @@ export const Control: React.FC = () => {
       }
     });
 
-    wsService.onCommand((command: CommandData) => {
+    pusherService.onCommand((command: CommandData) => {
       addConnectionLog(`Comando recibido: ${command.action}`);
       // Los comandos se manejan en el timer, no en el control
     });
 
-    wsService.onError((error) => {
-      addConnectionLog(`Error WebSocket: ${error}`);
+    pusherService.onError((error) => {
+      addConnectionLog(`Error Pusher: ${error}`);
     });
 
     // Conectar al servidor
-    addConnectionLog('🔄 Conectando al servidor WebSocket...');
-    wsService.connect()
+    addConnectionLog('🔄 Conectando a Pusher...');
+    pusherService.connect()
       .then(() => {
-        addConnectionLog('✅ Conectado exitosamente al servidor');
+        addConnectionLog('✅ Conectado exitosamente a Pusher');
       })
       .catch((error) => {
         addConnectionLog(`❌ Error de conexión: ${error.message}`);
@@ -108,8 +104,8 @@ export const Control: React.FC = () => {
 
     // Cleanup al desmontar
     return () => {
-      addConnectionLog('🔌 Desconectando del servidor...');
-      clearWebSocketService();
+      addConnectionLog('🔌 Desconectando de Pusher...');
+      pusherService.disconnect();
     };
   }, []);
 
@@ -142,27 +138,31 @@ export const Control: React.FC = () => {
 
   // Función para enviar comandos
   const sendCommand = async (action: string, data?: any) => {
-    const wsService = getWebSocketService();
-    if (!wsService) {
-      addConnectionLog('❌ Servicio WebSocket no disponible');
+    const pusherService = getPusherService();
+    if (!pusherService) {
+      addConnectionLog('❌ Servicio Pusher no disponible');
       return false;
     }
 
-    if (!wsService.isConnected()) {
-      addConnectionLog('⚠️ No conectado al servidor, comando no enviado');
+    if (!pusherService.isConnected()) {
+      addConnectionLog('⚠️ No conectado a Pusher, comando no enviado');
       return false;
     }
 
     addConnectionLog(`📤 Enviando comando: ${action}`);
-    const success = await wsService.sendCommand(action, data);
-    
-    if (success) {
+    try {
+      pusherService.sendCommand({
+        action,
+        data,
+        timestamp: Date.now(),
+        source: 'control'
+      });
       addConnectionLog(`✅ Comando enviado exitosamente: ${action}`);
-    } else {
+      return true;
+    } catch (error) {
       addConnectionLog(`❌ Error enviando comando: ${action}`);
+      return false;
     }
-    
-    return success;
   };
 
   // Control de etapas
@@ -303,10 +303,11 @@ export const Control: React.FC = () => {
 
   // Función para forzar reconexión
   const forceReconnection = () => {
-    const wsService = getWebSocketService();
-    if (wsService) {
+    const pusherService = getPusherService();
+    if (pusherService) {
       addConnectionLog('🔄 Reconexión manual solicitada');
-      wsService.forceReconnect('manual');
+      pusherService.disconnect();
+      pusherService.connect();
     }
   };
 

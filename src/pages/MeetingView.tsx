@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createWebSocketService, getWebSocketService, clearWebSocketService, ConnectionState, CommandData, TimerState } from '../services/websocketService';
+import { createPusherService, getPusherService, clearPusherService, ConnectionState, CommandData, TimerState } from '../services/pusherService';
 
 interface Stage {
   id?: string;
@@ -34,14 +34,12 @@ export const MeetingView: React.FC = () => {
 
   const currentStage = stages[currentStageIndex];
 
-  // Función para obtener URL del servidor WebSocket
-  const getWebSocketUrl = (): string => {
-    // En desarrollo, usar localhost:3001
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return 'http://localhost:3001';
-    }
-    // En producción, usar el mismo dominio con puerto 3001
-    return `${window.location.protocol}//${window.location.hostname}:3001`;
+  // Función para obtener configuración de Pusher
+  const getPusherConfig = () => {
+    return {
+      appKey: import.meta.env.VITE_PUSHER_KEY || 'tu_pusher_key_aqui',
+      cluster: import.meta.env.VITE_PUSHER_CLUSTER || 'tu_cluster_aqui'
+    };
   };
 
   // Función para formatear tiempo
@@ -53,8 +51,8 @@ export const MeetingView: React.FC = () => {
 
   // Función para enviar estado del timer
   const sendTimerState = () => {
-    const wsService = getWebSocketService();
-    if (!wsService || !wsService.isConnected()) return;
+    const pusherService = getPusherService();
+    if (!pusherService || !pusherService.isConnected()) return;
 
     const timerState: TimerState = {
       currentTimeLeft: timeLeft,
@@ -64,7 +62,7 @@ export const MeetingView: React.FC = () => {
       timestamp: Date.now()
     };
 
-    wsService.sendTimerState(timerState);
+    pusherService.sendTimerState(timerState);
   };
 
   // Inicializar WebSocket
@@ -96,23 +94,21 @@ export const MeetingView: React.FC = () => {
       setIsRunning(isTimerRunning === 'true');
     }
 
-    // Crear servicio WebSocket
-    const wsService = createWebSocketService({
-      url: getWebSocketUrl(),
-      room: 'meeting-reflection', // Sala para reflejo del timer
-      type: 'timer',
-      autoReconnect: true,
-      maxReconnectAttempts: 10,
-      reconnectDelay: 1000
+    // Crear servicio Pusher
+    const pusherConfig = getPusherConfig();
+    const pusherService = createPusherService({
+      appKey: pusherConfig.appKey,
+      cluster: pusherConfig.cluster,
+      room: 'meeting-reflection' // Sala para reflejo del timer
     });
 
     // Configurar callbacks
-    wsService.onConnectionChange((state) => {
+    pusherService.onConnectionChange((state) => {
       setConnectionState(state);
-      console.log('Estado de conexión WebSocket:', state);
+      console.log('Estado de conexión Pusher:', state);
     });
 
-    wsService.onCommand((command: CommandData) => {
+    pusherService.onCommand((command: CommandData) => {
       console.log('Comando recibido en MeetingView:', command);
       
       switch (command.action) {
@@ -172,7 +168,7 @@ export const MeetingView: React.FC = () => {
       }
     });
 
-    wsService.onTimerState((state: TimerState) => {
+    pusherService.onTimerState((state: TimerState) => {
       console.log('Estado del timer recibido:', state);
       // Sincronizar con el estado recibido
       if (state.currentTimeLeft !== undefined) {
@@ -193,15 +189,15 @@ export const MeetingView: React.FC = () => {
       }
     });
 
-    wsService.onError((error) => {
-      console.error('Error WebSocket en MeetingView:', error);
+    pusherService.onError((error) => {
+      console.error('Error Pusher en MeetingView:', error);
     });
 
     // Conectar al servidor
-    console.log('Conectando MeetingView al servidor WebSocket...');
-    wsService.connect()
+    console.log('Conectando MeetingView a Pusher...');
+    pusherService.connect()
       .then(() => {
-        console.log('MeetingView conectado exitosamente al servidor');
+        console.log('MeetingView conectado exitosamente a Pusher');
       })
       .catch((error) => {
         console.error('Error de conexión en MeetingView:', error);
@@ -209,8 +205,8 @@ export const MeetingView: React.FC = () => {
 
     // Cleanup al desmontar
     return () => {
-      console.log('Desconectando MeetingView del servidor...');
-      clearWebSocketService();
+      console.log('Desconectando MeetingView de Pusher...');
+      pusherService.disconnect();
     };
   }, []);
 

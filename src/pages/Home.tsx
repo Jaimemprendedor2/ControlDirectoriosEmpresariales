@@ -4,12 +4,12 @@ import { StagesList } from '../components/StagesList';
 import { StageColorConfig } from '../components/StageColorConfig';
 import { MeetingService } from '../services/meetingService';
 import { Meeting } from '../lib/supabase';
-import { createWebSocketService, ConnectionState } from '../services/websocketService';
+import { createPusherService, ConnectionState } from '../services/pusherService';
 
-// Extender Window interface para incluir websocketService
+// Extender Window interface para incluir pusherService
 declare global {
   interface Window {
-    websocketService?: any;
+    pusherService?: any;
   }
 }
 
@@ -399,14 +399,7 @@ export const Home: React.FC = () => {
     }
   };
 
-  // Funciones para WebSocket
-  const getWebSocketUrl = () => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = process.env.NODE_ENV === 'production' 
-      ? window.location.host 
-      : 'localhost:3001';
-    return `${protocol}//${host}`;
-  };
+  // Funciones para Pusher
 
   const addConnectionLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -425,9 +418,9 @@ export const Home: React.FC = () => {
       timestamp: Date.now()
     };
     
-    // Enviar estado a través de WebSocket si está disponible
-    if (window.websocketService) {
-      window.websocketService.sendTimerState(timerState);
+    // Enviar estado a través de Pusher si está disponible
+    if (window.pusherService) {
+      window.pusherService.sendTimerState(timerState);
     }
   };
 
@@ -469,9 +462,9 @@ export const Home: React.FC = () => {
       setIsTimerRunning(false);
       sendMessageToReflectionWindow('previousStage', { stageIndex: newIndex });
       
-      // Enviar comando a través de WebSocket
-      if (window.websocketService) {
-        window.websocketService.sendCommand({
+      // Enviar comando a través de Pusher
+      if (window.pusherService) {
+        window.pusherService.sendCommand({
           action: 'previousStage',
           data: { stageIndex: newIndex },
           timestamp: Date.now(),
@@ -493,9 +486,9 @@ export const Home: React.FC = () => {
       setIsTimerRunning(false);
       sendMessageToReflectionWindow('nextStage', { stageIndex: newIndex });
       
-      // Enviar comando a través de WebSocket
-      if (window.websocketService) {
-        window.websocketService.sendCommand({
+      // Enviar comando a través de Pusher
+      if (window.pusherService) {
+        window.pusherService.sendCommand({
           action: 'nextStage',
           data: { stageIndex: newIndex },
           timestamp: Date.now(),
@@ -517,9 +510,9 @@ export const Home: React.FC = () => {
     // Enviar mensaje a la ventana de reflejo
     sendMessageToReflectionWindow('pauseResume', { isRunning: newRunningState });
     
-    // Enviar comando a través de WebSocket
-    if (window.websocketService) {
-      window.websocketService.sendCommand({
+    // Enviar comando a través de Pusher
+    if (window.pusherService) {
+      window.pusherService.sendCommand({
         action: 'pauseResume',
         data: { isRunning: newRunningState },
         timestamp: Date.now(),
@@ -544,9 +537,9 @@ export const Home: React.FC = () => {
     sendMessageToReflectionWindow('setTime', { seconds: 0 });
     setIsTimerRunning(false);
     
-    // Enviar comando a través de WebSocket
-    if (window.websocketService) {
-      window.websocketService.sendCommand({
+    // Enviar comando a través de Pusher
+    if (window.pusherService) {
+      window.pusherService.sendCommand({
         action: 'setTime',
         data: { seconds: 0 },
         timestamp: Date.now(),
@@ -609,8 +602,8 @@ export const Home: React.FC = () => {
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
       // Enviar comando a través de WebSocket
-      if (window.websocketService) {
-        window.websocketService.sendCommand({
+      if (window.pusherService) {
+        window.pusherService.sendCommand({
           action: 'setTime',
           data: { seconds: newTime },
           timestamp: Date.now(),
@@ -624,8 +617,8 @@ export const Home: React.FC = () => {
       sendMessageToReflectionWindow('addTime', { seconds: 30 });
       
       // Enviar comando a través de WebSocket
-      if (window.websocketService) {
-        window.websocketService.sendCommand({
+      if (window.pusherService) {
+        window.pusherService.sendCommand({
           action: 'addTime',
           data: { seconds: 30 },
           timestamp: Date.now(),
@@ -647,8 +640,8 @@ export const Home: React.FC = () => {
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
       // Enviar comando a través de WebSocket
-      if (window.websocketService) {
-        window.websocketService.sendCommand({
+      if (window.pusherService) {
+        window.pusherService.sendCommand({
           action: 'setTime',
           data: { seconds: newTime },
           timestamp: Date.now(),
@@ -662,8 +655,8 @@ export const Home: React.FC = () => {
       sendMessageToReflectionWindow('subtractTime', { seconds: 30 });
       
       // Enviar comando a través de WebSocket
-      if (window.websocketService) {
-        window.websocketService.sendCommand({
+      if (window.pusherService) {
+        window.pusherService.sendCommand({
           action: 'subtractTime',
           data: { seconds: 30 },
           timestamp: Date.now(),
@@ -718,16 +711,16 @@ export const Home: React.FC = () => {
   // Inicializar WebSocket cuando se selecciona un directorio
   useEffect(() => {
     if (selectedMeeting) {
-      addConnectionLog('Inicializando WebSocket para directorio: ' + selectedMeeting.title);
+      addConnectionLog('Inicializando Pusher para directorio: ' + selectedMeeting.title);
       
-      const websocketService = createWebSocketService({
-        url: getWebSocketUrl(),
-        room: selectedMeeting.id,
-        type: 'timer'
+      const pusherService = createPusherService({
+        appKey: import.meta.env.VITE_PUSHER_KEY || 'tu_pusher_key_aqui',
+        cluster: import.meta.env.VITE_PUSHER_CLUSTER || 'tu_cluster_aqui',
+        room: selectedMeeting.id
       });
 
       // Configurar callbacks
-      websocketService.onConnectionChange((state) => {
+      pusherService.onConnectionChange((state) => {
         setConnectionState(state);
         addConnectionLog(`Estado de conexión: ${state.connected ? 'Conectado' : 'Desconectado'}`);
         if (state.error) {
@@ -735,9 +728,9 @@ export const Home: React.FC = () => {
         }
       });
 
-      websocketService.onCommand((command) => {
+      pusherService.onCommand((command) => {
         addConnectionLog(`Comando recibido: ${command.action}`);
-        console.log('📡 Comando recibido via WebSocket:', command);
+        console.log('📡 Comando recibido via Pusher:', command);
         
         // Procesar comandos del control remoto
         switch (command.action) {
@@ -765,30 +758,30 @@ export const Home: React.FC = () => {
         }
       });
 
-      websocketService.onError((error) => {
-        addConnectionLog(`Error WebSocket: ${error}`);
+      pusherService.onError((error) => {
+        addConnectionLog(`Error Pusher: ${error}`);
       });
 
       // Conectar al servidor
-      websocketService.connect().then(() => {
-        addConnectionLog('WebSocket conectado exitosamente');
-        window.websocketService = websocketService;
+      pusherService.connect().then(() => {
+        addConnectionLog('Pusher conectado exitosamente');
+        window.pusherService = pusherService;
       }).catch((error) => {
-        addConnectionLog(`Error conectando WebSocket: ${error}`);
+        addConnectionLog(`Error conectando Pusher: ${error}`);
       });
 
       // Cleanup al desmontar
       return () => {
-        addConnectionLog('Cerrando conexión WebSocket');
-        websocketService.disconnect();
-        window.websocketService = undefined;
+        addConnectionLog('Cerrando conexión Pusher');
+        pusherService.disconnect();
+        window.pusherService = undefined;
       };
     }
   }, [selectedMeeting?.id]);
 
   // Enviar estado del timer periódicamente
   useEffect(() => {
-    if (connectionState.connected && window.websocketService) {
+    if (connectionState.connected && window.pusherService) {
       const interval = setInterval(() => {
         sendTimerState();
       }, 1000); // Enviar estado cada segundo
@@ -1061,10 +1054,10 @@ export const Home: React.FC = () => {
     addConnectionLog('Reconexión manual solicitada');
     
     // Reconectar WebSocket si está disponible
-    if (window.websocketService) {
-      window.websocketService.disconnect();
+    if (window.pusherService) {
+      window.pusherService.disconnect();
       setTimeout(() => {
-        window.websocketService.connect();
+        window.pusherService.connect();
       }, 1000);
     }
   };
