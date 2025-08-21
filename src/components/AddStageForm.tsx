@@ -131,10 +131,31 @@ export const AddStageForm: React.FC<AddStageFormProps> = ({ onAddStage, initialD
             type="text"
             id="stage-duration"
             value={duration}
-            onChange={(e) => setDuration(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              // Permitir entrada de números y dos puntos
+              if (value === '' || /^[\d:]*$/.test(value)) {
+                setDuration(value);
+              }
+            }}
+            onKeyDown={(e) => {
+              const allowedKeys = [
+                'Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 
+                'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+                'Home', 'End', 'Insert'
+              ];
+              const isNumber = /^[0-9]$/.test(e.key);
+              const isColon = e.key === ':';
+              const isNumpad = e.key.startsWith('Numpad') || e.key.startsWith('Num');
+              
+              if (!isNumber && !isColon && !isNumpad && !allowedKeys.includes(e.key)) {
+                e.preventDefault();
+              }
+            }}
             placeholder="Ej: 5:00 o 300"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
             required
+            inputMode="numeric"
           />
           <p className="text-xs text-gray-500 mt-1">
             Formato: mm:ss (ej: 5:00) o segundos (ej: 300)

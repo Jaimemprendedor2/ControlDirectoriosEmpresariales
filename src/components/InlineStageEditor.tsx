@@ -104,29 +104,51 @@ export const InlineStageEditor: React.FC<InlineStageEditorProps> = ({
             value={formatDuration(duration)}
             onChange={(e) => {
               const value = e.target.value;
+              // Permitir entrada de números y dos puntos
               if (value === '' || /^[\d:]*$/.test(value)) {
-                // Permitir entrada
+                // Validar formato básico
+                const parts = value.split(':');
+                if (parts.length <= 2 && parts.every(part => part === '' || /^\d{0,2}$/.test(part))) {
+                  // Si el formato es válido, actualizar el estado temporal
+                  if (value && value !== formatDuration(duration)) {
+                    const seconds = parseTimeToSeconds(value);
+                    if (seconds > 0) {
+                      setDuration(seconds);
+                    }
+                  }
+                }
               }
             }}
             onBlur={(e) => {
               const value = e.target.value;
               if (value) {
                 const seconds = parseTimeToSeconds(value);
-                setDuration(seconds);
+                if (seconds > 0) {
+                  setDuration(seconds);
+                } else {
+                  // Si el formato no es válido, restaurar el valor anterior
+                  e.target.value = formatDuration(duration);
+                }
               }
             }}
             onKeyDown={(e) => {
-              const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+              const allowedKeys = [
+                'Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 
+                'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+                'Home', 'End', 'Insert'
+              ];
               const isNumber = /^[0-9]$/.test(e.key);
               const isColon = e.key === ':';
+              const isNumpad = e.key.startsWith('Numpad') || e.key.startsWith('Num');
               
-              if (!isNumber && !isColon && !allowedKeys.includes(e.key)) {
+              if (!isNumber && !isColon && !isNumpad && !allowedKeys.includes(e.key)) {
                 e.preventDefault();
               }
             }}
             onKeyPress={handleKeyPress}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
             placeholder="00:30"
+            inputMode="numeric"
           />
         </div>
 
@@ -177,10 +199,16 @@ export const InlineStageEditor: React.FC<InlineStageEditorProps> = ({
             min="1"
             max="300"
             value={alertSeconds}
-            onChange={(e) => setAlertSeconds(parseInt(e.target.value) || 15)}
+            onChange={(e) => {
+              const value = parseInt(e.target.value);
+              if (!isNaN(value) && value >= 1 && value <= 300) {
+                setAlertSeconds(value);
+              }
+            }}
             onKeyPress={handleKeyPress}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="15"
+            inputMode="numeric"
           />
         </div>
       </div>

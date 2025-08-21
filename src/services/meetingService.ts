@@ -213,6 +213,35 @@ export class MeetingService {
     }
   }
 
+  // Actualizar una etapa
+  static async updateStage(
+    stageId: string, 
+    title: string, 
+    duration: number
+  ): Promise<MeetingStage> {
+    try {
+      const { data, error } = await supabase
+        .from('meeting_stages')
+        .update({
+          title,
+          duration
+        })
+        .eq('id', stageId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating stage:', error)
+        throw new Error(`Error al actualizar etapa: ${error.message}`)
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Exception updating stage:', error)
+      throw error
+    }
+  }
+
   // Eliminar una reunión
   static async deleteMeeting(meetingId: string): Promise<void> {
     const { error } = await supabase

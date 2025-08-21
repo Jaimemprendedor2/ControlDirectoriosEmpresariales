@@ -202,21 +202,42 @@ export const Home: React.FC = () => {
 
   const handleEditStage = (index: number, _stage: Stage) => {
     console.log('Editando etapa:', index, _stage);
-    setEditingIndex(index);
+    // Asegurar que el índice sea válido
+    if (index >= 0 && index < stages.length) {
+      setEditingIndex(index);
+    } else {
+      console.error('Índice de etapa inválido:', index);
+    }
   };
 
-  const handleSaveEdit = (index: number, title: string, description: string, duration: number, alertColor: string, alertSeconds: number) => {
-    const newStages = [...stages];
-    newStages[index] = {
-      ...newStages[index],
-      title,
-      description,
-      duration,
-      alertColor,
-      alertSeconds
-    };
-    setStages(newStages);
-    setEditingIndex(null);
+  const handleSaveEdit = async (index: number, title: string, description: string, duration: number, alertColor: string, alertSeconds: number) => {
+    try {
+      const stageToUpdate = stages[index];
+      
+      // Si la etapa tiene ID (está en la base de datos), actualizarla
+      if (stageToUpdate.id && selectedMeeting) {
+        await MeetingService.updateStage(stageToUpdate.id, title, duration);
+        console.log('Etapa actualizada en BD:', stageToUpdate.id, { title, duration });
+      }
+      
+      // Actualizar el estado local
+      const newStages = [...stages];
+      newStages[index] = {
+        ...newStages[index],
+        title,
+        description,
+        duration,
+        alertColor,
+        alertSeconds
+      };
+      setStages(newStages);
+      setEditingIndex(null);
+      
+      console.log('Etapa actualizada exitosamente:', index, title);
+    } catch (error) {
+      console.error('Error actualizando etapa:', error);
+      alert('Error al actualizar la etapa');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -356,6 +377,15 @@ export const Home: React.FC = () => {
   }, [meetingWindow, keyboardShortcuts]);
 
   const handleStartMeeting = () => {
+    // Si ya hay una ventana abierta, cerrarla y parar el directorio
+    if (meetingWindow && !meetingWindow.closed) {
+      meetingWindow.close();
+      setMeetingWindow(null);
+      setIsTimerRunning(false);
+      return;
+    }
+
+    // Si no hay etapas, mostrar error
     if (stages.length === 0) {
       alert('Agrega al menos una etapa antes de iniciar el directorio');
       return;
@@ -506,9 +536,13 @@ export const Home: React.FC = () => {
                     </button>
                     <button
                       onClick={handleStartMeeting}
-                      className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+                      className={`font-medium py-2 px-6 rounded-lg transition-colors ${
+                        meetingWindow && !meetingWindow.closed 
+                          ? 'bg-red-600 hover:bg-red-700 text-white' 
+                          : 'bg-green-600 hover:bg-green-700 text-white'
+                      }`}
                     >
-                      🚀 Iniciar Directorio
+                      {meetingWindow && !meetingWindow.closed ? '🛑 Parar Directorio' : '🚀 Iniciar Directorio'}
                     </button>
                   </div>
 
