@@ -166,25 +166,6 @@ export const Home: React.FC = () => {
       await loadMeetingWithStages(meeting.id);
       setSelectedMeeting(meeting);
       
-      // Inicializar automáticamente el directorio
-      if (stages.length > 0) {
-        localStorage.setItem('meetingStages', JSON.stringify(stages));
-        const initialStageTime = stages[0].duration;
-        localStorage.setItem('currentTimeLeft', initialStageTime.toString());
-        localStorage.setItem('initialTime', initialStageTime.toString());
-        localStorage.setItem('isTimerRunning', 'false');
-        localStorage.setItem('currentStageIndex', '0');
-        setCurrentStageIndex(0);
-        setIsTimerRunning(false);
-        
-        // Forzar una actualización inmediata del panel de control
-        setTimeout(() => {
-          setTimerUpdate(prev => prev + 1);
-        }, 50);
-        
-        console.log('✅ Directorio creado e inicializado automáticamente');
-      }
-      
       // Cerrar modal y limpiar campos
       setShowNewMeetingModal(false);
       setNewMeetingName('');
@@ -192,6 +173,8 @@ export const Home: React.FC = () => {
       
       // Recargar la lista de directorios
       await loadMeetings();
+      
+      console.log('✅ Directorio creado exitosamente');
     } catch (error) {
       console.error('Error creando directorio:', error);
       alert('Error al crear el directorio');
@@ -760,6 +743,28 @@ export const Home: React.FC = () => {
   useEffect(() => {
     loadMeetings();
   }, []);
+
+  // Inicializar automáticamente el directorio cuando se cargan las etapas
+  useEffect(() => {
+    if (stages.length > 0 && selectedMeeting && !localStorage.getItem('currentTimeLeft')) {
+      console.log('🚀 Inicializando directorio automáticamente');
+      localStorage.setItem('meetingStages', JSON.stringify(stages));
+      const initialStageTime = stages[0].duration;
+      localStorage.setItem('currentTimeLeft', initialStageTime.toString());
+      localStorage.setItem('initialTime', initialStageTime.toString());
+      localStorage.setItem('isTimerRunning', 'false');
+      localStorage.setItem('currentStageIndex', '0');
+      setCurrentStageIndex(0);
+      setIsTimerRunning(false);
+      
+      // Forzar una actualización inmediata del panel de control
+      setTimeout(() => {
+        setTimerUpdate(prev => prev + 1);
+      }, 50);
+      
+      console.log('✅ Directorio inicializado automáticamente');
+    }
+  }, [stages, selectedMeeting]);
 
   // Inicializar Pusher cuando se selecciona un directorio
   useEffect(() => {
