@@ -34,6 +34,7 @@ export const Home: React.FC = () => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
   const [keyboardShortcuts, setKeyboardShortcuts] = useState({
     pauseResume: { key: 'Space', ctrl: false, alt: false, shift: false, global: false },
     nextStage: { key: 'KeyN', ctrl: false, alt: false, shift: false, global: false },
@@ -308,8 +309,10 @@ export const Home: React.FC = () => {
     if (currentStageIndex > 0) {
       const newIndex = currentStageIndex - 1;
       setCurrentStageIndex(newIndex);
-      // Sincronizar el tiempo de la nueva etapa
-      localStorage.setItem('currentTimeLeft', stages[newIndex].duration.toString());
+      // Sincronizar el tiempo de la nueva etapa y actualizar tiempo inicial
+      const newStageTime = stages[newIndex].duration;
+      localStorage.setItem('currentTimeLeft', newStageTime.toString());
+      localStorage.setItem('initialTime', newStageTime.toString());
       sendMessageToMeetingWindow('previousStage', { stageIndex: newIndex });
     }
   };
@@ -318,8 +321,10 @@ export const Home: React.FC = () => {
     if (currentStageIndex < stages.length - 1) {
       const newIndex = currentStageIndex + 1;
       setCurrentStageIndex(newIndex);
-      // Sincronizar el tiempo de la nueva etapa
-      localStorage.setItem('currentTimeLeft', stages[newIndex].duration.toString());
+      // Sincronizar el tiempo de la nueva etapa y actualizar tiempo inicial
+      const newStageTime = stages[newIndex].duration;
+      localStorage.setItem('currentTimeLeft', newStageTime.toString());
+      localStorage.setItem('initialTime', newStageTime.toString());
       sendMessageToMeetingWindow('nextStage', { stageIndex: newIndex });
     }
   };
@@ -330,14 +335,13 @@ export const Home: React.FC = () => {
     sendMessageToMeetingWindow('pauseResume', { isRunning: newRunningState });
   };
 
-  const handleRestartStage = () => {
-    // Reiniciar la etapa actual con su tiempo original
-    const currentStage = stages[currentStageIndex];
-    if (currentStage) {
-      localStorage.setItem('currentTimeLeft', currentStage.duration.toString());
-      sendMessageToMeetingWindow('restartStage');
-      setIsTimerRunning(true);
-    }
+
+
+  const handleResetToZero = () => {
+    // Resetear a 00:00
+    localStorage.setItem('currentTimeLeft', '0');
+    sendMessageToMeetingWindow('setTime', { seconds: 0 });
+    setIsTimerRunning(false);
   };
 
   // Funciones para manejar presión prolongada del botón
@@ -347,7 +351,7 @@ export const Home: React.FC = () => {
     
     const timer = setTimeout(() => {
       setIsLongPress(true);
-      handleRestartStage();
+      handleResetToZero(); // Cambiar a resetear a 00:00
     }, 1000); // 1 segundo
 
     // Guardar el timer para poder cancelarlo
@@ -382,13 +386,20 @@ export const Home: React.FC = () => {
     const currentTimeLeft = localStorage.getItem('currentTimeLeft');
     const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
     
-    // Si el cronómetro está pausado, ajustar a tiempos exactos de 30 segundos
     if (!isTimerRunning) {
-      const newTime = Math.ceil(currentSeconds / 30) * 30;
+      // Si está detenido: ajustar a escala de 30s
+      let newTime: number;
+      if (currentSeconds === 0) {
+        newTime = 30; // Si está en 0, pasar a 30s
+      } else {
+        newTime = Math.ceil(currentSeconds / 30) * 30; // Redondear hacia arriba al múltiplo de 30
+      }
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToMeetingWindow('setTime', { seconds: newTime });
     } else {
-      // Si está funcionando, simplemente agregar 30 segundos
+      // Si está funcionando: sumar 30s inmediatamente
+      const newTime = currentSeconds + 30;
+      localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToMeetingWindow('addTime', { seconds: 30 });
     }
   };
@@ -398,13 +409,15 @@ export const Home: React.FC = () => {
     const currentTimeLeft = localStorage.getItem('currentTimeLeft');
     const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
     
-    // Si el cronómetro está pausado, ajustar a tiempos exactos de 30 segundos
     if (!isTimerRunning) {
-      const newTime = Math.max(0, Math.floor(currentSeconds / 30) * 30);
+      // Si está detenido: ajustar a escala de 30s
+      const newTime = Math.max(0, Math.floor(currentSeconds / 30) * 30); // Redondear hacia abajo al múltiplo de 30
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToMeetingWindow('setTime', { seconds: newTime });
     } else {
-      // Si está funcionando, simplemente restar 30 segundos
+      // Si está funcionando: restar 30s inmediatamente
+      const newTime = Math.max(0, currentSeconds - 30);
+      localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToMeetingWindow('subtractTime', { seconds: 30 });
     }
   };
@@ -513,7 +526,7 @@ export const Home: React.FC = () => {
     };
   }, [meetingWindow, keyboardShortcuts]);
 
-  const handleStartMeeting = () => {
+    const handleStartMeeting = () => {
     console.log('handleStartMeeting llamado');
     console.log('meetingWindow:', meetingWindow);
     console.log('stages.length:', stages.length);
@@ -544,14 +557,16 @@ export const Home: React.FC = () => {
          if (newMeetingWindow) {
        // Guardar las etapas en localStorage para que la nueva ventana las pueda leer
        localStorage.setItem('meetingStages', JSON.stringify(stages));
-       // Inicializar el tiempo de la primera etapa
-       localStorage.setItem('currentTimeLeft', stages[0].duration.toString());
+       // Inicializar el tiempo de la primera etapa como tiempo inicial
+       const initialStageTime = stages[0].duration;
+       localStorage.setItem('currentTimeLeft', initialStageTime.toString());
+       localStorage.setItem('initialTime', initialStageTime.toString()); // Guardar tiempo inicial
        setMeetingWindow(newMeetingWindow);
        setIsTimerRunning(true);
        setCurrentStageIndex(0);
        console.log('Ventana abierta exitosamente');
      }
-  };
+   };
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -738,14 +753,14 @@ export const Home: React.FC = () => {
                       onTouchStart={handlePauseButtonMouseDown}
                       onTouchEnd={handlePauseButtonMouseUp}
                       className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 relative"
-                                             title={`Clic: Pausar/Reanudar | Mantener 1s: Reiniciar (${formatShortcut(keyboardShortcuts.pauseResume)})`}
+                                             title={`Clic: Pausar/Reanudar | Mantener 1s: Resetear a 00:00 (${formatShortcut(keyboardShortcuts.pauseResume)})`}
                     >
                       <span className="text-xl">{isTimerRunning ? '⏸️' : '▶️'}</span>
                       <span className="text-sm">{isTimerRunning ? 'Pausar' : 'Reanudar'}</span>
                       {isLongPress && (
-                        <div className="absolute inset-0 bg-blue-800 rounded-lg flex items-center justify-center">
-                          <span className="text-white text-sm font-bold">🔄 Reiniciando...</span>
-                        </div>
+                                                 <div className="absolute inset-0 bg-blue-800 rounded-lg flex items-center justify-center">
+                           <span className="text-white text-sm font-bold">🔄 Reseteando...</span>
+                         </div>
                       )}
                     </button>
 
@@ -790,7 +805,7 @@ export const Home: React.FC = () => {
                         Los controles afectan la ventana emergente en tiempo real
                       </div>
                                              <div className="text-xs mt-2 text-blue-600">
-                         Atajos configurados: {formatShortcut(keyboardShortcuts.pauseResume)} (Pausar/Reanudar/Reiniciar), 
+                         Atajos configurados: {formatShortcut(keyboardShortcuts.pauseResume)} (Pausar/Reanudar/Resetear), 
                          {formatShortcut(keyboardShortcuts.nextStage)} (Siguiente), 
                          {formatShortcut(keyboardShortcuts.previousStage)} (Anterior), 
                          {formatShortcut(keyboardShortcuts.addTime)}/{formatShortcut(keyboardShortcuts.subtractTime)} (Tiempo)
@@ -975,8 +990,8 @@ export const Home: React.FC = () => {
                     <tbody>
                       <tr className="hover:bg-gray-50">
                         <td className="border border-gray-300 px-4 py-3">
-                          <div className="font-medium text-blue-700">Pausar/Reanudar/Reiniciar</div>
-                          <div className="text-sm text-gray-600">Clic: Pausar/Reanudar | Mantener 1s: Reiniciar</div>
+                                                   <div className="font-medium text-blue-700">Pausar/Reanudar/Resetear</div>
+                         <div className="text-sm text-gray-600">Clic: Pausar/Reanudar | Mantener 1s: Resetear a 00:00</div>
                         </td>
                         <td className="border border-gray-300 px-4 py-3">
                           <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.pauseResume)}</span>
@@ -1120,7 +1135,7 @@ export const Home: React.FC = () => {
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <h5 className="font-medium text-blue-800 mb-2">Información sobre Atajos</h5>
                   <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• <strong>Pausar/Reanudar/Reiniciar:</strong> Mismo atajo, reiniciar se activa manteniendo presionado 1 segundo</li>
+                                         <li>• <strong>Pausar/Reanudar/Resetear:</strong> Mismo atajo, resetear a 00:00 se activa manteniendo presionado 1 segundo</li>
                     <li>• <strong>Global:</strong> Los atajos marcados funcionan aunque la aplicación no esté en primer plano</li>
                     <li>• Puedes usar combinaciones con Ctrl, Alt y Shift</li>
                     <li>• Las teclas de función F1-F24 están disponibles</li>

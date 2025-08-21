@@ -28,13 +28,17 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
   const [isRunning, setIsRunning] = useState(true);
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
   const [isAlertBlinking, setIsAlertBlinking] = useState(false);
+  const [initialTime, setInitialTime] = useState<number>(0); // Tiempo inicial configurado
 
   const currentStage = stages[currentStageIndex];
 
   // Inicializar el cronómetro
   useEffect(() => {
     if (stages.length > 0) {
-      setTimeLeft(stages[0].duration);
+      const stageTime = stages[0].duration;
+      setTimeLeft(stageTime);
+      setInitialTime(stageTime);
+      localStorage.setItem('initialTime', stageTime.toString());
     }
   }, [stages]);
 
@@ -114,8 +118,11 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
   const handleNextStage = () => {
     if (currentStageIndex < stages.length - 1) {
       const nextIndex = currentStageIndex + 1;
+      const nextStageTime = stages[nextIndex].duration;
       setCurrentStageIndex(nextIndex);
-      setTimeLeft(stages[nextIndex].duration);
+      setTimeLeft(nextStageTime);
+      setInitialTime(nextStageTime); // Actualizar tiempo inicial
+      localStorage.setItem('initialTime', nextStageTime.toString());
       setIsWaitingForNext(false);
       setIsRunning(true);
     } else {
@@ -135,6 +142,12 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
           event.preventDefault();
           if (isWaitingForNext) {
             handleNextStage();
+          } else if (timeLeft === 0) {
+            // Si está en 00:00, reiniciar con tiempo inicial
+            setTimeLeft(initialTime);
+            localStorage.setItem('currentTimeLeft', initialTime.toString());
+            setIsRunning(true);
+            setIsWaitingForNext(false);
           }
           break;
         case 'Escape':
@@ -148,7 +161,7 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
-  }, [isWaitingForNext]);
+  }, [isWaitingForNext, timeLeft, initialTime]);
 
   // Escuchar mensajes de la ventana principal
   useEffect(() => {
@@ -159,9 +172,12 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
         case 'previousStage':
           if (currentStageIndex > 0) {
             const newIndex = currentStageIndex - 1;
+            const newStageTime = stages[newIndex].duration;
             setCurrentStageIndex(newIndex);
-            setTimeLeft(stages[newIndex].duration);
-            localStorage.setItem('currentTimeLeft', stages[newIndex].duration.toString());
+            setTimeLeft(newStageTime);
+            setInitialTime(newStageTime); // Actualizar tiempo inicial
+            localStorage.setItem('currentTimeLeft', newStageTime.toString());
+            localStorage.setItem('initialTime', newStageTime.toString());
             setIsWaitingForNext(false);
             setIsRunning(true);
           }
@@ -170,9 +186,12 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
         case 'nextStage':
           if (currentStageIndex < stages.length - 1) {
             const newIndex = currentStageIndex + 1;
+            const newStageTime = stages[newIndex].duration;
             setCurrentStageIndex(newIndex);
-            setTimeLeft(stages[newIndex].duration);
-            localStorage.setItem('currentTimeLeft', stages[newIndex].duration.toString());
+            setTimeLeft(newStageTime);
+            setInitialTime(newStageTime); // Actualizar tiempo inicial
+            localStorage.setItem('currentTimeLeft', newStageTime.toString());
+            localStorage.setItem('initialTime', newStageTime.toString());
             setIsWaitingForNext(false);
             setIsRunning(true);
           }
@@ -183,7 +202,13 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
           setIsRunning(newRunningState);
           // Sincronizar el estado de pausa
           if (newRunningState) {
-            // Si se va a reanudar, no hacer nada especial
+            // Si se va a reanudar y está en 00:00, reiniciar con tiempo inicial
+            if (timeLeft === 0) {
+              const storedInitialTime = localStorage.getItem('initialTime');
+              const initialTimeValue = storedInitialTime ? parseInt(storedInitialTime) : initialTime;
+              setTimeLeft(initialTimeValue);
+              localStorage.setItem('currentTimeLeft', initialTimeValue.toString());
+            }
           } else {
             // Si se va a pausar, guardar el tiempo actual
             localStorage.setItem('currentTimeLeft', timeLeft.toString());
@@ -192,7 +217,9 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
 
         case 'restartStage':
           setTimeLeft(currentStage.duration);
+          setInitialTime(currentStage.duration); // Actualizar tiempo inicial
           localStorage.setItem('currentTimeLeft', currentStage.duration.toString());
+          localStorage.setItem('initialTime', currentStage.duration.toString());
           setIsWaitingForNext(false);
           setIsRunning(true);
           break;
@@ -201,6 +228,11 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
           setTimeLeft(prev => {
             const newTime = prev + (data?.seconds || 30);
             localStorage.setItem('currentTimeLeft', newTime.toString());
+            // Actualizar tiempo inicial si está funcionando
+            if (isRunning) {
+              setInitialTime(newTime);
+              localStorage.setItem('initialTime', newTime.toString());
+            }
             return newTime;
           });
           break;
@@ -209,6 +241,11 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
           setTimeLeft(prev => {
             const newTime = Math.max(0, prev - (data?.seconds || 30));
             localStorage.setItem('currentTimeLeft', newTime.toString());
+            // Actualizar tiempo inicial si está funcionando
+            if (isRunning) {
+              setInitialTime(newTime);
+              localStorage.setItem('initialTime', newTime.toString());
+            }
             return newTime;
           });
           break;
@@ -217,6 +254,7 @@ export const MeetingView: React.FC<MeetingViewProps> = ({ stages: propStages }) 
           const newTime = data?.seconds || 0;
           setTimeLeft(newTime);
           localStorage.setItem('currentTimeLeft', newTime.toString());
+          // No actualizar tiempo inicial cuando se establece manualmente
           break;
       }
     };
