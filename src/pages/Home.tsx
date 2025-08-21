@@ -35,14 +35,15 @@ export const Home: React.FC = () => {
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [keyboardShortcuts, setKeyboardShortcuts] = useState({
-    pauseResume: 'Space',
-    nextStage: 'KeyN',
-    previousStage: 'KeyP',
-    addTime: 'Equal',
-    subtractTime: 'Minus',
-    restartStage: 'KeyR'
+    pauseResume: { key: 'Space', ctrl: false, alt: false, shift: false },
+    nextStage: { key: 'KeyN', ctrl: false, alt: false, shift: false },
+    previousStage: { key: 'KeyP', ctrl: false, alt: false, shift: false },
+    addTime: { key: 'Equal', ctrl: false, alt: false, shift: false },
+    subtractTime: { key: 'Minus', ctrl: false, alt: false, shift: false },
+    restartStage: { key: 'KeyR', ctrl: false, alt: false, shift: false }
   });
   const [showShortcutConfig, setShowShortcutConfig] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const [configuringShortcut, setConfiguringShortcut] = useState<string | null>(null);
   const [timerUpdate, setTimerUpdate] = useState(0); // Para forzar re-render del cronómetro
   const [isLongPress, setIsLongPress] = useState(false); // Para manejar presión prolongada del botón
@@ -62,6 +63,26 @@ export const Home: React.FC = () => {
       hour12: false 
     });
     return `Compilado: ${date} ${time}`;
+  };
+
+  // Función para formatear combinaciones de teclas
+  const formatShortcut = (shortcut: { key: string; ctrl: boolean; alt: boolean; shift: boolean }) => {
+    const parts = [];
+    if (shortcut.ctrl) parts.push('Ctrl');
+    if (shortcut.alt) parts.push('Alt');
+    if (shortcut.shift) parts.push('Shift');
+    
+    let key = shortcut.key;
+    if (key === 'Space') key = 'Espacio';
+    else if (key === 'KeyN') key = 'N';
+    else if (key === 'KeyP') key = 'P';
+    else if (key === 'Equal') key = '+';
+    else if (key === 'Minus') key = '-';
+    else if (key === 'KeyR') key = 'R';
+    else if (key.startsWith('F')) key = key; // F1, F2, etc.
+    
+    parts.push(key);
+    return parts.join(' + ');
   };
 
   // Cargar directorios desde la base de datos
@@ -371,12 +392,27 @@ export const Home: React.FC = () => {
   const handleShortcutKeyPress = (event: KeyboardEvent) => {
     if (configuringShortcut) {
       event.preventDefault();
-      setKeyboardShortcuts(prev => ({
-        ...prev,
-        [configuringShortcut]: event.code
-      }));
-      setConfiguringShortcut(null);
-      setShowShortcutConfig(false);
+      
+      // Verificar si es una tecla de función válida (F1-F24) o tecla normal
+      const validKeys = [
+        'Space', 'KeyN', 'KeyP', 'Equal', 'Minus', 'KeyR',
+        'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12',
+        'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20', 'F21', 'F22', 'F23', 'F24'
+      ];
+      
+      if (validKeys.includes(event.code)) {
+        setKeyboardShortcuts(prev => ({
+          ...prev,
+          [configuringShortcut]: {
+            key: event.code,
+            ctrl: event.ctrlKey,
+            alt: event.altKey,
+            shift: event.shiftKey
+          }
+        }));
+        setConfiguringShortcut(null);
+        setShowShortcutConfig(false);
+      }
     }
   };
 
@@ -410,32 +446,36 @@ export const Home: React.FC = () => {
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       if (meetingWindow && !meetingWindow.closed) {
-        switch (event.code) {
-          case keyboardShortcuts.pauseResume:
+        // Verificar cada atajo
+        Object.entries(keyboardShortcuts).forEach(([action, shortcut]) => {
+          if (event.code === shortcut.key && 
+              event.ctrlKey === shortcut.ctrl && 
+              event.altKey === shortcut.alt && 
+              event.shiftKey === shortcut.shift) {
             event.preventDefault();
-            handlePauseResume();
-            break;
-          case keyboardShortcuts.nextStage:
-            event.preventDefault();
-            handleNextStage();
-            break;
-          case keyboardShortcuts.previousStage:
-            event.preventDefault();
-            handlePreviousStage();
-            break;
-          case keyboardShortcuts.addTime:
-            event.preventDefault();
-            handleAddTime();
-            break;
-          case keyboardShortcuts.subtractTime:
-            event.preventDefault();
-            handleSubtractTime();
-            break;
-          case keyboardShortcuts.restartStage:
-            event.preventDefault();
-            handleRestartStage();
-            break;
-        }
+            
+            switch (action) {
+              case 'pauseResume':
+                handlePauseResume();
+                break;
+              case 'nextStage':
+                handleNextStage();
+                break;
+              case 'previousStage':
+                handlePreviousStage();
+                break;
+              case 'addTime':
+                handleAddTime();
+                break;
+              case 'subtractTime':
+                handleSubtractTime();
+                break;
+              case 'restartStage':
+                handleRestartStage();
+                break;
+            }
+          }
+        });
       }
     };
 
@@ -656,7 +696,7 @@ export const Home: React.FC = () => {
                       onClick={handlePreviousStage}
                       disabled={currentStageIndex === 0}
                       className="px-4 py-3 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      title={`Anterior (${keyboardShortcuts.previousStage.replace('KeyP', 'P')})`}
+                                             title={`Anterior (${formatShortcut(keyboardShortcuts.previousStage)})`}
                     >
                       <span className="text-xl">⏮️</span>
                       <span className="text-sm">Anterior</span>
@@ -670,7 +710,7 @@ export const Home: React.FC = () => {
                       onTouchStart={handlePauseButtonMouseDown}
                       onTouchEnd={handlePauseButtonMouseUp}
                       className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 relative"
-                      title={`Clic: Pausar/Reanudar | Mantener 1s: Reiniciar (${keyboardShortcuts.pauseResume.replace('Space', 'Espacio')})`}
+                                             title={`Clic: Pausar/Reanudar | Mantener 1s: Reiniciar (${formatShortcut(keyboardShortcuts.pauseResume)})`}
                     >
                       <span className="text-xl">{isTimerRunning ? '⏸️' : '▶️'}</span>
                       <span className="text-sm">{isTimerRunning ? 'Pausar' : 'Reanudar'}</span>
@@ -686,7 +726,7 @@ export const Home: React.FC = () => {
                       onClick={handleNextStage}
                       disabled={currentStageIndex >= stages.length - 1}
                       className="px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      title={`Siguiente (${keyboardShortcuts.nextStage.replace('KeyN', 'N')})`}
+                                             title={`Siguiente (${formatShortcut(keyboardShortcuts.nextStage)})`}
                     >
                       <span className="text-xl">⏭️</span>
                       <span className="text-sm">Siguiente</span>
@@ -698,7 +738,7 @@ export const Home: React.FC = () => {
                     <button
                       onClick={handleAddTime}
                       className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      title={`+30 segundos (${keyboardShortcuts.addTime.replace('Equal', '+')})`}
+                                             title={`+30 segundos (${formatShortcut(keyboardShortcuts.addTime)})`}
                     >
                       <span className="text-xl">➕</span>
                       <span className="text-sm">+30 segundos</span>
@@ -708,7 +748,7 @@ export const Home: React.FC = () => {
                     <button
                       onClick={handleSubtractTime}
                       className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                      title={`-30 segundos (${keyboardShortcuts.subtractTime.replace('Minus', '-')})`}
+                                             title={`-30 segundos (${formatShortcut(keyboardShortcuts.subtractTime)})`}
                     >
                       <span className="text-xl">➖</span>
                       <span className="text-sm">-30 segundos</span>
@@ -721,54 +761,22 @@ export const Home: React.FC = () => {
                       <div className="text-xs mt-1">
                         Los controles afectan la ventana emergente en tiempo real
                       </div>
-                      <div className="text-xs mt-2 text-blue-600">
-                        Atajos: {keyboardShortcuts.pauseResume.replace('Space', 'Espacio')} (Pausar/Reanudar), 
-                        {keyboardShortcuts.nextStage.replace('KeyN', 'N')} (Siguiente), 
-                        {keyboardShortcuts.previousStage.replace('KeyP', 'P')} (Anterior), 
-                        {keyboardShortcuts.addTime.replace('Equal', '+')}/{keyboardShortcuts.subtractTime.replace('Minus', '-')} (Tiempo),
-                        {keyboardShortcuts.restartStage.replace('KeyR', 'R')} (Reiniciar)
-                      </div>
-                      <div className="mt-3 space-y-2">
-                        <div className="text-xs font-medium text-gray-700">Configurar Atajos:</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            onClick={() => handleConfigureShortcut('pauseResume')}
-                            className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs rounded transition-colors"
-                          >
-                            {configuringShortcut === 'pauseResume' ? 'Presiona una tecla...' : `Pausar/Reanudar: ${keyboardShortcuts.pauseResume.replace('Space', 'Espacio')}`}
-                          </button>
-                          <button
-                            onClick={() => handleConfigureShortcut('nextStage')}
-                            className="px-2 py-1 bg-green-100 hover:bg-green-200 text-green-700 text-xs rounded transition-colors"
-                          >
-                            {configuringShortcut === 'nextStage' ? 'Presiona una tecla...' : `Siguiente: ${keyboardShortcuts.nextStage.replace('KeyN', 'N')}`}
-                          </button>
-                          <button
-                            onClick={() => handleConfigureShortcut('previousStage')}
-                            className="px-2 py-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 text-xs rounded transition-colors"
-                          >
-                            {configuringShortcut === 'previousStage' ? 'Presiona una tecla...' : `Anterior: ${keyboardShortcuts.previousStage.replace('KeyP', 'P')}`}
-                          </button>
-                          <button
-                            onClick={() => handleConfigureShortcut('addTime')}
-                            className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 text-xs rounded transition-colors"
-                          >
-                            {configuringShortcut === 'addTime' ? 'Presiona una tecla...' : `+Tiempo: ${keyboardShortcuts.addTime.replace('Equal', '+')}`}
-                          </button>
-                          <button
-                            onClick={() => handleConfigureShortcut('subtractTime')}
-                            className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs rounded transition-colors"
-                          >
-                            {configuringShortcut === 'subtractTime' ? 'Presiona una tecla...' : `-Tiempo: ${keyboardShortcuts.subtractTime.replace('Minus', '-')}`}
-                          </button>
-                          <button
-                            onClick={() => handleConfigureShortcut('restartStage')}
-                            className="px-2 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 text-xs rounded transition-colors"
-                          >
-                            {configuringShortcut === 'restartStage' ? 'Presiona una tecla...' : `Reiniciar: ${keyboardShortcuts.restartStage.replace('KeyR', 'R')}`}
-                          </button>
-                        </div>
-                      </div>
+                                             <div className="text-xs mt-2 text-blue-600">
+                         Atajos configurados: {formatShortcut(keyboardShortcuts.pauseResume)} (Pausar/Reanudar), 
+                         {formatShortcut(keyboardShortcuts.nextStage)} (Siguiente), 
+                         {formatShortcut(keyboardShortcuts.previousStage)} (Anterior), 
+                         {formatShortcut(keyboardShortcuts.addTime)}/{formatShortcut(keyboardShortcuts.subtractTime)} (Tiempo),
+                         {formatShortcut(keyboardShortcuts.restartStage)} (Reiniciar)
+                       </div>
+                       <div className="mt-3">
+                         <button
+                           onClick={() => setShowShortcutsModal(true)}
+                           className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-lg transition-colors flex items-center space-x-2"
+                         >
+                           <span>⌨️</span>
+                           <span>Configurar Atajos</span>
+                         </button>
+                       </div>
                     </div>
                   </div>
                 </div>
@@ -880,15 +888,18 @@ export const Home: React.FC = () => {
           />
         )}
 
-        {/* Shortcut Configuration Overlay */}
-        {showShortcutConfig && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full text-center">
-              <h3 className="text-lg font-semibold mb-4">Configurar Atajo de Teclado</h3>
-              <p className="text-gray-600 mb-4">
-                Presiona la tecla que deseas usar para esta acción
-              </p>
-                             <div className="text-2xl font-mono text-blue-600 mb-4">
+                 {/* Shortcut Configuration Overlay */}
+         {showShortcutConfig && (
+           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+             <div className="bg-white rounded-lg p-6 max-w-md w-full text-center">
+               <h3 className="text-lg font-semibold mb-4">Configurar Atajo de Teclado</h3>
+               <p className="text-gray-600 mb-4">
+                 Presiona la combinación de teclas que deseas usar para esta acción
+               </p>
+               <p className="text-sm text-blue-600 mb-4">
+                 Puedes usar Ctrl, Alt, Shift + teclas normales o teclas de función (F1-F24)
+               </p>
+               <div className="text-2xl font-mono text-blue-600 mb-4">
                  {configuringShortcut === 'pauseResume' && 'Pausar/Reanudar'}
                  {configuringShortcut === 'nextStage' && 'Siguiente Etapa'}
                  {configuringShortcut === 'previousStage' && 'Etapa Anterior'}
@@ -896,18 +907,139 @@ export const Home: React.FC = () => {
                  {configuringShortcut === 'subtractTime' && 'Quitar Tiempo'}
                  {configuringShortcut === 'restartStage' && 'Reiniciar Etapa'}
                </div>
-              <button
-                onClick={() => {
-                  setShowShortcutConfig(false);
-                  setConfiguringShortcut(null);
-                }}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
+               <button
+                 onClick={() => {
+                   setShowShortcutConfig(false);
+                   setConfiguringShortcut(null);
+                 }}
+                 className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
+               >
+                 Cancelar
+               </button>
+             </div>
+           </div>
+         )}
+
+         {/* Shortcuts Configuration Modal */}
+         {showShortcutsModal && (
+           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+             <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+               <div className="flex justify-between items-center mb-6">
+                 <h3 className="text-xl font-semibold">Configuración de Atajos de Teclado</h3>
+                 <button
+                   onClick={() => setShowShortcutsModal(false)}
+                   className="text-gray-400 hover:text-gray-600 text-2xl"
+                 >
+                   ✕
+                 </button>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {/* Lista de atajos actuales */}
+                 <div>
+                   <h4 className="text-lg font-medium text-gray-800 mb-4">Atajos Actuales</h4>
+                   <div className="space-y-3">
+                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                       <span className="font-medium">Pausar/Reanudar:</span>
+                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.pauseResume)}</span>
+                     </div>
+                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                       <span className="font-medium">Siguiente Etapa:</span>
+                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.nextStage)}</span>
+                     </div>
+                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                       <span className="font-medium">Etapa Anterior:</span>
+                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.previousStage)}</span>
+                     </div>
+                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                       <span className="font-medium">Agregar Tiempo:</span>
+                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.addTime)}</span>
+                     </div>
+                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                       <span className="font-medium">Quitar Tiempo:</span>
+                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.subtractTime)}</span>
+                     </div>
+                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                       <span className="font-medium">Reiniciar Etapa:</span>
+                       <span className="font-mono text-blue-600">{formatShortcut(keyboardShortcuts.restartStage)}</span>
+                     </div>
+                   </div>
+                 </div>
+
+                 {/* Configuración de atajos */}
+                 <div>
+                   <h4 className="text-lg font-medium text-gray-800 mb-4">Configurar Atajos</h4>
+                   <div className="space-y-3">
+                     <button
+                       onClick={() => handleConfigureShortcut('pauseResume')}
+                       className="w-full p-3 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-left"
+                     >
+                       <div className="font-medium">Pausar/Reanudar</div>
+                       <div className="text-sm text-blue-600">
+                         {configuringShortcut === 'pauseResume' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.pauseResume)}
+                       </div>
+                     </button>
+                     <button
+                       onClick={() => handleConfigureShortcut('nextStage')}
+                       className="w-full p-3 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors text-left"
+                     >
+                       <div className="font-medium">Siguiente Etapa</div>
+                       <div className="text-sm text-green-600">
+                         {configuringShortcut === 'nextStage' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.nextStage)}
+                       </div>
+                     </button>
+                     <button
+                       onClick={() => handleConfigureShortcut('previousStage')}
+                       className="w-full p-3 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 rounded-lg transition-colors text-left"
+                     >
+                       <div className="font-medium">Etapa Anterior</div>
+                       <div className="text-sm text-yellow-600">
+                         {configuringShortcut === 'previousStage' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.previousStage)}
+                       </div>
+                     </button>
+                     <button
+                       onClick={() => handleConfigureShortcut('addTime')}
+                       className="w-full p-3 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg transition-colors text-left"
+                     >
+                       <div className="font-medium">Agregar Tiempo</div>
+                       <div className="text-sm text-emerald-600">
+                         {configuringShortcut === 'addTime' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.addTime)}
+                       </div>
+                     </button>
+                     <button
+                       onClick={() => handleConfigureShortcut('subtractTime')}
+                       className="w-full p-3 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors text-left"
+                     >
+                       <div className="font-medium">Quitar Tiempo</div>
+                       <div className="text-sm text-red-600">
+                         {configuringShortcut === 'subtractTime' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.subtractTime)}
+                       </div>
+                     </button>
+                     <button
+                       onClick={() => handleConfigureShortcut('restartStage')}
+                       className="w-full p-3 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors text-left"
+                     >
+                       <div className="font-medium">Reiniciar Etapa</div>
+                       <div className="text-sm text-purple-600">
+                         {configuringShortcut === 'restartStage' ? 'Presiona una combinación...' : formatShortcut(keyboardShortcuts.restartStage)}
+                       </div>
+                     </button>
+                   </div>
+                 </div>
+               </div>
+
+               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                 <h5 className="font-medium text-blue-800 mb-2">Información sobre Atajos</h5>
+                 <ul className="text-sm text-blue-700 space-y-1">
+                   <li>• Puedes usar combinaciones con Ctrl, Alt y Shift</li>
+                   <li>• Las teclas de función F1-F24 están disponibles</li>
+                   <li>• Los atajos solo funcionan cuando el directorio está activo</li>
+                   <li>• Ejemplos: Ctrl+F1, Alt+Shift+N, F5, etc.</li>
+                 </ul>
+               </div>
+             </div>
+           </div>
+         )}
       </div>
     </div>
   );
