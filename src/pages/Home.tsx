@@ -772,7 +772,7 @@ export const Home: React.FC = () => {
     };
   }, [meetingWindow, keyboardShortcuts]);
 
-    const handleStartMeeting = () => {
+      const handleStartMeeting = () => {
     console.log('handleStartMeeting llamado');
     console.log('meetingWindow:', meetingWindow);
     console.log('stages.length:', stages.length);
@@ -796,33 +796,23 @@ export const Home: React.FC = () => {
       return;
     }
     
-    console.log('Abriendo nueva ventana');
-    // Abrir ventana de reunión frameless de 500x400
-    const newMeetingWindow = window.open(
-      '/meeting',
-      'meeting',
-      'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
-    );
+    console.log('Iniciando directorio sin ventana emergente');
+    // Inicializar el directorio sin abrir ventana emergente
+    localStorage.setItem('meetingStages', JSON.stringify(stages));
+    const initialStageTime = stages[0].duration;
+    localStorage.setItem('currentTimeLeft', initialStageTime.toString());
+    localStorage.setItem('initialTime', initialStageTime.toString());
+    localStorage.setItem('isTimerRunning', 'false');
+    setCurrentStageIndex(0);
+    setIsTimerRunning(false);
     
-         if (newMeetingWindow) {
-       // Guardar las etapas en localStorage para que la nueva ventana las pueda leer
-       localStorage.setItem('meetingStages', JSON.stringify(stages));
-       // Inicializar el tiempo de la primera etapa como tiempo inicial
-       const initialStageTime = stages[0].duration;
-       localStorage.setItem('currentTimeLeft', initialStageTime.toString());
-       localStorage.setItem('initialTime', initialStageTime.toString()); // Guardar tiempo inicial
-       setMeetingWindow(newMeetingWindow);
-       setIsTimerRunning(false); // No iniciar automáticamente
-       setCurrentStageIndex(0);
-       
-       // Forzar una actualización inmediata del panel de control
-       setTimeout(() => {
-         setTimerUpdate(prev => prev + 1);
-       }, 50); // Pequeño delay para asegurar que la ventana se haya cargado
-       
-       console.log('Ventana abierta exitosamente');
-     }
-   };
+    // Forzar una actualización inmediata del panel de control
+    setTimeout(() => {
+      setTimerUpdate(prev => prev + 1);
+    }, 50);
+    
+    console.log('Directorio iniciado exitosamente');
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -965,30 +955,56 @@ export const Home: React.FC = () => {
                       {meetingWindow && !meetingWindow.closed ? '🛑 Parar Directorio' : '🚀 Iniciar Directorio'}
                     </button>
                     
-                    {/* Botones adicionales que aparecen cuando el directorio está iniciado */}
-                    {meetingWindow && !meetingWindow.closed && (
-                      <>
-                        <button
-                          onClick={handleOpenSecondTimer}
-                          className={`font-medium py-2 px-4 rounded-lg transition-colors ${
-                            secondTimerWindow && !secondTimerWindow.closed
-                              ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                              : 'bg-blue-600 hover:bg-blue-700 text-white'
-                          }`}
-                          title="Abrir segunda vista del cronómetro"
-                        >
-                          {secondTimerWindow && !secondTimerWindow.closed ? '🔄 Cerrar 2da Vista' : '📺 2da Vista'}
-                        </button>
-                        
-                        <button
-                          onClick={handleCopyControlURL}
-                          className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
-                          title="Copiar URL para control móvil"
-                        >
-                          📱 Copiar URL
-                        </button>
-                      </>
-                    )}
+                                         {/* Botones adicionales que aparecen cuando el directorio está iniciado */}
+                     {selectedMeeting && stages.length > 0 && (
+                       <>
+                         <button
+                           onClick={() => {
+                             if (meetingWindow && !meetingWindow.closed) {
+                               meetingWindow.close();
+                               setMeetingWindow(null);
+                             } else {
+                               const newMeetingWindow = window.open(
+                                 '/meeting',
+                                 'meeting',
+                                 'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
+                               );
+                               if (newMeetingWindow) {
+                                 setMeetingWindow(newMeetingWindow);
+                               }
+                             }
+                           }}
+                           className={`font-medium py-2 px-4 rounded-lg transition-colors ${
+                             meetingWindow && !meetingWindow.closed
+                               ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                               : 'bg-blue-600 hover:bg-blue-700 text-white'
+                           }`}
+                           title="Abrir/cerrar ventana emergente del cronómetro"
+                         >
+                           {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Ventana' : '📺 Abrir Ventana'}
+                         </button>
+                         
+                         <button
+                           onClick={handleOpenSecondTimer}
+                           className={`font-medium py-2 px-4 rounded-lg transition-colors ${
+                             secondTimerWindow && !secondTimerWindow.closed
+                               ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                               : 'bg-blue-600 hover:bg-blue-700 text-white'
+                           }`}
+                           title="Abrir segunda vista del cronómetro"
+                         >
+                           {secondTimerWindow && !secondTimerWindow.closed ? '🔄 Cerrar 2da Vista' : '📺 2da Vista'}
+                         </button>
+                         
+                         <button
+                           onClick={handleCopyControlURL}
+                           className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
+                           title="Copiar URL para control móvil"
+                         >
+                           📱 Copiar URL
+                         </button>
+                       </>
+                     )}
                   </div>
 
                                      <StagesList 
@@ -1006,8 +1022,8 @@ export const Home: React.FC = () => {
             </>
           )}
           
-          {/* Panel de Control de Tiempo - mostrar cuando se inicie el directorio */}
-          {meetingWindow && !meetingWindow.closed && (
+                     {/* Panel de Control de Tiempo - mostrar cuando se inicie el directorio */}
+           {selectedMeeting && stages.length > 0 && (
             <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-200">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <span className="text-2xl mr-2">⏱️</span>
