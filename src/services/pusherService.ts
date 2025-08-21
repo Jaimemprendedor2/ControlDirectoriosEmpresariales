@@ -36,7 +36,7 @@ export type TimerStateCallback = (state: TimerState) => void;
 export type ErrorCallback = (error: string) => void;
 
 export class PusherService {
-  private pusher: Pusher;
+  private pusher!: Pusher;
   private channel: any;
   private state: ConnectionState;
 
