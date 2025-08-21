@@ -3,18 +3,27 @@ import { supabase, Meeting, MeetingStage, MeetingSession, StageProgress } from '
 export class MeetingService {
   // Crear una nueva reunión
   static async createMeeting(title: string, description?: string): Promise<Meeting> {
-    const { data, error } = await supabase
-      .from('meetings')
-      .insert({
-        title,
-        description,
-        user_id: null
-      })
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('meetings')
+        .insert({
+          title,
+          description,
+          user_id: null
+        })
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) {
+        console.error('Error creating meeting:', error)
+        throw new Error(`Error al crear directorio: ${error.message}`)
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Exception creating meeting:', error)
+      throw error
+    }
   }
 
   // Crear una reunión con etapas
@@ -78,30 +87,39 @@ export class MeetingService {
     title: string, 
     duration: number
   ): Promise<MeetingStage> {
-    // Obtener el siguiente order_index
-    const { data: lastStage } = await supabase
-      .from('meeting_stages')
-      .select('order_index')
-      .eq('meeting_id', meetingId)
-      .order('order_index', { ascending: false })
-      .limit(1)
-      .single()
+    try {
+      // Obtener el siguiente order_index
+      const { data: lastStage } = await supabase
+        .from('meeting_stages')
+        .select('order_index')
+        .eq('meeting_id', meetingId)
+        .order('order_index', { ascending: false })
+        .limit(1)
+        .single()
 
-    const nextOrder = (lastStage?.order_index || 0) + 1
+      const nextOrder = (lastStage?.order_index || 0) + 1
 
-    const { data, error } = await supabase
-      .from('meeting_stages')
-      .insert({
-        meeting_id: meetingId,
-        title,
-        duration,
-        order_index: nextOrder
-      })
-      .select()
-      .single()
+      const { data, error } = await supabase
+        .from('meeting_stages')
+        .insert({
+          meeting_id: meetingId,
+          title,
+          duration,
+          order_index: nextOrder
+        })
+        .select()
+        .single()
 
-    if (error) throw error
-    return data
+      if (error) {
+        console.error('Error adding stage:', error)
+        throw new Error(`Error al agregar etapa: ${error.message}`)
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Exception adding stage:', error)
+      throw error
+    }
   }
 
   // Iniciar una sesión de reunión
