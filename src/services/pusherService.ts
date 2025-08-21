@@ -47,6 +47,11 @@ export class PusherService {
   private errorCallbacks: ErrorCallback[] = [];
 
   constructor(config: PusherConfig) {
+    // Verificar si las credenciales son válidas
+    const isValidConfig = config.appKey && 
+                         config.appKey !== 'tu_pusher_key_aqui' && 
+                         config.cluster && 
+                         config.cluster !== 'tu_cluster_aqui';
 
     this.state = {
       connected: false,
@@ -56,6 +61,14 @@ export class PusherService {
       lastConnected: null,
       latency: 0
     };
+
+    // Si las credenciales no son válidas, usar modo fallback
+    if (!isValidConfig) {
+      console.warn('⚠️ Credenciales de Pusher no configuradas. Usando modo fallback con localStorage.');
+      this.state.error = 'Credenciales de Pusher no configuradas. Usando modo local.';
+      this.updateConnectionState();
+      return;
+    }
 
     // Inicializar Pusher
     this.pusher = new Pusher(config.appKey, {
@@ -140,6 +153,18 @@ export class PusherService {
         return;
       }
 
+      // Si no hay Pusher configurado, simular conexión exitosa en modo fallback
+      if (!this.pusher) {
+        this.state.connected = true;
+        this.state.connecting = false;
+        this.state.lastConnected = Date.now();
+        this.state.error = null;
+        this.updateConnectionState();
+        console.log('✅ Modo fallback activado - Usando localStorage para sincronización');
+        resolve();
+        return;
+      }
+
       this.state.connecting = true;
       this.state.error = null;
       this.updateConnectionState();
@@ -168,19 +193,33 @@ export class PusherService {
 
   sendCommand(command: CommandData): void {
     if (this.state.connected) {
-      this.channel.trigger('client-command', command);
-      console.log('📤 Comando enviado via Pusher:', command);
+      if (this.channel) {
+        this.channel.trigger('client-command', command);
+        console.log('📤 Comando enviado via Pusher:', command);
+      } else {
+        // Modo fallback: guardar en localStorage
+        const commands = JSON.parse(localStorage.getItem('pusherCommands') || '[]');
+        commands.push({ ...command, timestamp: Date.now() });
+        localStorage.setItem('pusherCommands', JSON.stringify(commands));
+        console.log('📤 Comando guardado en localStorage (modo fallback):', command);
+      }
     } else {
-      console.warn('⚠️ No conectado a Pusher, comando no enviado');
+      console.warn('⚠️ No conectado, comando no enviado');
     }
   }
 
   sendTimerState(state: TimerState): void {
     if (this.state.connected) {
-      this.channel.trigger('client-timer-state', state);
-      console.log('📤 Estado del timer enviado via Pusher:', state);
+      if (this.channel) {
+        this.channel.trigger('client-timer-state', state);
+        console.log('📤 Estado del timer enviado via Pusher:', state);
+      } else {
+        // Modo fallback: guardar en localStorage
+        localStorage.setItem('pusherTimerState', JSON.stringify({ ...state, timestamp: Date.now() }));
+        console.log('📤 Estado del timer guardado en localStorage (modo fallback):', state);
+      }
     } else {
-      console.warn('⚠️ No conectado a Pusher, estado no enviado');
+      console.warn('⚠️ No conectado, estado no enviado');
     }
   }
 
@@ -208,6 +247,11 @@ export class PusherService {
 
   isConnected(): boolean {
     return this.state.connected;
+  }
+
+  // Método para verificar si está en modo fallback
+  isFallbackMode(): boolean {
+    return this.state.connected && !this.pusher;
   }
 }
 
