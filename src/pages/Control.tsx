@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MeetingService } from '../services/meetingService';
 import { Meeting } from '../lib/supabase';
-import { createPusherService, getPusherService, clearPusherService, ConnectionState, CommandData } from '../services/pusherService';
+import { createPusherService, getPusherService, ConnectionState, CommandData } from '../services/pusherService';
 
 interface Stage {
   id?: string;

@@ -10,7 +10,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/presenter" element={<Presenter />} />
-        <Route path="/meeting" element={<MeetingView stages={[]} />} />
+        <Route path="/meeting" element={<MeetingView />} />
         <Route path="/control" element={<Control />} />
       </Routes>
     </Router>

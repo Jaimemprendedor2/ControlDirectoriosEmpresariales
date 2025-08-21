@@ -38,7 +38,6 @@ export type ErrorCallback = (error: string) => void;
 export class PusherService {
   private pusher: Pusher;
   private channel: any;
-  private config: PusherConfig;
   private state: ConnectionState;
 
   // Callbacks
@@ -48,7 +47,6 @@ export class PusherService {
   private errorCallbacks: ErrorCallback[] = [];
 
   constructor(config: PusherConfig) {
-    this.config = config;
 
     this.state = {
       connected: false,
