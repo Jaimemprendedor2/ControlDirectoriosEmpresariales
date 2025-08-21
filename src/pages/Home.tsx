@@ -87,9 +87,7 @@ export const Home: React.FC = () => {
     setShowImport(false);
   };
 
-  const handleAddStage = () => {
-    // Eliminar esta función ya que no se usará más
-  };
+
 
   const handleQuickAddStage = () => {
     const newStage = {
