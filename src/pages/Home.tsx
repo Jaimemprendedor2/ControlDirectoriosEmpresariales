@@ -31,7 +31,7 @@ export const Home: React.FC = () => {
 
   const [configuringColors, setConfiguringColors] = useState<{index: number, stage: Stage} | null>(null);
   const [meetingWindow, setMeetingWindow] = useState<Window | null>(null);
-  const [secondTimerWindow, setSecondTimerWindow] = useState<Window | null>(null);
+  // const [secondTimerWindow, setSecondTimerWindow] = useState<Window | null>(null); // Eliminado - segunda vista removida
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -386,46 +386,13 @@ export const Home: React.FC = () => {
     if (meetingWindow && !meetingWindow.closed) {
       meetingWindow.postMessage({ action, data }, '*');
     }
-    if (secondTimerWindow && !secondTimerWindow.closed) {
-      secondTimerWindow.postMessage({ action, data }, '*');
-    }
+    // La segunda vista ha sido eliminada, por lo que no se envían mensajes a ella
   };
 
-  // Función para abrir segunda vista del cronómetro
-  const handleOpenSecondTimer = () => {
-    if (secondTimerWindow && !secondTimerWindow.closed) {
-      secondTimerWindow.close();
-      setSecondTimerWindow(null);
-      return;
-    }
-
-    const newSecondWindow = window.open(
-      '/meeting',
-      'secondTimer',
-      'width=400,height=300,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
-    );
-
-    if (newSecondWindow) {
-      setSecondTimerWindow(newSecondWindow);
-      
-      // Sincronizar con el estado actual
-      setTimeout(() => {
-        const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-        const initialTime = localStorage.getItem('initialTime');
-        const isRunning = localStorage.getItem('isTimerRunning');
-        
-        if (currentTimeLeft) {
-          newSecondWindow.postMessage({ action: 'setTime', data: { seconds: parseInt(currentTimeLeft) } }, '*');
-        }
-        if (initialTime) {
-          newSecondWindow.postMessage({ action: 'setInitialTime', data: { seconds: parseInt(initialTime) } }, '*');
-        }
-        if (isRunning) {
-          newSecondWindow.postMessage({ action: 'setRunning', data: { isRunning: isRunning === 'true' } }, '*');
-        }
-      }, 100);
-    }
-  };
+  // Función para abrir segunda vista del cronómetro (ELIMINADA)
+  // const handleOpenSecondTimer = () => {
+  //   // Esta funcionalidad ha sido eliminada según la solicitud del usuario
+  // };
 
   // Función para copiar URL del panel de control
   const handleCopyControlURL = async () => {
@@ -782,10 +749,6 @@ export const Home: React.FC = () => {
       console.log('Cerrando ventanas existentes');
       meetingWindow.close();
       setMeetingWindow(null);
-      if (secondTimerWindow && !secondTimerWindow.closed) {
-        secondTimerWindow.close();
-        setSecondTimerWindow(null);
-      }
       setIsTimerRunning(false);
       return;
     }
@@ -796,8 +759,8 @@ export const Home: React.FC = () => {
       return;
     }
     
-    console.log('Iniciando directorio sin ventana emergente');
-    // Inicializar el directorio sin abrir ventana emergente
+    console.log('Iniciando directorio independientemente de la ventana del cronómetro');
+    // Inicializar el directorio sin abrir ventana emergente automáticamente
     localStorage.setItem('meetingStages', JSON.stringify(stages));
     const initialStageTime = stages[0].duration;
     localStorage.setItem('currentTimeLeft', initialStageTime.toString());
@@ -984,17 +947,7 @@ export const Home: React.FC = () => {
                            {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Ventana' : '📺 Abrir Ventana'}
                          </button>
                          
-                         <button
-                           onClick={handleOpenSecondTimer}
-                           className={`font-medium py-2 px-4 rounded-lg transition-colors ${
-                             secondTimerWindow && !secondTimerWindow.closed
-                               ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                               : 'bg-blue-600 hover:bg-blue-700 text-white'
-                           }`}
-                           title="Abrir segunda vista del cronómetro"
-                         >
-                           {secondTimerWindow && !secondTimerWindow.closed ? '🔄 Cerrar 2da Vista' : '📺 2da Vista'}
-                         </button>
+
                          
                          <button
                            onClick={handleCopyControlURL}

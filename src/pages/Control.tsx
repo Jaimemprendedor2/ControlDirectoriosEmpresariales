@@ -31,13 +31,59 @@ export const Control: React.FC = () => {
 
   // Función para enviar mensajes a la ventana principal
   const sendMessageToMain = (action: string, data?: any) => {
-    if (window.opener && !window.opener.closed) {
-      window.opener.postMessage({ action, data }, '*');
-      console.log('📱 Enviando mensaje a ventana principal:', { action, data });
+    if (window.opener && !window.opener.closed && isConnected) {
+      try {
+        window.opener.postMessage({ action, data }, '*');
+        console.log('📱 Enviando mensaje a ventana principal:', { action, data });
+        return true;
+      } catch (error) {
+        console.log('Error enviando mensaje a ventana principal:', error);
+        setIsConnected(false);
+        setConnectionStatus('Error de conexión');
+        return false;
+      }
     } else {
-      // Si no hay ventana principal, intentar enviar a localStorage para sincronización
-      console.log('⚠️ No hay ventana principal abierta, usando localStorage');
-      localStorage.setItem('remoteControlAction', JSON.stringify({ action, data, timestamp: Date.now() }));
+      console.log('⚠️ No hay conexión válida con la ventana principal, usando localStorage');
+      // Actualizar localStorage directamente como fallback
+      try {
+        switch (action) {
+          case 'setTime':
+            localStorage.setItem('currentTimeLeft', data.seconds.toString());
+            break;
+          case 'setRunning':
+            localStorage.setItem('isTimerRunning', data.isRunning.toString());
+            break;
+          case 'nextStage':
+            const nextIndex = Math.min(currentStageIndex + 1, stages.length - 1);
+            localStorage.setItem('currentStageIndex', nextIndex.toString());
+            if (stages[nextIndex]) {
+              localStorage.setItem('currentTimeLeft', stages[nextIndex].duration.toString());
+              localStorage.setItem('initialTime', stages[nextIndex].duration.toString());
+            }
+            break;
+          case 'previousStage':
+            const prevIndex = Math.max(currentStageIndex - 1, 0);
+            localStorage.setItem('currentStageIndex', prevIndex.toString());
+            if (stages[prevIndex]) {
+              localStorage.setItem('currentTimeLeft', stages[prevIndex].duration.toString());
+              localStorage.setItem('initialTime', stages[prevIndex].duration.toString());
+            }
+            break;
+          case 'addTime':
+            const newTimeAdd = currentTimeLeft + (data.seconds || 30);
+            localStorage.setItem('currentTimeLeft', newTimeAdd.toString());
+            break;
+          case 'subtractTime':
+            const newTimeSub = Math.max(0, currentTimeLeft - (data.seconds || 30));
+            localStorage.setItem('currentTimeLeft', newTimeSub.toString());
+            break;
+        }
+        console.log('📝 Actualización realizada en localStorage como fallback');
+        return true;
+      } catch (error) {
+        console.log('Error actualizando localStorage:', error);
+        return false;
+      }
     }
   };
 
@@ -159,11 +205,27 @@ export const Control: React.FC = () => {
   // Verificar conexión con ventana principal
   const checkConnection = () => {
     const hasOpener = window.opener && !window.opener.closed;
-    setIsConnected(hasOpener);
-    setConnectionStatus(hasOpener ? 'Conectado' : 'Desconectado');
     
-    // Si hay conexión, enviar ping para verificar
-    if (hasOpener) {
+    // Verificar si la ventana principal está en el mismo dominio
+    let isSameOrigin = false;
+    try {
+      if (hasOpener) {
+        // Intentar acceder a la ubicación para verificar el mismo origen
+        const openerOrigin = window.opener.location.origin;
+        const currentOrigin = window.location.origin;
+        isSameOrigin = openerOrigin === currentOrigin;
+      }
+    } catch (error) {
+      // Si hay error de acceso, probablemente es por políticas de seguridad
+      console.log('No se puede verificar el origen de la ventana principal:', error);
+    }
+    
+    const isConnected = hasOpener && isSameOrigin;
+    setIsConnected(isConnected);
+    setConnectionStatus(isConnected ? 'Conectado' : 'Desconectado');
+    
+    // Si hay conexión válida, enviar ping para verificar
+    if (isConnected) {
       try {
         window.opener.postMessage({ action: 'ping', data: { from: 'control' } }, '*');
       } catch (error) {
@@ -179,6 +241,8 @@ export const Control: React.FC = () => {
     const syncWithLocalStorage = () => {
       const timeLeft = localStorage.getItem('currentTimeLeft');
       const isRunning = localStorage.getItem('isTimerRunning');
+      const currentStage = localStorage.getItem('currentStageIndex');
+      const stages = localStorage.getItem('meetingStages');
       
       if (timeLeft) {
         const seconds = parseInt(timeLeft);
@@ -190,16 +254,33 @@ export const Control: React.FC = () => {
       if (isRunning) {
         setIsTimerRunning(isRunning === 'true');
       }
+      
+      if (currentStage) {
+        const stageIndex = parseInt(currentStage);
+        if (!isNaN(stageIndex)) {
+          setCurrentStageIndex(stageIndex);
+        }
+      }
+      
+      if (stages) {
+        try {
+          const parsedStages = JSON.parse(stages);
+          setStages(parsedStages);
+        } catch (error) {
+          console.log('Error parsing stages from localStorage:', error);
+        }
+      }
     };
 
-    // Verificar conexión cada 2 segundos
-    const connectionInterval = setInterval(checkConnection, 2000);
+    // Verificar conexión cada 3 segundos
+    const connectionInterval = setInterval(checkConnection, 3000);
     
-    // Sincronizar cada segundo
-    const syncInterval = setInterval(syncWithLocalStorage, 1000);
+    // Sincronizar cada 500ms para mayor responsividad
+    const syncInterval = setInterval(syncWithLocalStorage, 500);
     
     // Verificación inicial
     checkConnection();
+    syncWithLocalStorage();
     
     return () => {
       clearInterval(connectionInterval);
@@ -393,7 +474,9 @@ export const Control: React.FC = () => {
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-yellow-800 text-xs">
                 <strong>⚠️ Control Remoto Desconectado</strong><br/>
-                Para usar como control remoto, abre este enlace desde la misma pestaña donde tienes el panel principal abierto.
+                Estado: {connectionStatus}<br/>
+                Para usar como control remoto, abre este enlace desde la misma pestaña donde tienes el panel principal abierto.<br/>
+                <span className="text-xs opacity-75">Los controles funcionarán con sincronización local.</span>
               </p>
             </div>
           )}
@@ -402,6 +485,7 @@ export const Control: React.FC = () => {
             <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
               <p className="text-green-800 text-xs">
                 <strong>✅ Control Remoto Activo</strong><br/>
+                Estado: {connectionStatus}<br/>
                 Los controles afectan directamente al cronómetro principal en tiempo real.
               </p>
             </div>
