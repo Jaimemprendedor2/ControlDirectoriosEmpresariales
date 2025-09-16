@@ -5,11 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run sync-version && tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "version": "node check-version.js",
-    "update-date": "node scripts/update-build-date.js"
+    "update-date": "node scripts/update-build-date.js",
+    "sync-version": "node scripts/sync-version.js",
+    "update-version": "node scripts/update-version.js",
+    "version-patch": "node scripts/update-version.js patch",
+    "version-minor": "node scripts/update-version.js minor",
+    "version-major": "node scripts/update-version.js major",
+    "pre-commit": "npm run sync-version"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
