@@ -1,5 +1,28 @@
 # 📋 Historial de Versiones - Control de Reunión
 
+## 🚀 Versión 1.7.1 - [2025-09-16 23:45:00]
+
+### ✅ **Cambios Realizados:**
+- **Mejora completa del cronómetro**: Lógica optimizada para pausar/reanudar e iniciar
+- **Botones siempre visibles**: Eliminada lógica condicional que ocultaba controles críticos
+- **Función parar mejorada**: Botón "Parar Directorio" ahora siempre visible y funcional
+- **Sincronización perfecta**: Comando `stopTimer` implementado en todos los componentes
+- **Control móvil mejorado**: Botón "Parar" agregado al panel de control remoto
+- **UX optimizada**: Textos de botones más claros y tooltips descriptivos
+
+### 🔧 **Archivos Modificados:**
+- `src/pages/Directorio.tsx` (CRONÓMETRO MEJORADO)
+- `src/pages/MeetingView.tsx` (COMANDO STOPTIMER)
+- `src/pages/Control.tsx` (BOTÓN PARAR MÓVIL)
+
+### 🎯 **Funcionalidad Mejorada:**
+- Botón principal: "Iniciar" → "Pausar" → "Reanudar" (ciclo claro)
+- Botón "Parar": Siempre visible, resetea completamente el cronómetro
+- Sincronización en tiempo real entre panel principal, reflejo y control móvil
+- Estados consistentes en localStorage y React state
+
+---
+
 ## 🚀 Versión 1.7.0 - [2025-09-16 23:15:30]
 
 ### ✅ **Cambios Realizados:**
@@ -164,4 +187,4 @@
 
 ---
 
-*Última actualización: 2025-09-16 23:15:30*
+*Última actualización: 2025-09-16 23:45:00*

@@ -228,6 +228,23 @@ export const Control: React.FC = () => {
     }
   };
 
+  // Función para parar el cronómetro completamente
+  const handleStopTimer = async () => {
+    setCurrentTimeLeft(0);
+    setIsTimerRunning(false);
+    setCurrentStageIndex(0);
+    
+    const success = await sendCommand('stopTimer', {});
+    if (!success) {
+      // Fallback a localStorage
+      localStorage.removeItem('currentTimeLeft');
+      localStorage.removeItem('initialTime');
+      localStorage.removeItem('isTimerRunning');
+      localStorage.removeItem('currentStageIndex');
+      localStorage.removeItem('meetingStages');
+    }
+  };
+
   // Manejo de presión prolongada
   const handlePauseButtonTouchStart = () => {
     setIsLongPress(false);
@@ -485,13 +502,22 @@ export const Control: React.FC = () => {
         </div>
 
         {/* Controles de tiempo */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-6">
           <button
             onClick={handleSubtractTime}
             className="p-4 bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex flex-col items-center"
           >
             <span className="text-2xl mb-1">➖</span>
             <span className="text-xs">-30s</span>
+          </button>
+
+          <button
+            onClick={handleStopTimer}
+            className="p-4 bg-red-800 hover:bg-red-900 rounded-lg transition-colors flex flex-col items-center"
+            title="Parar y resetear cronómetro completamente"
+          >
+            <span className="text-2xl mb-1">🛑</span>
+            <span className="text-xs">Parar</span>
           </button>
 
           <button

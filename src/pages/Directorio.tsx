@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-16T23:15:30.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-16T23:45:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -974,48 +974,43 @@ export const Directorio: React.FC = () => {
     };
   }, [meetingWindow, keyboardShortcuts]);
 
-             const handleStartMeeting = () => {
-     console.log('handleStartMeeting llamado');
-     console.log('stages.length:', stages.length);
+             const handleStopTimer = () => {
+     console.log('🛑 Parando y reseteando cronómetro del directorio');
      
-     // Si el directorio ya está iniciado, pararlo
-     if (isTimerRunning || localStorage.getItem('currentTimeLeft')) {
-       console.log('Parando directorio');
-       setIsTimerRunning(false);
-       localStorage.removeItem('currentTimeLeft');
-       localStorage.removeItem('initialTime');
-       localStorage.removeItem('isTimerRunning');
-       localStorage.removeItem('currentStageIndex');
-       localStorage.removeItem('meetingStages');
-       setCurrentStageIndex(0);
-       setTimerUpdate(prev => prev + 1);
-       return;
-     }
-
-     // Si no hay etapas, mostrar error
-     if (stages.length === 0) {
-       alert('Agrega al menos una etapa antes de iniciar el directorio');
-       return;
-     }
-     
-     console.log('Iniciando directorio con cronómetro principal');
-     // Inicializar el directorio con el cronómetro principal
-     localStorage.setItem('meetingStages', JSON.stringify(stages));
-     const initialStageTime = stages[0].duration;
-     localStorage.setItem('currentTimeLeft', initialStageTime.toString());
-     localStorage.setItem('initialTime', initialStageTime.toString());
-     localStorage.setItem('isTimerRunning', 'false');
-     localStorage.setItem('currentStageIndex', '0');
-     setCurrentStageIndex(0);
+     // Pausar el cronómetro
      setIsTimerRunning(false);
      
-     // Forzar una actualización inmediata del panel de control
-     setTimeout(() => {
-       setTimerUpdate(prev => prev + 1);
-     }, 50);
+     // Limpiar localStorage
+     localStorage.removeItem('currentTimeLeft');
+     localStorage.removeItem('initialTime');
+     localStorage.removeItem('isTimerRunning');
+     localStorage.removeItem('currentStageIndex');
+     localStorage.removeItem('meetingStages');
      
-     console.log('Directorio iniciado exitosamente');
+     // Resetear estado local
+     setCurrentStageIndex(0);
+     
+     // Sincronizar con el reflejo
+     sendMessageToReflectionWindow('stopTimer', {});
+     
+     // Enviar comando a través de Pusher
+     if (window.pusherService) {
+       window.pusherService.sendCommand({
+         action: 'stopTimer',
+         data: {},
+         timestamp: Date.now(),
+         source: 'main-timer'
+       });
+     }
+     
+     // Forzar actualización de la UI
+     setTimerUpdate(prev => prev + 1);
+     
+     console.log('✅ Cronómetro parado y reseteado completamente');
    };
+
+   // Función de compatibilidad (mantener para no romper código existente)
+   const handleStartMeeting = handleStopTimer;
 
   // Función para forzar reconexión de Pusher
   const forceControlReconnection = () => {
@@ -1045,7 +1040,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.0 ({getBuildInfo()})
+                v1.7.1 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1282,24 +1277,32 @@ export const Directorio: React.FC = () => {
                       <span className="text-sm">Anterior</span>
                     </button>
 
-                    {/* Botón Pausar/Reanudar/Reiniciar */}
-                    <button
-                      onMouseDown={handlePauseButtonMouseDown}
-                      onMouseUp={handlePauseButtonMouseUp}
-                      onMouseLeave={handlePauseButtonMouseLeave}
-                      onTouchStart={handlePauseButtonMouseDown}
-                      onTouchEnd={handlePauseButtonMouseUp}
-                      className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 relative"
-                                             title={`Clic: ${isTimerRunning ? 'Pausar' : (localStorage.getItem('currentTimeLeft') ? 'Reanudar' : 'Iniciar Directorio')} | Mantener 1s: Resetear a 00:00 (${formatShortcut(keyboardShortcuts.pauseResume)})`}
-                    >
-                      <span className="text-xl">{isTimerRunning ? '⏸️' : '▶️'}</span>
-                      <span className="text-sm">{isTimerRunning ? 'Pausar' : (localStorage.getItem('currentTimeLeft') ? 'Reanudar' : 'Iniciar')}</span>
-                      {isLongPress && (
-                                                 <div className="absolute inset-0 bg-blue-800 rounded-lg flex items-center justify-center">
+                     {/* Botón Pausar/Reanudar/Iniciar */}
+                     <button
+                       onMouseDown={handlePauseButtonMouseDown}
+                       onMouseUp={handlePauseButtonMouseUp}
+                       onMouseLeave={handlePauseButtonMouseLeave}
+                       onTouchStart={handlePauseButtonMouseDown}
+                       onTouchEnd={handlePauseButtonMouseUp}
+                       className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 relative"
+                       title={`Clic: ${isTimerRunning ? 'Pausar cronómetro' : (localStorage.getItem('currentTimeLeft') ? 'Reanudar cronómetro' : 'Iniciar directorio')} | Mantener 1s: Resetear a 00:00 (${formatShortcut(keyboardShortcuts.pauseResume)})`}
+                     >
+                       <span className="text-xl">{isTimerRunning ? '⏸️' : '▶️'}</span>
+                       <span className="text-sm">
+                         {isTimerRunning 
+                           ? 'Pausar' 
+                           : (localStorage.getItem('currentTimeLeft') 
+                               ? 'Reanudar' 
+                               : 'Iniciar'
+                             )
+                         }
+                       </span>
+                       {isLongPress && (
+                         <div className="absolute inset-0 bg-blue-800 rounded-lg flex items-center justify-center">
                            <span className="text-white text-sm font-bold">🔄 Reseteando...</span>
                          </div>
-                      )}
-                    </button>
+                       )}
+                     </button>
 
                     {/* Botón Siguiente */}
                     <button
@@ -1324,17 +1327,15 @@ export const Directorio: React.FC = () => {
                        <span className="text-sm">-30 segundos</span>
                      </button>
 
-                     {/* Botón Parar Directorio */}
-                     {(isTimerRunning || localStorage.getItem('currentTimeLeft')) && (
-                       <button
-                         onClick={handleStartMeeting}
-                         className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
-                         title="Parar directorio y limpiar estado"
-                       >
-                         <span className="text-xl">🛑</span>
-                         <span className="text-sm">Parar Directorio</span>
-                       </button>
-                     )}
+                     {/* Botón Parar Directorio - SIEMPRE VISIBLE */}
+                     <button
+                       onClick={handleStartMeeting}
+                       className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
+                       title="Parar directorio y limpiar estado"
+                     >
+                       <span className="text-xl">🛑</span>
+                       <span className="text-sm">Parar Directorio</span>
+                     </button>
 
                      {/* Agregar Tiempo */}
                      <button

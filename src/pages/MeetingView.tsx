@@ -165,6 +165,18 @@ export const MeetingView: React.FC = () => {
           setIsRunning(newRunningState);
           localStorage.setItem('isTimerRunning', newRunningState.toString());
           break;
+        case 'stopTimer':
+          // Parar y resetear completamente el cronómetro
+          setIsRunning(false);
+          setTimeLeft(0);
+          setCurrentStageIndex(0);
+          localStorage.removeItem('currentTimeLeft');
+          localStorage.removeItem('initialTime');
+          localStorage.removeItem('isTimerRunning');
+          localStorage.removeItem('currentStageIndex');
+          localStorage.removeItem('meetingStages');
+          console.log('🛑 Cronómetro parado y reseteado desde reflejo');
+          break;
       }
     });
 

@@ -14,7 +14,7 @@ export const Home: React.FC = () => {
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Redirigiendo...</h1>
         <p className="text-gray-600">Por favor espera mientras te redirigimos al menú principal.</p>
-      </div>
-    </div>
+          </div>
+              </div>
   );
 };
