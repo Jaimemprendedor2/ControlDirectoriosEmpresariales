@@ -17,16 +17,16 @@ function getCurrentVersion() {
   }
 }
 
-// Función para actualizar la versión y fecha en Home.tsx
-function syncHomeVersion(version) {
-  const homePath = path.join(process.cwd(), 'src', 'pages', 'Home.tsx');
+// Función para actualizar la versión y fecha en Directorio.tsx
+function syncDirectorioVersion(version) {
+  const directorioPath = path.join(process.cwd(), 'src', 'pages', 'Directorio.tsx');
   
-  if (!fs.existsSync(homePath)) {
-    console.error('❌ No se encontró el archivo Home.tsx');
+  if (!fs.existsSync(directorioPath)) {
+    console.error('❌ No se encontró el archivo Directorio.tsx');
     return false;
   }
 
-  let content = fs.readFileSync(homePath, 'utf8');
+  let content = fs.readFileSync(directorioPath, 'utf8');
   
   // Obtener fecha actual
   const now = new Date();
@@ -55,7 +55,7 @@ function syncHomeVersion(version) {
   }
   
   // Escribir los cambios
-  fs.writeFileSync(homePath, content, 'utf8');
+  fs.writeFileSync(directorioPath, content, 'utf8');
   return true;
 }
 
@@ -108,10 +108,10 @@ function syncAll() {
   console.log(`📦 Versión actual detectada: ${version}`);
   
   // Sincronizar todos los archivos
-  const homeSuccess = syncHomeVersion(version);
+  const directorioSuccess = syncDirectorioVersion(version);
   const versionSuccess = syncVersionFile(version);
   
-  if (homeSuccess && versionSuccess) {
+  if (directorioSuccess && versionSuccess) {
     console.log('\n🎉 ¡Sincronización completada exitosamente!');
     console.log(`✅ Versión ${version} sincronizada en todos los archivos`);
     console.log(`⏰ Fecha y hora actualizadas: ${new Date().toLocaleString('es-ES')}`);

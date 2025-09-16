@@ -1,0 +1,12 @@
+#!/bin/sh
+# Pre-commit hook para sincronización automática de versión
+
+echo "🔄 Ejecutando sincronización automática de versión..."
+
+# Ejecutar auto-versión basada en cambios
+npm run auto-version
+
+# Agregar archivos actualizados al commit
+git add src/pages/Directorio.tsx VERSION.md package.json
+
+echo "✅ Sincronización de versión completada"

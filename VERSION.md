@@ -1,5 +1,23 @@
 # 📋 Historial de Versiones - Control de Reunión
 
+## 🚀 Versión 1.7.0 - [2025-09-16 23:15:30]
+
+### ✅ **Cambios Realizados:**
+- **Reestructuración completa de la aplicación**: Nuevo menú principal con tres opciones
+- **Componente MainMenu**: Página de inicio con opciones Predirectorio, Directorio y Jornada de Coaching Empresarial
+- **Migración a Directorio.tsx**: Toda la funcionalidad existente movida del componente Home a Directorio
+- **Navegación mejorada**: Botón "Volver al Menú Principal" agregado en todas las secciones
+- **Rutas actualizadas**: Configuración completa de React Router para nueva estructura
+- **Preparación para escalabilidad**: Base para desarrollo futuro de nuevas funcionalidades
+
+### 🔧 **Archivos Modificados:**
+- `src/pages/MainMenu.tsx` (NUEVO COMPONENTE)
+- `src/pages/Directorio.tsx` (NUEVO COMPONENTE - migración completa desde Home.tsx)
+- `src/pages/Home.tsx` (SIMPLIFICADO - solo redirección)
+- `src/App.tsx` (RUTAS ACTUALIZADAS)
+
+---
+
 ## 🚀 Versión 1.6.2 - [2025-09-16 19:50:10]
 
 ### ✅ **Cambios Realizados:**
@@ -146,4 +164,4 @@
 
 ---
 
-*Última actualización: 2025-09-16 19:50:10*
+*Última actualización: 2025-09-16 23:15:30*

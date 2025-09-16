@@ -1,7 +1,7 @@
 {
   "name": "configuracion-directorios-empresariales-gemini",
   "private": true,
-  "version": "1.6.2",
+  "version": "1.7.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,10 +11,13 @@
     "version": "node check-version.js",
     "update-date": "node scripts/update-build-date.js",
     "sync-version": "node scripts/sync-version.js",
+    "auto-version": "node scripts/auto-version.js",
     "update-version": "node scripts/update-version.js",
-    "version-patch": "node scripts/update-version.js patch",
-    "version-minor": "node scripts/update-version.js minor",
-    "version-major": "node scripts/update-version.js major",
+    "version-patch": "npm version patch --no-git-tag-version && npm run sync-version",
+    "version-minor": "npm version minor --no-git-tag-version && npm run sync-version",
+    "version-major": "npm version major --no-git-tag-version && npm run sync-version",
+    "auto-commit": "npm run sync-version && git add . && git commit",
+    "setup-hooks": "node scripts/setup-hooks.js",
     "pre-commit": "npm run sync-version"
   },
   "dependencies": {
