@@ -222,6 +222,120 @@ export const MeetingView: React.FC = () => {
     };
   }, []);
 
+  // Escuchar mensajes postMessage del panel principal
+  useEffect(() => {
+    const handlePostMessage = (event: MessageEvent) => {
+      console.log('📨 Mensaje postMessage recibido en MeetingView:', event.data);
+      
+      // Verificar que el mensaje tenga el formato esperado
+      if (!event.data || !event.data.action) return;
+      
+      switch (event.data.action) {
+        case 'pauseResume':
+          if (event.data.data?.isRunning !== undefined) {
+            console.log('▶️ Actualizando estado de ejecución via postMessage:', event.data.data.isRunning);
+            setIsRunning(event.data.data.isRunning);
+            localStorage.setItem('isTimerRunning', event.data.data.isRunning.toString());
+          }
+          break;
+        case 'setTime':
+          if (event.data.data?.seconds !== undefined) {
+            console.log('⏱️ Estableciendo tiempo via postMessage:', event.data.data.seconds);
+            setTimeLeft(event.data.data.seconds);
+            localStorage.setItem('currentTimeLeft', event.data.data.seconds.toString());
+          }
+          break;
+        case 'addTime':
+          if (event.data.data?.seconds !== undefined) {
+            const newTime = timeLeft + event.data.data.seconds;
+            console.log('➕ Agregando tiempo via postMessage:', event.data.data.seconds, '-> nuevo tiempo:', newTime);
+            setTimeLeft(newTime);
+            localStorage.setItem('currentTimeLeft', newTime.toString());
+          }
+          break;
+        case 'subtractTime':
+          if (event.data.data?.seconds !== undefined) {
+            const newTime = Math.max(0, timeLeft - event.data.data.seconds);
+            console.log('➖ Restando tiempo via postMessage:', event.data.data.seconds, '-> nuevo tiempo:', newTime);
+            setTimeLeft(newTime);
+            localStorage.setItem('currentTimeLeft', newTime.toString());
+          }
+          break;
+        case 'nextStage':
+          if (event.data.data?.stageIndex !== undefined) {
+            console.log('⏭️ Siguiente etapa via postMessage:', event.data.data.stageIndex);
+            setCurrentStageIndex(event.data.data.stageIndex);
+            localStorage.setItem('currentStageIndex', event.data.data.stageIndex.toString());
+            if (stages[event.data.data.stageIndex]) {
+              const newTime = stages[event.data.data.stageIndex].duration;
+              setTimeLeft(newTime);
+              localStorage.setItem('currentTimeLeft', newTime.toString());
+              localStorage.setItem('initialTime', newTime.toString());
+            }
+          }
+          break;
+        case 'previousStage':
+          if (event.data.data?.stageIndex !== undefined) {
+            console.log('⏮️ Etapa anterior via postMessage:', event.data.data.stageIndex);
+            setCurrentStageIndex(event.data.data.stageIndex);
+            localStorage.setItem('currentStageIndex', event.data.data.stageIndex.toString());
+            if (stages[event.data.data.stageIndex]) {
+              const newTime = stages[event.data.data.stageIndex].duration;
+              setTimeLeft(newTime);
+              localStorage.setItem('currentTimeLeft', newTime.toString());
+              localStorage.setItem('initialTime', newTime.toString());
+            }
+          }
+          break;
+        case 'stopTimer':
+          console.log('🛑 Parando timer via postMessage');
+          setIsRunning(false);
+          setTimeLeft(0);
+          setCurrentStageIndex(0);
+          localStorage.removeItem('currentTimeLeft');
+          localStorage.removeItem('initialTime');
+          localStorage.removeItem('isTimerRunning');
+          localStorage.removeItem('currentStageIndex');
+          localStorage.removeItem('meetingStages');
+          break;
+        case 'syncState':
+          // Sincronizar estado completo del cronómetro
+          if (event.data.data) {
+            console.log('🔄 Sincronizando estado completo via postMessage:', event.data.data);
+            const { currentTimeLeft, isTimerRunning, currentStageIndex: stageIndex, stages: newStages } = event.data.data;
+            
+            if (currentTimeLeft !== undefined) {
+              setTimeLeft(parseInt(currentTimeLeft) || 0);
+              localStorage.setItem('currentTimeLeft', currentTimeLeft.toString());
+            }
+            if (isTimerRunning !== undefined) {
+              setIsRunning(isTimerRunning);
+              localStorage.setItem('isTimerRunning', isTimerRunning.toString());
+            }
+            if (stageIndex !== undefined) {
+              setCurrentStageIndex(stageIndex);
+              localStorage.setItem('currentStageIndex', stageIndex.toString());
+            }
+            if (newStages && newStages.length > 0) {
+              setStages(newStages);
+              localStorage.setItem('meetingStages', JSON.stringify(newStages));
+            }
+          }
+          break;
+        default:
+          console.log('⚠️ Acción de postMessage no reconocida:', event.data.action);
+      }
+    };
+
+    // Agregar listener para postMessage
+    window.addEventListener('message', handlePostMessage);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('message', handlePostMessage);
+    };
+  }, [timeLeft, stages]); // Dependencias necesarias para acceso a estados actuales
+
   // Sincronizar con localStorage
   useEffect(() => {
     const syncWithLocalStorage = () => {

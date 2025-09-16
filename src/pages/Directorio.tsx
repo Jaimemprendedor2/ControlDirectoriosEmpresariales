@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-16T23:45:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T00:15:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -648,6 +648,9 @@ export const Directorio: React.FC = () => {
           source: 'main-timer'
         });
       }
+      
+      // Forzar actualización de la UI cuando está detenido
+      setTimerUpdate(prev => prev + 1);
     } else {
       // Si está funcionando: sumar 30s inmediatamente
       const newTime = currentSeconds + 30;
@@ -686,6 +689,9 @@ export const Directorio: React.FC = () => {
           source: 'main-timer'
         });
       }
+      
+      // Forzar actualización de la UI cuando está detenido
+      setTimerUpdate(prev => prev + 1);
     } else {
       // Si está funcionando: restar 30s inmediatamente
       const newTime = Math.max(0, currentSeconds - 30);
@@ -1040,7 +1046,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.1 ({getBuildInfo()})
+                v1.7.2 ({getBuildInfo()})
               </span>
             </div>
           </div>

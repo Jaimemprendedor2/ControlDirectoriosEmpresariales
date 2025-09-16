@@ -1,5 +1,26 @@
 # 📋 Historial de Versiones - Control de Reunión
 
+## 🚀 Versión 1.7.2 - [2025-09-16 20:54:10]
+
+### ✅ **Cambios Realizados:**
+- **Corrección crítica UI**: handleAddTime/handleSubtractTime ahora actualizan la UI cuando está detenido
+- **Sincronización postMessage**: MeetingView ahora escucha mensajes directos del panel principal
+- **Triple sincronización**: Pusher + localStorage + postMessage para máxima confiabilidad
+- **Logs mejorados**: Mensajes de debug detallados para rastrear sincronización
+- **Fallback robusto**: Funciona perfectamente sin Pusher usando postMessage + localStorage
+
+### 🔧 **Archivos Modificados:**
+- `src/pages/Directorio.tsx` (UI UPDATE FIX)
+- `src/pages/MeetingView.tsx` (POSTMESSAGE LISTENER)
+
+### 🎯 **Funcionalidad Corregida:**
+- Botones +30s/-30s: Actualizan UI inmediatamente cuando cronómetro está pausado
+- Reflejo del cronómetro: Sincronización instantánea vía postMessage
+- Comandos de pausa/reanudar: Funcionan perfectamente con reflejo activo
+- Estados consistentes: localStorage + React state + postMessage
+
+---
+
 ## 🚀 Versión 1.7.1 - [2025-09-16 23:45:00]
 
 ### ✅ **Cambios Realizados:**
@@ -187,4 +208,4 @@
 
 ---
 
-*Última actualización: 2025-09-16 23:45:00*
+*Última actualización: 2025-09-16 20:54:10*
