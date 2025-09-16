@@ -102,7 +102,7 @@ export const Home: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date();
+    const buildDate = new Date('2025-08-21T12:26:20.249Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -637,7 +637,7 @@ export const Home: React.FC = () => {
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
-      // Enviar comando a través de WebSocket
+      // Enviar comando a través de Pusher
       if (window.pusherService) {
         window.pusherService.sendCommand({
           action: 'setTime',
@@ -652,7 +652,7 @@ export const Home: React.FC = () => {
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('addTime', { seconds: 30 });
       
-      // Enviar comando a través de WebSocket
+      // Enviar comando a través de Pusher
       if (window.pusherService) {
         window.pusherService.sendCommand({
           action: 'addTime',
@@ -675,7 +675,7 @@ export const Home: React.FC = () => {
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
-      // Enviar comando a través de WebSocket
+      // Enviar comando a través de Pusher
       if (window.pusherService) {
         window.pusherService.sendCommand({
           action: 'setTime',
@@ -690,7 +690,7 @@ export const Home: React.FC = () => {
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('subtractTime', { seconds: 30 });
       
-      // Enviar comando a través de WebSocket
+      // Enviar comando a través de Pusher
       if (window.pusherService) {
         window.pusherService.sendCommand({
           action: 'subtractTime',
@@ -750,7 +750,7 @@ export const Home: React.FC = () => {
       console.log('🚀 Inicializando directorio automáticamente');
       localStorage.setItem('meetingStages', JSON.stringify(stages));
       const initialStageTime = stages[0].duration;
-      localStorage.setItem('currentTimeLeft', initialStageTime.toString());
+      // NO guardar currentTimeLeft hasta que el usuario inicie el directorio
       localStorage.setItem('initialTime', initialStageTime.toString());
       localStorage.setItem('isTimerRunning', 'false');
       localStorage.setItem('currentStageIndex', '0');
@@ -762,7 +762,7 @@ export const Home: React.FC = () => {
         setTimerUpdate(prev => prev + 1);
       }, 50);
       
-      console.log('✅ Directorio inicializado automáticamente');
+      console.log('✅ Directorio inicializado automáticamente (listo para iniciar)');
     }
   }, [stages, selectedMeeting]);
 

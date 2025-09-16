@@ -259,7 +259,7 @@ export class PusherService {
   }
 }
 
-// Funciones de utilidad (mantener compatibilidad con websocketService)
+// Funciones de utilidad para compatibilidad
 export const createPusherService = (config: PusherConfig): PusherService => {
   return new PusherService(config);
 };

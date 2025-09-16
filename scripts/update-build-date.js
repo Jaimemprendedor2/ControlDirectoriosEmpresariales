@@ -19,15 +19,21 @@ function updateBuildDate() {
   const dateString = now.toISOString();
   
   // Reemplazar la línea con la fecha hardcodeada
-  const oldPattern = /const buildDate = new Date\('.*?'\);/;
+  // Buscar tanto el patrón con fecha hardcodeada como el patrón con new Date() sin parámetros
+  const oldPattern1 = /const buildDate = new Date\('.*?'\);/;
+  const oldPattern2 = /const buildDate = new Date\(\);/;
   const newLine = `const buildDate = new Date('${dateString}'); // Fecha actualizada automáticamente`;
   
-  if (oldPattern.test(content)) {
-    content = content.replace(oldPattern, newLine);
+  if (oldPattern1.test(content)) {
+    content = content.replace(oldPattern1, newLine);
     fs.writeFileSync(homePath, content, 'utf8');
-    console.log('✅ Fecha de build actualizada en Home.tsx');
+    console.log('✅ Fecha de build actualizada en Home.tsx (patrón 1)');
+  } else if (oldPattern2.test(content)) {
+    content = content.replace(oldPattern2, newLine);
+    fs.writeFileSync(homePath, content, 'utf8');
+    console.log('✅ Fecha de build actualizada en Home.tsx (patrón 2)');
   } else {
-    console.log('⚠️ No se encontró la línea de fecha hardcodeada');
+    console.log('⚠️ No se encontró la línea de fecha para actualizar');
   }
 }
 
@@ -47,15 +53,18 @@ function updateVersionFile() {
   const dateString = now.toISOString().split('T')[0]; // YYYY-MM-DD
   const timeString = now.toTimeString().split(' ')[0]; // HH:MM:SS
   
-  // Actualizar la fecha de la versión actual
-  const versionPattern = /## 🚀 Versión 1\.6\.1 - \[.*?\]/;
-  const newVersionLine = `## 🚀 Versión 1.6.1 - [${dateString} ${timeString}]`;
+  // Actualizar la fecha de la versión actual (buscar la primera versión en el archivo)
+  const versionPattern = /## 🚀 Versión \d+\.\d+\.\d+ - \[.*?\]/;
+  const match = content.match(versionPattern);
   
-  if (versionPattern.test(content)) {
+  if (match) {
+    const currentVersion = match[0].match(/Versión (\d+\.\d+\.\d+)/)[1];
+    const newVersionLine = `## 🚀 Versión ${currentVersion} - [${dateString} ${timeString}]`;
     content = content.replace(versionPattern, newVersionLine);
+    console.log(`✅ Fecha actualizada en VERSION.md para versión ${currentVersion}`);
   }
   
-  // Actualizar la última actualización
+  // Actualizar la última actualización si existe
   const updatePattern = /\*Última actualización: .*?\*/;
   const newUpdateLine = `*Última actualización: ${dateString} ${timeString}*`;
   
@@ -64,7 +73,6 @@ function updateVersionFile() {
   }
   
   fs.writeFileSync(versionPath, content, 'utf8');
-  console.log('✅ Fecha actualizada en VERSION.md');
 }
 
 // Ejecutar las actualizaciones

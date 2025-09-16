@@ -1,9 +1,0 @@
-[33md716c47[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m Add functional components: CSV import, manual stage creation, and stages list
-[33m696c460[m Add Supabase integration: database schema, services, and configuration
-[33mcd98dce[m Fix: Remove unused React import from App.tsx
-[33m169ea7c[m Initial commit: Control de Reuniones app with React + Vite
-[33mddbab90[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m Corregidos errores de TypeScript - Removidas importaciones no utilizadas y variables no usadas
-[33m381c764[m Migración completa a Pusher - Eliminado Socket.IO, agregado PusherService, actualizado componentes para comunicación en tiempo real
-[33mcc50298[m Implementar sistema WebSocket completo para comunicación en tiempo real
-[33m6e3e396[m Refactorización completa del sistema de cronómetro: Panel de control como cronómetro principal y MeetingView como reflejo
-[33me79b8dc[m Eliminar segunda vista y mejorar control remoto - Eliminada funcionalidad de segunda vista - Mejorada detección de conexión del control remoto - Directorio se puede iniciar independientemente de ventana del cronómetro - Mejorada sincronización con localStorage como fallback

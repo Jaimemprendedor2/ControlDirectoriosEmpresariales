@@ -408,33 +408,28 @@ export const Control: React.FC = () => {
           <h1 className="text-2xl font-bold mb-2">{meeting.title}</h1>
           <p className="text-gray-400 text-sm">Control Remoto</p>
           
-          {/* Indicador de estado de conexión */}
+          {/* Indicador de estado de conexión unificado */}
           <div className={`mt-3 px-3 py-1 rounded-full text-xs font-medium ${
             connectionState.connected 
               ? 'bg-green-100 text-green-800 border border-green-200' 
+              : connectionState.connecting
+              ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
               : 'bg-red-100 text-red-800 border border-red-200'
           }`}>
             <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
-              connectionState.connected ? 'bg-green-500' : 'bg-red-500'
+              connectionState.connected ? 'bg-green-500' : 
+              connectionState.connecting ? 'bg-yellow-500' : 'bg-red-500'
             }`}></span>
             {connectionState.connected ? 'Conectado' : 
-             connectionState.connecting ? 'Conectando...' : 
+             connectionState.connecting ? `Conectando... (${connectionState.reconnectAttempts}/10)` : 
              connectionState.error ? 'Error' : 'Desconectado'}
           </div>
           
-          {/* Indicador de latencia */}
+          {/* Indicador de latencia solo cuando está conectado */}
           {connectionState.connected && connectionState.latency > 0 && (
             <div className="mt-2 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
               <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
               Latencia: {connectionState.latency}ms
-            </div>
-          )}
-          
-          {/* Información de reconexión */}
-          {connectionState.reconnectAttempts > 0 && (
-            <div className="mt-2 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
-              <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-              Reconectando... ({connectionState.reconnectAttempts}/10)
             </div>
           )}
         </header>

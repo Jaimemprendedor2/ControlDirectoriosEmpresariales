@@ -2,7 +2,7 @@
 
 ## 🚀 Migración Completa a Pusher
 
-Esta aplicación ha sido migrada completamente de Socket.IO a **Pusher** para permitir el despliegue en Netlify y otras plataformas de hosting estático.
+Esta aplicación utiliza **Pusher** como sistema de comunicación en tiempo real para permitir el despliegue en Netlify y otras plataformas de hosting estático.
 
 ## 📋 Requisitos Previos
 
@@ -159,13 +159,12 @@ Pusher incluye rate limiting automático para prevenir spam.
 
 ## 📝 Notas de Migración
 
-### Cambios Realizados
-- ✅ Eliminado `server.js` (servidor Socket.IO)
-- ✅ Eliminado `websocketService.ts`
-- ✅ Creado `pusherService.ts`
-- ✅ Actualizado todos los componentes para usar Pusher
-- ✅ Removidas dependencias de Socket.IO
-- ✅ Agregadas dependencias de Pusher
+### Arquitectura Actual
+- ✅ Sistema de comunicación unificado con Pusher
+- ✅ Servicio `pusherService.ts` implementado
+- ✅ Todos los componentes actualizados para usar Pusher
+- ✅ Dependencias de Pusher configuradas
+- ✅ Modo fallback con localStorage cuando Pusher no está disponible
 
 ### Compatibilidad
 - ✅ Netlify (hosting estático)
