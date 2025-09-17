@@ -1220,10 +1220,16 @@ export const Directorio: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <header className="text-center mb-8">
           <div className="flex justify-between items-center mb-4">
-            <div className="flex-1"></div>
+            <button
+              onClick={() => window.location.href = '/'}
+              className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+              title="Volver al menú principal"
+            >
+              ← Volver al Menú Principal
+            </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.24 ({getBuildInfo()})
+                v1.7.25 ({getBuildInfo()})
               </span>
             </div>
           </div>

@@ -1,5 +1,26 @@
 # 📋 Historial de Versiones - Control de Reunión
 
+## 🚀 Versión 1.7.25 - [2025-09-16 23:35:00]
+
+### ✅ **Cambios Realizados:**
+- **Botón de navegación agregado**: "Volver al Menú Principal" en la página de selección de directorios
+- **Navegación mejorada**: Acceso directo al menú principal desde cualquier punto
+- **UX consistente**: Botón visible y accesible en la parte superior izquierda
+- **Diseño equilibrado**: Botón posicionado junto al indicador de versión
+
+### 🔧 **Archivos Modificados:**
+- `src/pages/Directorio.tsx` (BOTÓN NAVEGACIÓN AGREGADO)
+- `package.json` (VERSIÓN ACTUALIZADA)
+- `VERSION.md` (DOCUMENTACIÓN)
+
+### 🎯 **Funcionalidad Agregada:**
+- Botón "← Volver al Menú Principal" en el header de la página de directorios
+- Navegación directa usando `window.location.href = '/'`
+- Diseño consistente con el resto de la aplicación
+- Tooltip descriptivo para mejor accesibilidad
+
+---
+
 ## 🚀 Versión 1.7.2 - [2025-09-17 21:04:11]
 
 ### ✅ **Cambios Realizados:**
