@@ -318,13 +318,13 @@ export const MeetingView: React.FC = () => {
   return (
     <div className={`min-h-screen ${getBackgroundColor()} text-white flex items-center justify-center p-4 transition-colors duration-500`}>
       <div className="text-center">
-        {/* Cronómetro principal - Tamaño corregido */}
-        <div className={`text-9xl font-mono font-bold mb-8 ${isAlertBlinking ? 'animate-pulse' : ''}`}>
+        {/* Cronómetro principal - Tamaño ajustado para ventana 960x540px */}
+        <div className={`text-[12rem] font-mono font-bold mb-12 ${isAlertBlinking ? 'animate-pulse' : ''}`}>
           {formatTime(timeLeft)}
         </div>
 
         {/* Información de la etapa */}
-        <div className="text-4xl">
+        <div className="text-6xl">
           {currentStage?.title || 'Etapa'}
         </div>
       </div>
