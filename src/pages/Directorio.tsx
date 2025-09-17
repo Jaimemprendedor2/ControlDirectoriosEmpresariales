@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T01:30:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T02:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -629,8 +629,15 @@ export const Directorio: React.FC = () => {
     const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
     
     if (!isTimerRunning) {
-      // Si está detenido: siempre sumar 30s desde donde está
-      const newTime = currentSeconds + 30;
+      // Si está detenido: ajustar a múltiplos de 30s
+      let newTime: number;
+      if (currentSeconds === 0) {
+        newTime = 30; // Desde 0 → primer múltiplo
+      } else {
+        // Si ya es múltiplo de 30, suma 30. Si no, redondea al siguiente múltiplo
+        const isMultipleOf30 = currentSeconds % 30 === 0;
+        newTime = isMultipleOf30 ? currentSeconds + 30 : Math.ceil(currentSeconds / 30) * 30;
+      }
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
@@ -670,8 +677,17 @@ export const Directorio: React.FC = () => {
     const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
     
     if (!isTimerRunning) {
-      // Si está detenido: siempre restar 30s desde donde está
-      const newTime = Math.max(0, currentSeconds - 30);
+      // Si está detenido: ajustar a múltiplos de 30s
+      let newTime: number;
+      if (currentSeconds === 0) {
+        newTime = 0; // Ya está en 0, no puede ser menor
+      } else {
+        // Si ya es múltiplo de 30, resta 30. Si no, redondea hacia abajo al múltiplo anterior
+        const isMultipleOf30 = currentSeconds % 30 === 0;
+        newTime = isMultipleOf30 
+          ? Math.max(0, currentSeconds - 30)
+          : Math.floor(currentSeconds / 30) * 30;
+      }
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
@@ -1041,7 +1057,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.3 ({getBuildInfo()})
+                v1.7.4 ({getBuildInfo()})
               </span>
             </div>
           </div>

@@ -197,6 +197,26 @@
 
 ---
 
+## **📦 Versión 1.7.4** *(17/09/2025 - 02:00)*
+
+### 🎯 **Lógica de Múltiplos de 30s (Cronómetro Detenido)**
+- **handleAddTime**: Cuando detenido, suma/redondea a múltiplos de 30s
+- **handleSubtractTime**: Cuando detenido, resta/redondea a múltiplos de 30s
+- **Cronómetro funcionando**: Suma/resta exactos de 30s (sin cambios)
+- **UX Optimizado**: Comportamiento diferenciado según estado del cronómetro
+
+### ✅ **Casos de Uso Implementados**
+**Cronómetro DETENIDO:**
+- 0:15 + 30s → 0:30 (redondeo al siguiente múltiplo)
+- 0:30 + 30s → 1:00 (suma 30s pues ya es múltiplo)
+- 0:45 - 30s → 0:30 (redondeo hacia abajo)
+- 1:00 - 30s → 0:30 (resta 30s pues ya es múltiplo)
+
+**Cronómetro FUNCIONANDO:**
+- Cualquier tiempo ± 30s → suma/resta exacta
+
+---
+
 ## **📦 Versión 1.7.3** *(17/09/2025 - 01:30)*
 
 ### 🔧 **Simplificación Lógica Suma/Resta Tiempo**
@@ -224,4 +244,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 01:30:00*
+*Última actualización: 2025-09-17 02:00:00*
