@@ -114,7 +114,7 @@ export const Control: React.FC = () => {
     try {
       const { meeting: meetingData, stages: meetingStages } = await MeetingService.getMeetingWithStages(meetingId);
       
-      const convertedStages: Stage[] = meetingStages.map(stage => ({
+      const convertedStages: Stage[] = meetingStages.map((stage: any) => ({
         id: stage.id,
         title: stage.title,
         description: '',

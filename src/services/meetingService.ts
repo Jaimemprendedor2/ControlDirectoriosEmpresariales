@@ -1,188 +1,225 @@
-import { supabase, Meeting, MeetingStage, MeetingSession, StageProgress } from '../lib/supabase'
+import { supabase } from '../lib/supabase';
+
+export interface Meeting {
+  id: string;
+  title: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string | null;
+  is_active: boolean;
+}
+
+export interface MeetingStage {
+  id: string;
+  meeting_id: string;
+  title: string;
+  description?: string;
+  duration: number;
+  order_index: number;
+  is_completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MeetingSession {
+  id: string;
+  meeting_id: string;
+  started_at: string;
+  ended_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StageProgress {
+  id: string;
+  session_id: string;
+  stage_id: string;
+  started_at: string;
+  ended_at?: string;
+  is_completed: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export class MeetingService {
-  // Crear una nueva reunión
-  static async createMeeting(title: string, description?: string): Promise<Meeting> {
-    try {
-      const { data, error } = await supabase
-        .from('meetings')
-        .insert({
-          title,
-          description,
-          user_id: null
-        })
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Error creating meeting:', error)
-        throw new Error(`Error al crear directorio: ${error.message}`)
-      }
-      
-      return data
-    } catch (error) {
-      console.error('Exception creating meeting:', error)
-      throw error
-    }
-  }
-
-  // Crear una reunión con etapas
-  static async createMeetingWithStages(
-    title: string, 
-    description: string, 
-    stages: Array<{ title: string; duration: number }>
-  ): Promise<string> {
-    const { data, error } = await supabase
-      .rpc('create_meeting_with_stages', {
-        p_title: title,
-        p_description: description,
-        p_stages: JSON.stringify(stages)
-      })
-
-    if (error) throw error
-    return data
-  }
-
-  // Obtener todas las reuniones del usuario
+  // Obtener todos los meetings
   static async getMeetings(): Promise<Meeting[]> {
     const { data, error } = await supabase
       .from('meetings')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false });
 
-    if (error) throw error
-    return data || []
+    if (error) throw error;
+    return data || [];
   }
 
-  // Obtener una reunión específica con sus etapas
-  static async getMeetingWithStages(meetingId: string): Promise<{
-    meeting: Meeting;
-    stages: MeetingStage[];
-  }> {
-    const { data: meeting, error: meetingError } = await supabase
+  // Obtener un meeting por ID
+  static async getMeetingById(id: string): Promise<Meeting | null> {
+    const { data, error } = await supabase
       .from('meetings')
       .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
+  }
+
+  // Obtener meeting con sus stages
+  static async getMeetingWithStages(meetingId: string): Promise<{ meeting: Meeting; stages: MeetingStage[] }> {
+    const meeting = await this.getMeetingById(meetingId);
+    if (!meeting) {
+      throw new Error('Meeting not found');
+    }
+    
+    const stages = await this.getMeetingStages(meetingId);
+    return { meeting, stages };
+  }
+
+  // Crear un nuevo meeting
+  static async createMeeting(meeting: Omit<Meeting, 'id' | 'created_at' | 'updated_at'>): Promise<Meeting> {
+    const { data, error } = await supabase
+      .from('meetings')
+      .insert([meeting])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Actualizar un meeting
+  static async updateMeeting(meetingId: string, updates: { title?: string; description?: string }): Promise<Meeting> {
+    const { data, error } = await supabase
+      .from('meetings')
+      .update(updates)
       .eq('id', meetingId)
-      .single()
+      .select()
+      .single();
 
-    if (meetingError) throw meetingError
+    if (error) throw error;
+    return data;
+  }
 
-    const { data: stages, error: stagesError } = await supabase
+  // Eliminar un meeting
+  static async deleteMeeting(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('meetings')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  // Obtener stages de un meeting
+  static async getMeetingStages(meetingId: string): Promise<MeetingStage[]> {
+    const { data, error } = await supabase
       .from('meeting_stages')
       .select('*')
       .eq('meeting_id', meetingId)
-      .order('order_index')
+      .order('order_index', { ascending: true });
 
-    if (stagesError) throw stagesError
-
-    return {
-      meeting,
-      stages: stages || []
-    }
+    if (error) throw error;
+    return data || [];
   }
 
-  // Agregar una etapa a una reunión
-  static async addStage(
-    meetingId: string, 
-    title: string, 
-    duration: number
-  ): Promise<MeetingStage> {
-    try {
-      // Obtener el siguiente order_index
-      const { data: lastStage } = await supabase
-        .from('meeting_stages')
-        .select('order_index')
-        .eq('meeting_id', meetingId)
-        .order('order_index', { ascending: false })
-        .limit(1)
-        .single()
-
-      const nextOrder = (lastStage?.order_index || 0) + 1
-
-      const { data, error } = await supabase
-        .from('meeting_stages')
-        .insert({
-          meeting_id: meetingId,
-          title,
-          duration,
-          order_index: nextOrder
-        })
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Error adding stage:', error)
-        throw new Error(`Error al agregar etapa: ${error.message}`)
-      }
-      
-      return data
-    } catch (error) {
-      console.error('Exception adding stage:', error)
-      throw error
-    }
-  }
-
-  // Iniciar una sesión de reunión
-  static async startMeetingSession(meetingId: string): Promise<string> {
+  // Crear un nuevo stage
+  static async createStage(stage: Omit<MeetingStage, 'id' | 'created_at' | 'updated_at'>): Promise<MeetingStage> {
     const { data, error } = await supabase
-      .rpc('start_meeting_session', {
-        p_meeting_id: meetingId
-      })
+      .from('meeting_stages')
+      .insert([stage])
+      .select()
+      .single();
 
-    if (error) throw error
-    return data
+    if (error) throw error;
+    return data;
   }
 
-  // Obtener la sesión activa de una reunión
-  static async getActiveSession(meetingId: string): Promise<MeetingSession | null> {
+  // Agregar stage (alias para createStage)
+  static async addStage(meetingId: string, title: string, duration: number): Promise<MeetingStage> {
+    // Obtener el siguiente order_index
+    const existingStages = await this.getMeetingStages(meetingId);
+    const nextOrderIndex = existingStages.length;
+
+    return this.createStage({
+      meeting_id: meetingId,
+      title,
+      duration,
+      order_index: nextOrderIndex,
+      is_completed: false
+    });
+  }
+
+  // Actualizar un stage
+  static async updateStage(stageId: string, updates: Partial<Omit<MeetingStage, 'id' | 'meeting_id' | 'created_at' | 'updated_at'>>): Promise<MeetingStage> {
+    const { data, error } = await supabase
+      .from('meeting_stages')
+      .update(updates)
+      .eq('id', stageId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Actualizar stage con título y duración (método de conveniencia)
+  static async updateStageDetails(stageId: string, title: string, duration: number): Promise<MeetingStage> {
+    return this.updateStage(stageId, { title, duration });
+  }
+
+  // Eliminar un stage
+  static async deleteStage(stageId: string): Promise<void> {
+    const { error } = await supabase
+      .from('meeting_stages')
+      .delete()
+      .eq('id', stageId);
+
+    if (error) throw error;
+  }
+
+  // Crear una nueva sesión
+  static async createSession(meetingId: string): Promise<MeetingSession> {
+    const { data, error } = await supabase
+      .from('meeting_sessions')
+      .insert([{ meeting_id: meetingId }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Finalizar una sesión
+  static async endSession(sessionId: string): Promise<MeetingSession> {
+    const { data, error } = await supabase
+      .from('meeting_sessions')
+      .update({ ended_at: new Date().toISOString() })
+      .eq('id', sessionId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  // Obtener sesiones de un meeting
+  static async getMeetingSessions(meetingId: string): Promise<MeetingSession[]> {
     const { data, error } = await supabase
       .from('meeting_sessions')
       .select('*')
       .eq('meeting_id', meetingId)
-      .eq('is_active', true)
-      .single()
+      .order('created_at', { ascending: false });
 
-    if (error && error.code !== 'PGRST116') throw error // PGRST116 = no rows returned
-    return data
+    if (error) throw error;
+    return data || [];
   }
 
-  // Actualizar el progreso de una etapa
-  static async updateStageProgress(
-    sessionId: string,
-    stageId: string,
-    timeSpent: number,
-    isCompleted: boolean = false
-  ): Promise<StageProgress> {
-    const { data, error } = await supabase
-      .from('stage_progress')
-      .upsert({
-        session_id: sessionId,
-        stage_id: stageId,
-        time_spent: timeSpent,
-        is_completed: isCompleted,
-        ended_at: isCompleted ? new Date().toISOString() : null
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  }
-
-  // Finalizar una sesión de reunión
-  static async endMeetingSession(sessionId: string): Promise<void> {
-    const { error } = await supabase
-      .from('meeting_sessions')
-      .update({
-        ended_at: new Date().toISOString(),
-        is_active: false
-      })
-      .eq('id', sessionId)
-
-    if (error) throw error
-  }
-
-  // Obtener estadísticas de una reunión
+  // Obtener estadísticas de un meeting
   static async getMeetingStats(meetingId: string): Promise<{
     totalSessions: number;
     totalTime: number;
@@ -200,9 +237,9 @@ export class MeetingService {
     const totalSessions = sessions.length
     let totalTime = 0
 
-    sessions.forEach(session => {
+    sessions.forEach((session: { started_at: string; ended_at: string }) => {
       const start = new Date(session.started_at)
-      const end = new Date(session.ended_at!)
+      const end = new Date(session.ended_at)
       totalTime += (end.getTime() - start.getTime()) / 1000 // Convertir a segundos
     })
 
@@ -213,64 +250,40 @@ export class MeetingService {
     }
   }
 
-  // Actualizar una etapa
-  static async updateStage(
-    stageId: string, 
-    title: string, 
-    duration: number
-  ): Promise<MeetingStage> {
-    try {
-      const { data, error } = await supabase
-        .from('meeting_stages')
-        .update({
-          title,
-          duration
-        })
-        .eq('id', stageId)
-        .select()
-        .single()
+  // Crear progreso de stage
+  static async createStageProgress(progress: Omit<StageProgress, 'id' | 'created_at' | 'updated_at'>): Promise<StageProgress> {
+    const { data, error } = await supabase
+      .from('stage_progress')
+      .insert([progress])
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error updating stage:', error)
-        throw new Error(`Error al actualizar etapa: ${error.message}`)
-      }
-      
-      return data
-    } catch (error) {
-      console.error('Exception updating stage:', error)
-      throw error
-    }
+    if (error) throw error;
+    return data;
   }
 
-  // Actualizar una reunión
-  static async updateMeeting(meetingId: string, updates: { title?: string; description?: string }): Promise<Meeting> {
-    try {
-      const { data, error } = await supabase
-        .from('meetings')
-        .update(updates)
-        .eq('id', meetingId)
-        .select()
-        .single()
+  // Actualizar progreso de stage
+  static async updateStageProgress(progressId: string, updates: Partial<Omit<StageProgress, 'id' | 'created_at' | 'updated_at'>>): Promise<StageProgress> {
+    const { data, error } = await supabase
+      .from('stage_progress')
+      .update(updates)
+      .eq('id', progressId)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error updating meeting:', error)
-        throw new Error(`Error al actualizar directorio: ${error.message}`)
-      }
-      
-      return data
-    } catch (error) {
-      console.error('Exception updating meeting:', error)
-      throw error
-    }
+    if (error) throw error;
+    return data;
   }
 
-  // Eliminar una reunión
-  static async deleteMeeting(meetingId: string): Promise<void> {
-    const { error } = await supabase
-      .from('meetings')
-      .delete()
-      .eq('id', meetingId)
+  // Obtener progreso de stages de una sesión
+  static async getSessionStageProgress(sessionId: string): Promise<StageProgress[]> {
+    const { data, error } = await supabase
+      .from('stage_progress')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('started_at', { ascending: true });
 
-    if (error) throw error
+    if (error) throw error;
+    return data || [];
   }
 }

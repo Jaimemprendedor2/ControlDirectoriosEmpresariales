@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createPusherService, getPusherService, CommandData, TimerState } from '../services/pusherService';
+import { createPusherService, CommandData } from '../services/pusherService';
 
 interface Stage {
   id?: string;

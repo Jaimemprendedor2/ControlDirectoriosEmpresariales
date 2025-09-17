@@ -102,7 +102,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T02:44:23.171Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T03:25:33.914Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -154,12 +154,12 @@ export const Directorio: React.FC = () => {
 
     try {
       // Crear el directorio
-      const meeting = await MeetingService.createMeeting(
-        newMeetingName,
-        `Directorio creado el ${newMeetingDate || new Date().toLocaleDateString('es-CL')}`
-      );
-
-      // Crear la etapa "Inicio" automáticamente
+      const meeting = await MeetingService.createMeeting({
+        title: newMeetingName,
+        description: `Directorio creado el ${newMeetingDate || new Date().toLocaleDateString()}`,
+        user_id: null,
+        is_active: true
+      });
       await MeetingService.addStage(meeting.id, 'Inicio', 300); // 5 minutos = 300 segundos
 
       // Cargar el directorio recién creado
@@ -222,7 +222,7 @@ export const Directorio: React.FC = () => {
       const { meeting, stages: meetingStages } = await MeetingService.getMeetingWithStages(meetingId);
       
       // Convertir MeetingStage[] a Stage[]
-      const convertedStages: Stage[] = meetingStages.map(stage => ({
+      const convertedStages: Stage[] = meetingStages.map((stage: any) => ({
         id: stage.id,
         title: stage.title,
         description: '',
@@ -445,7 +445,7 @@ export const Directorio: React.FC = () => {
       
       // Si la etapa tiene ID (está en la base de datos), actualizarla
       if (stageToUpdate.id && selectedMeeting) {
-        await MeetingService.updateStage(stageToUpdate.id, title, duration);
+        await MeetingService.updateStageDetails(stageToUpdate.id, title, duration);
         console.log('Etapa actualizada en BD:', stageToUpdate.id, { title, duration });
       }
       
@@ -1229,7 +1229,7 @@ export const Directorio: React.FC = () => {
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.28 ({getBuildInfo()})
+                v1.7.29 ({getBuildInfo()})
               </span>
             </div>
           </div>
