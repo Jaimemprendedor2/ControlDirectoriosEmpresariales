@@ -19,7 +19,6 @@ export const MeetingView: React.FC = () => {
   const [stages, setStages] = useState<Stage[]>([]);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
   const [isAlertBlinking, setIsAlertBlinking] = useState(false);
   
 
@@ -44,16 +43,11 @@ export const MeetingView: React.FC = () => {
   useEffect(() => {
     const loadInitialState = () => {
       const savedTimeLeft = localStorage.getItem('currentTimeLeft');
-      const savedIsRunning = localStorage.getItem('isTimerRunning');
       const savedStages = localStorage.getItem('meetingStages');
       const savedStageIndex = localStorage.getItem('currentStageIndex');
 
       if (savedTimeLeft) {
         setTimeLeft(parseInt(savedTimeLeft));
-      }
-
-      if (savedIsRunning) {
-        setIsRunning(savedIsRunning === 'true');
       }
 
       if (savedStages) {
@@ -105,7 +99,6 @@ export const MeetingView: React.FC = () => {
           break;
         case 'pauseResume':
           if (command.data?.isRunning !== undefined) {
-            setIsRunning(command.data.isRunning);
             localStorage.setItem('isTimerRunning', command.data.isRunning.toString());
           }
           break;
@@ -133,7 +126,6 @@ export const MeetingView: React.FC = () => {
               localStorage.setItem('currentTimeLeft', currentTimeLeft);
             }
             if (isTimerRunning !== undefined) {
-              setIsRunning(isTimerRunning);
               localStorage.setItem('isTimerRunning', isTimerRunning.toString());
             }
             if (currentStageIndex !== undefined) {
@@ -163,7 +155,6 @@ export const MeetingView: React.FC = () => {
       console.log('Mensaje recibido en MeetingView:', event.data);
       
       if (event.data.action === 'pauseResume') {
-        setIsRunning(event.data.isRunning);
         localStorage.setItem('isTimerRunning', event.data.isRunning.toString());
       } else if (event.data.action === 'setTime') {
         setTimeLeft(event.data.seconds);
@@ -184,7 +175,6 @@ export const MeetingView: React.FC = () => {
           localStorage.setItem('currentTimeLeft', currentTimeLeft);
         }
         if (isTimerRunning !== undefined) {
-          setIsRunning(isTimerRunning);
           localStorage.setItem('isTimerRunning', isTimerRunning.toString());
         }
         if (currentStageIndex !== undefined) {
