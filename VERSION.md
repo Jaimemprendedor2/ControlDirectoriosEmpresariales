@@ -197,6 +197,26 @@
 
 ---
 
+## **📦 Versión 1.7.8** *(17/09/2025 - 04:00)*
+
+### 🔧 **Corrección Inicio de Directorio**
+- **Problema solucionado**: Al iniciar directorio, cronómetro no se seteaba correctamente al tiempo de la primera etapa
+- **Nueva funcionalidad**: Cierre automático de reflejo existente al iniciar nuevo directorio
+- **Mejora técnica**: Actualización forzada del cronómetro para asegurar sincronización inmediata
+
+### ✅ **Comportamiento Corregido**
+- **Al iniciar directorio**: Cronómetro se setea automáticamente al tiempo de la primera etapa
+- **Si hay reflejo abierto**: Se cierra automáticamente antes de iniciar nuevo directorio
+- **Sincronización**: Actualización inmediata del cronómetro principal y panel de control
+
+### 🔄 **Flujo Mejorado**
+1. **Presionar "Iniciar Directorio"** → Cierra reflejo existente (si existe)
+2. **Setear tiempo** → Cronómetro se configura al tiempo de primera etapa
+3. **Iniciar cronómetro** → Comienza a contar desde el tiempo correcto
+4. **Sincronizar** → Panel de control y reflejo se actualizan inmediatamente
+
+---
+
 ## **📦 Versión 1.7.7** *(17/09/2025 - 03:30)*
 
 ### 🔄 **Reanudar desde Tiempo Inicial**
@@ -293,4 +313,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 03:30:00*
+*Última actualización: 2025-09-17 04:00:00*

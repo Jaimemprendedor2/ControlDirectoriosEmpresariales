@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T03:30:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T04:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -505,6 +505,14 @@ export const Directorio: React.FC = () => {
     // Si no hay directorio iniciado, inicializarlo primero
     if (!localStorage.getItem('currentTimeLeft') && stages.length > 0) {
       console.log('🚀 Iniciando directorio por primera vez');
+      
+      // Cerrar reflejo existente si está abierto
+      if (meetingWindow && !meetingWindow.closed) {
+        console.log('🔄 Cerrando reflejo existente antes de iniciar nuevo directorio');
+        meetingWindow.close();
+        setMeetingWindow(null);
+      }
+      
       localStorage.setItem('meetingStages', JSON.stringify(stages));
       const initialStageTime = stages[0].duration;
       localStorage.setItem('currentTimeLeft', initialStageTime.toString());
@@ -532,6 +540,11 @@ export const Directorio: React.FC = () => {
       setTimeout(() => {
         setTimerUpdate(prev => prev + 1);
       }, 50);
+      
+      // Forzar actualización del cronómetro principal
+      setTimeout(() => {
+        setTimerUpdate(prev => prev + 1);
+      }, 100);
       
       console.log('✅ Directorio iniciado y cronómetro iniciado');
       return;
@@ -1094,7 +1107,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.7 ({getBuildInfo()})
+                v1.7.8 ({getBuildInfo()})
               </span>
             </div>
           </div>
