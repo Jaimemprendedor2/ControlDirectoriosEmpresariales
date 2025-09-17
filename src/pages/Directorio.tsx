@@ -1229,7 +1229,7 @@ export const Directorio: React.FC = () => {
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.30 ({getBuildInfo()})
+                v1.7.31 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1373,7 +1373,7 @@ export const Directorio: React.FC = () => {
                            const newMeetingWindow = window.open(
                              '/meeting',
                              'meeting',
-                             'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
+                             'width=400,height=300,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
                            );
                            if (newMeetingWindow) {
                              setMeetingWindow(newMeetingWindow);
