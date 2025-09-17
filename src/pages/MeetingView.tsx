@@ -395,7 +395,7 @@ export const MeetingView: React.FC = () => {
     
     const handleMessage = (event: MessageEvent) => {
       if (event.data.action === 'syncAll') {
-        const { currentTimeLeft, currentStageIndex, meetingStages, isTimerRunning } = event.data.data;
+        const { currentTimeLeft, currentStageIndex, meetingStages } = event.data.data;
         
         if (currentTimeLeft) {
           setTimeLeft(parseInt(currentTimeLeft));
