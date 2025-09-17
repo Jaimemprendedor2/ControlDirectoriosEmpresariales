@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T10:00:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T11:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -1146,8 +1146,8 @@ export const Directorio: React.FC = () => {
      // Mostrar confirmación antes de parar
      const confirmStop = window.confirm(
        '¿Estás seguro de que quieres parar el directorio?\n\n' +
-       '• El cronómetro se detendrá\n' +
-       '• El tiempo actual se mantendrá visible\n' +
+       '• El cronómetro volverá al tiempo inicial\n' +
+       '• Se cerrará la ventana de reflejo\n' +
        '• Podrás iniciar un nuevo directorio después'
      );
      
@@ -1156,20 +1156,32 @@ export const Directorio: React.FC = () => {
        return;
      }
      
-     console.log('🛑 Parando cronómetro del directorio (tiempo preservado)');
+     console.log('🛑 Parando cronómetro del directorio (volviendo al tiempo inicial)');
      
      // Pausar el cronómetro
      setIsTimerRunning(false);
      
-     // Limpiar localStorage pero preservar tiempo actual y configuración
+     // Cerrar ventana de reflejo si está abierta
+     if (meetingWindow && !meetingWindow.closed) {
+       console.log('🔄 Cerrando ventana de reflejo');
+       meetingWindow.close();
+       setMeetingWindow(null);
+     }
+     
+     // Volver al tiempo inicial de la etapa actual
+     const initialTime = localStorage.getItem('initialTime');
+     if (initialTime) {
+       const timeInSeconds = parseInt(initialTime);
+       localStorage.setItem('currentTimeLeft', timeInSeconds.toString());
+       console.log('⏰ Tiempo restaurado al inicial:', timeInSeconds);
+     }
+     
+     // Limpiar localStorage pero preservar configuración
      localStorage.setItem('isTimerRunning', 'false');
-     // MANTENER initialTime, currentStageIndex, meetingStages para preservar la configuración
-     // MANTENER currentTimeLeft para preservar el tiempo en el reflejo
      localStorage.removeItem('hasBeenStarted');
+     // MANTENER initialTime, currentStageIndex, meetingStages para preservar la configuración
      
-     // NO resetear estado local para mantener la configuración
-     
-     // Sincronizar con el reflejo
+     // Sincronizar con el reflejo (si está abierto)
      sendMessageToReflectionWindow('stopTimer', {});
      
      // Enviar comando a través de Pusher
@@ -1185,7 +1197,7 @@ export const Directorio: React.FC = () => {
      // Forzar actualización de la UI
      setTimerUpdate(prev => prev + 1);
      
-     console.log('✅ Cronómetro parado y reseteado completamente');
+     console.log('✅ Cronómetro parado, tiempo restaurado al inicial y reflejo cerrado');
    };
 
    // Función de compatibilidad (mantener para no romper código existente)
@@ -1210,16 +1222,10 @@ export const Directorio: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <header className="text-center mb-8">
           <div className="flex justify-between items-center mb-4">
-            <button
-              onClick={() => navigate('/')}
-              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300"
-            >
-              ← Volver al Menú Principal
-            </button>
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.20 ({getBuildInfo()})
+                v1.7.22 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1302,6 +1308,14 @@ export const Directorio: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex space-x-3">
+                  <button
+                    onClick={() => navigate('/')}
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
+                    title="Volver al menú principal"
+                  >
+                    <span>←</span>
+                    <span>Volver al Menú Principal</span>
+                  </button>
                   <button
                     onClick={handleDeleteMeeting}
                     className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"

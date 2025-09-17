@@ -197,6 +197,59 @@
 
 ---
 
+## **📦 Versión 1.7.22** *(17/09/2025 - 11:00)*
+
+### 🎨 **Reubicación de Botón de Navegación**
+- **Botón "Volver al Menú Principal" reubicado**: Ahora está al costado del botón "Eliminar Directorio"
+- **Mejor organización visual**: Los botones de acción están agrupados en la sección del directorio seleccionado
+- **Interfaz más limpia**: El header queda más despejado con solo la versión
+
+### ✅ **Cambios Implementados**
+- **Reubicación del botón de navegación**:
+  - Movido desde el header superior a la sección del directorio seleccionado
+  - Colocado al lado izquierdo del botón "Eliminar Directorio"
+  - Mantiene toda su funcionalidad original
+- **Mejora en el diseño**:
+  - Header simplificado con solo la versión
+  - Botones de acción agrupados lógicamente
+  - Mejor flujo visual en la sección del directorio
+
+### 🎯 **Beneficios de la Reubicación**
+- **Agrupación lógica**: Los botones de acción están juntos
+- **Header más limpio**: Menos elementos en la parte superior
+- **Mejor contexto**: El botón de navegación está cerca de las acciones del directorio
+- **Interfaz más organizada**: Mejor distribución de elementos
+
+---
+
+## **📦 Versión 1.7.21** *(17/09/2025 - 10:30)*
+
+### 🔄 **Nueva Funcionalidad del Botón "Parar Directorio"**
+- **Tiempo restaurado**: El cronómetro vuelve al tiempo inicial de la etapa actual
+- **Etapa preservada**: No resetea a la primera etapa, mantiene la etapa actual
+- **Ventana de reflejo cerrada**: Cierra automáticamente la ventana de reflejo del cronómetro
+- **Comportamiento mejorado**: Funcionalidad más intuitiva y útil
+
+### ✅ **Cambios Implementados**
+- **Modificación de `handleStopTimer`**:
+  - Restaura el tiempo al valor inicial de `initialTime`
+  - Preserva la etapa actual (`currentStageIndex`)
+  - Cierra la ventana de reflejo si está abierta
+  - Actualiza el mensaje de confirmación para reflejar el nuevo comportamiento
+- **Mejora en la lógica**:
+  - Lee `initialTime` del localStorage
+  - Actualiza `currentTimeLeft` con el tiempo inicial
+  - Mantiene toda la configuración de etapas
+  - Sincronización completa con Pusher y reflejo
+
+### 🎯 **Beneficios de la Nueva Funcionalidad**
+- **Comportamiento intuitivo**: El botón "Parar" realmente para y resetea el tiempo
+- **Preserva contexto**: Mantiene la etapa actual para continuar desde donde se quedó
+- **Limpieza automática**: Cierra ventanas de reflejo innecesarias
+- **Mejor flujo de trabajo**: Permite reiniciar fácilmente la etapa actual
+
+---
+
 ## **📦 Versión 1.7.20** *(17/09/2025 - 10:00)*
 
 ### 🔄 **Corrección de Navegación**
@@ -595,4 +648,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 10:00:00*
+*Última actualización: 2025-09-17 11:00:00*
