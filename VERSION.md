@@ -197,6 +197,46 @@
 
 ---
 
+## **📦 Versión 1.7.10** *(17/09/2025 - 05:00)*
+
+### 🔧 **Cierre Automático de Ventana de Reflejo**
+- **Nueva funcionalidad**: Al ingresar a un directorio, se cierra automáticamente la ventana de reflejo si está abierta
+- **Comportamiento mejorado**: Al cambiar de directorio, se cierra cualquier reflejo existente
+- **UX optimizada**: Evita ventanas duplicadas y conflictos de sincronización
+
+### ✅ **Casos de Uso Cubiertos**
+- **Al ingresar a directorio**: Cierra reflejo existente automáticamente
+- **Al cambiar de directorio**: Cierra reflejo anterior antes de cargar nuevo
+- **Al inicializar directorio**: Cierra reflejo si está abierto
+- **Prevención de conflictos**: Evita múltiples ventanas de reflejo abiertas
+
+### 🔄 **Flujo Mejorado**
+1. **Usuario tiene reflejo abierto** de directorio anterior
+2. **Ingresa a nuevo directorio** → Reflejo se cierra automáticamente
+3. **Cronómetro se carga** con tiempo de primera etapa (ej: 5:00)
+4. **Usuario puede abrir nuevo reflejo** si lo desea
+
+---
+
+## **📦 Versión 1.7.9** *(17/09/2025 - 04:30)*
+
+### 🔧 **Corrección Carga Automática del Cronómetro**
+- **Problema solucionado**: Al ingresar a la opción del directorio, el cronómetro no cargaba el tiempo de la primera etapa
+- **Comportamiento anterior**: Cronómetro mostraba tiempo residual o 0:00 hasta presionar "Iniciar"
+- **Nuevo comportamiento**: Cronómetro carga automáticamente el tiempo de la primera etapa (ej: 5:00) al ingresar
+
+### ✅ **Comportamiento Corregido**
+- **Al cargar página**: Cronómetro muestra inmediatamente el tiempo de la primera etapa
+- **Sin necesidad de iniciar**: El tiempo se carga automáticamente al ingresar
+- **Visualización correcta**: El usuario ve el tiempo completo desde el primer momento
+
+### 🎯 **Ejemplo de Funcionamiento**
+- **Primera etapa**: "Inicio" con duración 5:00
+- **Al ingresar**: Cronómetro muestra "5:00" automáticamente
+- **Botón**: Muestra "Iniciar" (listo para comenzar a contar)
+
+---
+
 ## **📦 Versión 1.7.8** *(17/09/2025 - 04:00)*
 
 ### 🔧 **Corrección Inicio de Directorio**
@@ -313,4 +353,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 04:00:00*
+*Última actualización: 2025-09-17 05:00:00*

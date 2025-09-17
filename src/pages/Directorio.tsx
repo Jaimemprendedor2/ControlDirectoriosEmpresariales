@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T04:00:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T05:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -799,13 +799,31 @@ export const Directorio: React.FC = () => {
     loadMeetings();
   }, []);
 
+  // Cerrar ventana de reflejo cuando se cambia de directorio
+  useEffect(() => {
+    if (selectedMeeting && meetingWindow && !meetingWindow.closed) {
+      console.log('🔄 Cerrando ventana de reflejo al cambiar de directorio');
+      meetingWindow.close();
+      setMeetingWindow(null);
+    }
+  }, [selectedMeeting]);
+
   // Inicializar automáticamente el directorio cuando se cargan las etapas
   useEffect(() => {
     if (stages.length > 0 && selectedMeeting && !localStorage.getItem('currentTimeLeft')) {
       console.log('🚀 Inicializando directorio automáticamente');
+      
+      // Cerrar ventana de reflejo si está abierta
+      if (meetingWindow && !meetingWindow.closed) {
+        console.log('🔄 Cerrando ventana de reflejo al ingresar al directorio');
+        meetingWindow.close();
+        setMeetingWindow(null);
+      }
+      
       localStorage.setItem('meetingStages', JSON.stringify(stages));
       const initialStageTime = stages[0].duration;
-      // NO guardar currentTimeLeft hasta que el usuario inicie el directorio
+      // Cargar el tiempo de la primera etapa en el cronómetro
+      localStorage.setItem('currentTimeLeft', initialStageTime.toString());
       localStorage.setItem('initialTime', initialStageTime.toString());
       localStorage.setItem('isTimerRunning', 'false');
       localStorage.setItem('currentStageIndex', '0');
@@ -1107,7 +1125,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.8 ({getBuildInfo()})
+                v1.7.10 ({getBuildInfo()})
               </span>
             </div>
           </div>
