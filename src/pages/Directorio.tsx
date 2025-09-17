@@ -102,7 +102,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T05:48:58.082Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T05:54:13.745Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -1471,10 +1471,11 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                     </button>
                   </div>
                 </div>
-                <div className="flex space-x-3">
+                {/* Botones de control del directorio */}
+                <div className="grid grid-cols-2 gap-3 w-full max-w-md">
                   <button
                     onClick={handleDeselectMeeting}
-                    className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center space-x-2"
                     title="Volver a la lista de directorios"
                   >
                     <span>←</span>
@@ -1482,7 +1483,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                   </button>
                   <button
                     onClick={handleDeleteMeeting}
-                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
+                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center space-x-2"
                     title="Eliminar directorio"
                   >
                     <span>🗑️</span>
@@ -1524,60 +1525,64 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                        <span className="text-2xl mr-2">⏱️</span>
                        Cronómetro Principal del Directorio
                      </div>
-                     <button
-                       onClick={() => {
-                         if (meetingWindow && !meetingWindow.closed) {
-                           meetingWindow.close();
-                           setMeetingWindow(null);
-                         } else {
-                           const reflectionURL = getReflectionURL();
-                           const newMeetingWindow = window.open(
-                             reflectionURL,
-                             'meeting',
-                             'width=960,height=540,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
-                           );
-                           if (newMeetingWindow) {
-                             setMeetingWindow(newMeetingWindow);
-                             // Enviar estado actual a la ventana de reflejo
-                             setTimeout(() => {
-                               const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-                               const isRunning = localStorage.getItem('isTimerRunning');
-                               const currentStage = localStorage.getItem('currentStageIndex');
-                               const stages = localStorage.getItem('meetingStages');
-                               
-                               if (newMeetingWindow && !newMeetingWindow.closed) {
-                                 newMeetingWindow.postMessage({
-                                   action: 'syncState',
-                                   data: {
-                                     currentTimeLeft: currentTimeLeft,
-                                     isTimerRunning: isRunning === 'true',
-                                     currentStageIndex: currentStage ? parseInt(currentStage) : 0,
-                                     stages: stages ? JSON.parse(stages) : []
-                                   }
-                                 }, '*');
-                               }
-                             }, 100);
+                     {/* Botones de control del reflejo */}
+                     <div className="grid grid-cols-2 gap-3 w-full max-w-md">
+                       <button
+                         onClick={() => {
+                           if (meetingWindow && !meetingWindow.closed) {
+                             meetingWindow.close();
+                             setMeetingWindow(null);
+                           } else {
+                             const reflectionURL = getReflectionURL();
+                             const newMeetingWindow = window.open(
+                               reflectionURL,
+                               'meeting',
+                               'width=960,height=540,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
+                             );
+                             if (newMeetingWindow) {
+                               setMeetingWindow(newMeetingWindow);
+                               // Enviar estado actual a la ventana de reflejo
+                               setTimeout(() => {
+                                 const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+                                 const isRunning = localStorage.getItem('isTimerRunning');
+                                 const currentStage = localStorage.getItem('currentStageIndex');
+                                 const stages = localStorage.getItem('meetingStages');
+                                 
+                                 if (newMeetingWindow && !newMeetingWindow.closed) {
+                                   newMeetingWindow.postMessage({
+                                     action: 'syncState',
+                                     data: {
+                                       currentTimeLeft: currentTimeLeft,
+                                       isTimerRunning: isRunning === 'true',
+                                       currentStageIndex: currentStage ? parseInt(currentStage) : 0,
+                                       stages: stages ? JSON.parse(stages) : []
+                                     }
+                                   }, '*');
+                                 }
+                               }, 100);
+                             }
                            }
-                         }
-                       }}
-                       className={`font-medium py-2 px-4 rounded-lg transition-colors text-sm ${
-                         meetingWindow && !meetingWindow.closed
-                           ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                           : 'bg-blue-600 hover:bg-blue-700 text-white'
-                       }`}
-                       title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
-                     >
-                       {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
-                     </button>
-                     
-                     {/* Botón Copiar URL del Reflejo */}
-                     <button
-                       onClick={copyReflectionURL}
-                       className="ml-2 font-medium py-2 px-4 rounded-lg transition-colors text-sm bg-green-600 hover:bg-green-700 text-white"
-                       title="Copiar URL del reflejo del cronómetro"
-                     >
-                       📋 Copiar URL
-                     </button>
+                         }}
+                         className={`font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center space-x-2 ${
+                           meetingWindow && !meetingWindow.closed
+                             ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                             : 'bg-blue-600 hover:bg-blue-700 text-white'
+                         }`}
+                         title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
+                       >
+                         <span>{meetingWindow && !meetingWindow.closed ? '🔄' : '📺'}</span>
+                         <span>{meetingWindow && !meetingWindow.closed ? 'Cerrar Reflejo' : 'Abrir Reflejo'}</span>
+                       </button>
+                       
+                       <button
+                         onClick={copyReflectionURL}
+                         className="font-medium py-2 px-4 rounded-lg transition-colors text-sm bg-green-600 hover:bg-green-700 text-white flex items-center justify-center space-x-2"
+                         title="Copiar URL del reflejo del cronómetro"
+                       >
+                         <span>📋</span>
+                         <span>Copiar URL</span>
+                       </button>
+                     </div>
                    </h3>
                   
                   {/* Vista del Cronómetro */}
