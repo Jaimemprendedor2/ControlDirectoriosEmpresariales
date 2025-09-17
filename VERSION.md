@@ -197,6 +197,22 @@
 
 ---
 
+## **📦 Versión 1.7.3** *(17/09/2025 - 01:30)*
+
+### 🔧 **Simplificación Lógica Suma/Resta Tiempo**
+- **handleAddTime**: Siempre suma 30s desde tiempo actual cuando cronómetro está parado
+- **handleSubtractTime**: Siempre resta 30s desde tiempo actual cuando cronómetro está parado
+- **Eliminado**: Comportamiento de redondeo confuso e inconsistente
+- **UX Mejorado**: Comportamiento más intuitivo y predecible
+
+### ✅ **Casos de Uso Corregidos**
+- Si está en 5:00 y suma 30s → va a 5:30 ✅
+- Si está en 5:00 y resta 30s → va a 4:30 ✅
+- Si está en 4:25 y suma 30s → va a 4:55 ✅
+- Si está en 4:25 y resta 30s → va a 3:55 ✅
+
+---
+
 ## 📝 **Notas de Desarrollo:**
 
 - **Framework**: React + TypeScript
@@ -208,4 +224,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 21:04:11*
+*Última actualización: 2025-09-17 01:30:00*

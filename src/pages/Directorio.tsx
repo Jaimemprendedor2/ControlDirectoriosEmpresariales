@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T00:15:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T01:30:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -629,15 +629,8 @@ export const Directorio: React.FC = () => {
     const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
     
     if (!isTimerRunning) {
-      // Si está detenido: ajustar a escala de 30s
-      let newTime: number;
-      if (currentSeconds === 0) {
-        newTime = 30; // Si está en 0, pasar a 30s
-      } else {
-        // Si ya es múltiplo de 30, suma 30. Si no, redondea al siguiente múltiplo
-        const isMultipleOf30 = currentSeconds % 30 === 0;
-        newTime = isMultipleOf30 ? currentSeconds + 30 : Math.ceil(currentSeconds / 30) * 30;
-      }
+      // Si está detenido: siempre sumar 30s desde donde está
+      const newTime = currentSeconds + 30;
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
@@ -677,8 +670,8 @@ export const Directorio: React.FC = () => {
     const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
     
     if (!isTimerRunning) {
-      // Si está detenido: ajustar a escala de 30s
-      const newTime = Math.max(0, Math.floor(currentSeconds / 30) * 30); // Redondear hacia abajo al múltiplo de 30
+      // Si está detenido: siempre restar 30s desde donde está
+      const newTime = Math.max(0, currentSeconds - 30);
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
@@ -1048,7 +1041,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.2 ({getBuildInfo()})
+                v1.7.3 ({getBuildInfo()})
               </span>
             </div>
           </div>
