@@ -212,8 +212,8 @@ export const MeetingView: React.FC = () => {
   // Forzar tamaño de ventana
   useEffect(() => {
     const forceWindowSize = () => {
-      if (window.outerWidth !== 960 || window.outerHeight !== 540) {
-        window.resizeTo(960, 540);
+      if (window.outerWidth !== 960 || window.outerHeight !== 614) {
+        window.resizeTo(960, 614);
       }
     };
     
@@ -343,7 +343,7 @@ export const MeetingView: React.FC = () => {
       className={`${getBackgroundColor()} text-white flex flex-col items-center justify-center transition-colors duration-500`}
       style={{
         width: '960px',
-        height: '540px',
+        height: '614px',
         overflow: 'hidden',
         position: 'fixed',
         top: 0,
@@ -352,7 +352,7 @@ export const MeetingView: React.FC = () => {
         boxSizing: 'border-box'
       }}
     >
-      {/* Cronómetro principal - Tamaño ajustado para ventana 960x540px */}
+      {/* Cronómetro principal - Tamaño ajustado para ventana 960x614px */}
       <div 
         className={`font-mono font-bold ${isAlertBlinking ? 'animate-pulse' : ''}`}
         style={{
