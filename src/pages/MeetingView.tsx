@@ -202,26 +202,9 @@ export const MeetingView: React.FC = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prev => {
-          const newTime = prev - 1;
-          localStorage.setItem('currentTimeLeft', newTime.toString());
-          return newTime;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [isRunning, timeLeft]);
+  // Timer effect - ELIMINADO: La ventana de reflejo debe ser pasiva
+  // Solo recibe actualizaciones del cronómetro principal vía postMessage
+  // No debe tener su propio timer para evitar conflictos de sincronización
 
   // Efecto para parpadeo de alerta
   useEffect(() => {
