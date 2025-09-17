@@ -197,6 +197,55 @@
 
 ---
 
+## **📦 Versión 1.7.14** *(17/09/2025 - 07:00)*
+
+### 🎨 **Mejoras de Interfaz de Usuario**
+- **Reorganización de botones**: Los botones de "Abrir Reflejo", "Copiar URL" y "Reconectar" se han movido debajo del estado de Pusher
+- **Nuevo botón de edición**: Agregado botón para editar el nombre del directorio al lado del título
+- **Mejor organización visual**: Los controles están ahora agrupados de manera más lógica
+
+### ✅ **Cambios Implementados**
+- **Botones reubicados**: 
+  - Movidos desde la parte superior a debajo del estado de Pusher
+  - Mejor agrupación con la información de conexión
+  - Mantienen toda su funcionalidad original
+- **Botón de editar nombre**:
+  - Icono de lápiz (✏️) al lado del nombre del directorio
+  - Funcionalidad básica con prompt (en desarrollo)
+  - Diseño consistente con el resto de la interfaz
+- **Mejor flujo visual**: 
+  - Estado de Pusher → Botones de control → Configuración de atajos
+  - Información relacionada agrupada juntos
+
+### 🎯 **Beneficios de la Reorganización**
+- **Mejor jerarquía visual**: Los controles están donde el usuario los espera
+- **Agrupación lógica**: Botones relacionados con la conexión están juntos
+- **Acceso fácil**: El botón de editar nombre está visible y accesible
+- **Interfaz más limpia**: Mejor organización de los elementos
+
+---
+
+## **📦 Versión 1.7.13** *(17/09/2025 - 06:30)*
+
+### 🎨 **Reorganización de la Interfaz de Usuario**
+- **Mejora UX**: El bloque de configuración de "Etapas del Directorio" se ha movido al final de la página
+- **Mejor flujo visual**: Los usuarios ahora ven primero el cronómetro y controles, luego la configuración de etapas
+- **Diseño optimizado**: Mejor organización visual de los elementos de la interfaz
+
+### ✅ **Cambios Implementados**
+- **Reubicación de StagesList**: Movido desde la parte superior al final de la página
+- **Nuevo contenedor**: Agregado contenedor con borde azul para destacar la sección de etapas
+- **Mejor jerarquía visual**: Cronómetro → Controles → Configuración de etapas
+- **Mantiene funcionalidad**: Todas las funciones de edición, agregar, eliminar y configurar colores siguen funcionando
+
+### 🎯 **Beneficios de la Reorganización**
+- **Flujo de trabajo mejorado**: Los usuarios ven primero lo más importante (cronómetro)
+- **Menos distracciones**: La configuración de etapas no interfiere con el uso del cronómetro
+- **Mejor experiencia**: Interfaz más limpia y organizada
+- **Acceso fácil**: La configuración sigue siendo accesible al final de la página
+
+---
+
 ## **📦 Versión 1.7.12** *(17/09/2025 - 06:00)*
 
 ### 🎯 **Funcionalidades de Configuración de Directorio**
@@ -385,4 +434,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 06:00:00*
+*Última actualización: 2025-09-17 07:00:00*

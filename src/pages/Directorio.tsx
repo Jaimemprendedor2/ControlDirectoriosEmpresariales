@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T06:00:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T07:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -1194,7 +1194,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.12 ({getBuildInfo()})
+                v1.7.14 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1277,9 +1277,25 @@ export const Directorio: React.FC = () => {
                     <span>←</span>
                     <span>Volver a directorios</span>
                   </button>
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    {selectedMeeting.title}
-                  </h2>
+                  <div className="flex items-center space-x-3">
+                    <h2 className="text-2xl font-bold text-gray-800">
+                      {selectedMeeting.title}
+                    </h2>
+                    <button
+                      onClick={() => {
+                        const newName = prompt('Nuevo nombre del directorio:', selectedMeeting.title);
+                        if (newName && newName.trim() && newName !== selectedMeeting.title) {
+                          // Aquí se implementaría la lógica para actualizar el nombre
+                          console.log('Nuevo nombre:', newName);
+                          alert('Función de editar nombre en desarrollo');
+                        }
+                      }}
+                      className="text-blue-600 hover:text-blue-800 text-sm p-1 rounded transition-colors"
+                      title="Editar nombre del directorio"
+                    >
+                      ✏️
+                    </button>
+                  </div>
                 </div>
                 <div className="flex space-x-3">
                   <button
@@ -1317,82 +1333,8 @@ export const Directorio: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-end space-x-3">
                     {/* Botones adicionales que aparecen cuando el directorio está iniciado */}
-                    {selectedMeeting && stages.length > 0 && (
-                      <>
-                        <button
-                          onClick={() => {
-                            if (meetingWindow && !meetingWindow.closed) {
-                              meetingWindow.close();
-                              setMeetingWindow(null);
-                            } else {
-                              const newMeetingWindow = window.open(
-                                '/meeting',
-                                'meeting',
-                                'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
-                              );
-                              if (newMeetingWindow) {
-                                setMeetingWindow(newMeetingWindow);
-                                // Enviar estado actual a la ventana de reflejo
-                                setTimeout(() => {
-                                  const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-                                  const isRunning = localStorage.getItem('isTimerRunning');
-                                  const currentStage = localStorage.getItem('currentStageIndex');
-                                  const stages = localStorage.getItem('meetingStages');
-                                  
-                                  if (newMeetingWindow && !newMeetingWindow.closed) {
-                                    newMeetingWindow.postMessage({
-                                      action: 'syncState',
-                                      data: {
-                                        currentTimeLeft: currentTimeLeft,
-                                        isTimerRunning: isRunning === 'true',
-                                        currentStageIndex: currentStage ? parseInt(currentStage) : 0,
-                                        stages: stages ? JSON.parse(stages) : []
-                                      }
-                                    }, '*');
-                                  }
-                                }, 100);
-                              }
-                            }
-                          }}
-                          className={`font-medium py-2 px-4 rounded-lg transition-colors ${
-                            meetingWindow && !meetingWindow.closed
-                              ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                              : 'bg-blue-600 hover:bg-blue-700 text-white'
-                          }`}
-                          title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
-                        >
-                          {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
-                        </button>
-                        
-                        <button
-                          onClick={handleCopyControlURL}
-                          className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
-                          title="Copiar URL para control móvil"
-                        >
-                          📱 Copiar URL
-                        </button>
-                        
-                                                 <button
-                           onClick={forceControlReconnection}
-                           className="font-medium py-2 px-4 rounded-lg transition-colors bg-orange-600 hover:bg-orange-700 text-white"
-                           title="Forzar reconexión de Pusher"
-                         >
-                           🔄 Reconectar
-                         </button>
-                      </>
-                    )}
                   </div>
 
-                                     <StagesList 
-                     stages={stages}
-                     onRemoveStage={handleRemoveStage}
-                     onEditStage={handleEditStage}
-                     onAddStage={handleQuickAddStage}
-                     onConfigureColors={handleConfigureColors}
-                     editingIndex={editingIndex !== null ? editingIndex : undefined}
-                     onSaveEdit={handleSaveEdit}
-                     onCancelEdit={handleCancelEdit}
-                   />
                 </div>
               )}
             </>
@@ -1570,6 +1512,71 @@ export const Directorio: React.FC = () => {
                            </div>
                          </div>
                        )}
+
+                       {/* Botones de control - Movidos debajo del estado de Pusher */}
+                       <div className="mt-4 flex space-x-2">
+                         <button
+                           onClick={() => {
+                             if (meetingWindow && !meetingWindow.closed) {
+                               meetingWindow.close();
+                               setMeetingWindow(null);
+                             } else {
+                               const newMeetingWindow = window.open(
+                                 '/meeting',
+                                 'meeting',
+                                 'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
+                               );
+                               if (newMeetingWindow) {
+                                 setMeetingWindow(newMeetingWindow);
+                                 // Enviar estado actual a la ventana de reflejo
+                                 setTimeout(() => {
+                                   const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+                                   const isRunning = localStorage.getItem('isTimerRunning');
+                                   const currentStage = localStorage.getItem('currentStageIndex');
+                                   const stages = localStorage.getItem('meetingStages');
+                                   
+                                   if (newMeetingWindow && !newMeetingWindow.closed) {
+                                     newMeetingWindow.postMessage({
+                                       action: 'syncState',
+                                       data: {
+                                         currentTimeLeft: currentTimeLeft,
+                                         isTimerRunning: isRunning === 'true',
+                                         currentStageIndex: currentStage ? parseInt(currentStage) : 0,
+                                         stages: stages ? JSON.parse(stages) : []
+                                       }
+                                     }, '*');
+                                   }
+                                 }, 100);
+                               }
+                             }
+                           }}
+                           className={`font-medium py-2 px-4 rounded-lg transition-colors ${
+                             meetingWindow && !meetingWindow.closed
+                               ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                               : 'bg-blue-600 hover:bg-blue-700 text-white'
+                           }`}
+                           title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
+                         >
+                           {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
+                         </button>
+                         
+                         <button
+                           onClick={handleCopyControlURL}
+                           className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
+                           title="Copiar URL para control móvil"
+                         >
+                           📱 Copiar URL
+                         </button>
+                         
+                         <button
+                           onClick={forceControlReconnection}
+                           className="font-medium py-2 px-4 rounded-lg transition-colors bg-orange-600 hover:bg-orange-700 text-white"
+                           title="Forzar reconexión de Pusher"
+                         >
+                           🔄 Reconectar
+                         </button>
+                       </div>
+                                               
                                                <div className="mt-3 flex space-x-2">
                           <button
                             onClick={() => setShowShortcutsModal(true)}
@@ -1594,6 +1601,23 @@ export const Directorio: React.FC = () => {
                   </div>
                 </div>
               )}
+
+          {/* Etapas del Directorio - Movido al final */}
+          {selectedMeeting && stages.length > 0 && (
+            <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-blue-200">
+              <StagesList 
+                stages={stages}
+                onRemoveStage={handleRemoveStage}
+                onEditStage={handleEditStage}
+                onAddStage={handleQuickAddStage}
+                onConfigureColors={handleConfigureColors}
+                editingIndex={editingIndex !== null ? editingIndex : undefined}
+                onSaveEdit={handleSaveEdit}
+                onCancelEdit={handleCancelEdit}
+              />
+            </div>
+          )}
+
         </div>
 
         {/* Modal para Nuevo Directorio */}
