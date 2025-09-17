@@ -102,7 +102,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T03:58:09.290Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T04:04:36.340Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -787,7 +787,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
         newTime = isMultipleOf30 ? currentSeconds + 30 : Math.ceil(currentSeconds / 30) * 30;
       }
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToReflectionWindow('setTime', { seconds: currentTimeLeft });
+      sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
       // Enviar comando a través de Pusher
       if (window.pusherService) {
@@ -801,9 +801,6 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       
       // Forzar actualización de la UI cuando está detenido
       setTimerUpdate(prev => prev + 1);
-            
-            // Sincronizar con la ventana de reflejo
-            sendMessageToReflectionWindow('setTime', { seconds: currentTimeLeft });
     } else {
       // Si está funcionando: sumar 30s inmediatamente
       const newTime = currentSeconds + 30;
@@ -840,7 +837,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
           : Math.floor(currentSeconds / 30) * 30;
       }
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToReflectionWindow('setTime', { seconds: currentTimeLeft });
+      sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
       // Enviar comando a través de Pusher
       if (window.pusherService) {
@@ -854,9 +851,6 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       
       // Forzar actualización de la UI cuando está detenido
       setTimerUpdate(prev => prev + 1);
-            
-            // Sincronizar con la ventana de reflejo
-            sendMessageToReflectionWindow('setTime', { seconds: currentTimeLeft });
     } else {
       // Si está funcionando: restar 30s inmediatamente
       const newTime = Math.max(0, currentSeconds - 30);
@@ -1058,7 +1052,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             setTimerUpdate(prev => prev + 1);
             
             // Sincronizar con la ventana de reflejo
-            sendMessageToReflectionWindow('setTime', { seconds: currentTimeLeft });
+            sendMessageToReflectionWindow('setTime', { seconds: newTime });
             
             // Si el tiempo llega a 0, pausar autom�ticamente
             if (newTime === 0) {
