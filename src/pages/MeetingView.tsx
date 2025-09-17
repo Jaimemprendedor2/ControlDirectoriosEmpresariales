@@ -218,7 +218,7 @@ export const MeetingView: React.FC = () => {
       
       if (currentTime) {
         const seconds = parseInt(currentTime);
-        if (!isNaN(seconds)) {
+        if (!isNaN(seconds) && seconds !== timeLeft) {
           setTimeLeft(seconds);
           console.log('🔄 Sincronizado desde localStorage - tiempo:', seconds);
         }
@@ -226,7 +226,7 @@ export const MeetingView: React.FC = () => {
       
       if (currentStageIdx) {
         const stageIdx = parseInt(currentStageIdx);
-        if (!isNaN(stageIdx)) {
+        if (!isNaN(stageIdx) && stageIdx !== currentStageIndex) {
           setCurrentStageIndex(stageIdx);
           console.log('🔄 Sincronizado desde localStorage - etapa:', stageIdx);
         }
@@ -235,8 +235,10 @@ export const MeetingView: React.FC = () => {
       if (savedStages) {
         try {
           const parsedStages = JSON.parse(savedStages);
-          setStages(parsedStages);
-          console.log('🔄 Sincronizado desde localStorage - stages:', parsedStages.length);
+          if (JSON.stringify(parsedStages) !== JSON.stringify(stages)) {
+            setStages(parsedStages);
+            console.log('🔄 Sincronizado desde localStorage - stages:', parsedStages.length);
+          }
         } catch (error) {
           console.error('Error parsing stages from localStorage:', error);
         }
@@ -246,11 +248,11 @@ export const MeetingView: React.FC = () => {
     // Sincronizar inmediatamente
     syncFromLocalStorage();
     
-    // Crear intervalo para sincronización periódica cada 500ms para mayor responsividad
-    const syncInterval = setInterval(syncFromLocalStorage, 500);
+    // Crear intervalo para sincronización periódica cada 1 segundo (reducido para evitar oscilaciones)
+    const syncInterval = setInterval(syncFromLocalStorage, 1000);
     
     return () => clearInterval(syncInterval);
-  }, []);
+  }, [timeLeft, currentStageIndex, stages]);
   
   // Sincronización adicional cuando cambia el foco de la ventana
   useEffect(() => {
