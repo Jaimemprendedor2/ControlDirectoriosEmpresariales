@@ -634,7 +634,9 @@ export const Directorio: React.FC = () => {
       if (currentSeconds === 0) {
         newTime = 30; // Si está en 0, pasar a 30s
       } else {
-        newTime = Math.ceil(currentSeconds / 30) * 30; // Redondear hacia arriba al múltiplo de 30
+        // Si ya es múltiplo de 30, suma 30. Si no, redondea al siguiente múltiplo
+        const isMultipleOf30 = currentSeconds % 30 === 0;
+        newTime = isMultipleOf30 ? currentSeconds + 30 : Math.ceil(currentSeconds / 30) * 30;
       }
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
@@ -1812,3 +1814,4 @@ export const Directorio: React.FC = () => {
     </div>
   );
 };
+

@@ -1,6 +1,6 @@
 # 📋 Historial de Versiones - Control de Reunión
 
-## 🚀 Versión 1.7.2 - [2025-09-16 20:54:10]
+## 🚀 Versión 1.7.2 - [2025-09-17 21:04:11]
 
 ### ✅ **Cambios Realizados:**
 - **Corrección crítica UI**: handleAddTime/handleSubtractTime ahora actualizan la UI cuando está detenido
@@ -208,4 +208,4 @@
 
 ---
 
-*Última actualización: 2025-09-16 20:54:10*
+*Última actualización: 2025-09-17 21:04:11*
