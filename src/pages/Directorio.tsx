@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T03:00:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T03:30:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -547,6 +547,22 @@ export const Directorio: React.FC = () => {
     // Marcar que el cronómetro ha sido iniciado cuando se reanuda
     if (newRunningState) {
       localStorage.setItem('hasBeenStarted', 'true');
+      
+      // Si el cronómetro está en 0, restaurar el tiempo inicial
+      const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+      const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
+      
+      if (currentSeconds === 0) {
+        const initialTime = localStorage.getItem('initialTime');
+        if (initialTime) {
+          const initialSeconds = parseInt(initialTime);
+          localStorage.setItem('currentTimeLeft', initialSeconds.toString());
+          console.log('🔄 Restaurando tiempo inicial:', initialSeconds, 'segundos');
+          
+          // Sincronizar con el reflejo
+          sendMessageToReflectionWindow('setTime', { seconds: initialSeconds });
+        }
+      }
     }
     
     setIsTimerRunning(newRunningState);
@@ -999,6 +1015,19 @@ export const Directorio: React.FC = () => {
   }, [meetingWindow, keyboardShortcuts]);
 
              const handleStopTimer = () => {
+     // Mostrar confirmación antes de parar
+     const confirmStop = window.confirm(
+       '¿Estás seguro de que quieres parar el directorio?\n\n' +
+       '• El cronómetro se detendrá\n' +
+       '• El tiempo actual se mantendrá visible\n' +
+       '• Podrás iniciar un nuevo directorio después'
+     );
+     
+     if (!confirmStop) {
+       console.log('❌ Parar directorio cancelado por el usuario');
+       return;
+     }
+     
      console.log('🛑 Parando cronómetro del directorio (tiempo preservado)');
      
      // Pausar el cronómetro
@@ -1065,7 +1094,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.6 ({getBuildInfo()})
+                v1.7.7 ({getBuildInfo()})
               </span>
             </div>
           </div>

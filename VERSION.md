@@ -197,6 +197,25 @@
 
 ---
 
+## **📦 Versión 1.7.7** *(17/09/2025 - 03:30)*
+
+### 🔄 **Reanudar desde Tiempo Inicial**
+- **Nueva funcionalidad**: Al reanudar cuando el cronómetro llega a 0, restaura automáticamente el tiempo inicial
+- **Comportamiento**: Si el cronómetro está en 0:00 y se presiona "Reanudar", vuelve al tiempo con el que inició la cuenta
+- **UX mejorado**: Evita tener que reiniciar manualmente el directorio cuando el tiempo se agota
+
+### ⚠️ **Confirmación antes de Parar Directorio**
+- **Nueva funcionalidad**: Diálogo de confirmación antes de ejecutar "Parar Directorio"
+- **Mensaje informativo**: Explica qué sucederá al parar (detener cronómetro, mantener tiempo visible, etc.)
+- **Prevención de errores**: Evita paradas accidentales del directorio
+
+### ✅ **Casos de Uso Mejorados**
+- **Cronómetro llega a 0** → Presionar "Reanudar" → Vuelve al tiempo inicial automáticamente
+- **Presionar "Parar Directorio"** → Aparece confirmación → Usuario puede cancelar o confirmar
+- **Flujo completo**: Iniciar → Cronómetro cuenta → Llega a 0 → Reanudar → Vuelve al inicio
+
+---
+
 ## **📦 Versión 1.7.6** *(17/09/2025 - 03:00)*
 
 ### 🔧 **Corrección Comportamiento Botón "Parar Directorio"**
@@ -274,4 +293,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 03:00:00*
+*Última actualización: 2025-09-17 03:30:00*
