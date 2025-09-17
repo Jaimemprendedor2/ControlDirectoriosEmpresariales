@@ -1,7 +1,7 @@
 {
   "name": "configuracion-directorios-empresariales-gemini",
   "private": true,
-  "version": "1.7.29",
+  "version": "1.7.30",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,7 +21,7 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.1",
     "zustand": "^4.4.1",
-    "supabase": "^1.183.1",
+    "@supabase/supabase-js": "^2.39.0",
     "pusher-js": "^8.2.0",
     "papaparse": "^5.4.1",
     "date-fns": "^2.29.3"
