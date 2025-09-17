@@ -249,6 +249,187 @@ export const MeetingView: React.FC = () => {
     };
   }, []);
 
+  // Sistema robusto de sincronización - Capa 1: Keep-Alive Agresivo
+  useEffect(() => {
+    const keepAlive = () => {
+      // Forzar foco cada 100ms
+      if (document.hidden || !document.hasFocus()) {
+        window.focus();
+      }
+      
+      // Enviar señal de vida a ventana padre
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({
+          action: 'keepAlive',
+          timestamp: Date.now()
+        }, '*');
+      }
+    };
+    
+    // Keep-alive cada 100ms (muy frecuente)
+    const keepAliveInterval = setInterval(keepAlive, 100);
+    
+    return () => clearInterval(keepAliveInterval);
+  }, []);
+
+  // Sistema robusto de sincronización - Capa 2: Sincronización Forzada Constante
+  useEffect(() => {
+    const forceSync = () => {
+      const currentTime = localStorage.getItem('currentTimeLeft');
+      const currentStageIdx = localStorage.getItem('currentStageIndex');
+      const savedStages = localStorage.getItem('meetingStages');
+      
+      // Actualizar tiempo sin verificar cambios previos
+      if (currentTime) {
+        const seconds = parseInt(currentTime);
+        if (!isNaN(seconds)) {
+          setTimeLeft(seconds);
+        }
+      }
+      
+      // Actualizar etapa
+      if (currentStageIdx) {
+        const stageIdx = parseInt(currentStageIdx);
+        if (!isNaN(stageIdx)) {
+          setCurrentStageIndex(stageIdx);
+        }
+      }
+      
+      // Actualizar stages
+      if (savedStages) {
+        try {
+          const parsedStages = JSON.parse(savedStages);
+          setStages(parsedStages);
+        } catch (error) {
+          console.error('Error parsing stages:', error);
+        }
+      }
+    };
+    
+    // Sincronización cada 200ms (muy frecuente)
+    const syncInterval = setInterval(forceSync, 200);
+    
+    return () => clearInterval(syncInterval);
+  }, []);
+
+  // Sistema robusto de sincronización - Capa 3: Timer Interno de Respaldo
+  useEffect(() => {
+    let backupTimer: NodeJS.Timeout;
+    
+    const startBackupTimer = () => {
+      backupTimer = setInterval(() => {
+        const currentTime = localStorage.getItem('currentTimeLeft');
+        const isRunning = localStorage.getItem('isTimerRunning');
+        
+        if (currentTime && isRunning === 'true') {
+          const seconds = parseInt(currentTime);
+          if (!isNaN(seconds) && seconds > 0) {
+            const newTime = seconds - 1;
+            localStorage.setItem('currentTimeLeft', newTime.toString());
+            setTimeLeft(newTime);
+            
+            if (newTime === 0) {
+              localStorage.setItem('isTimerRunning', 'false');
+            }
+          }
+        }
+      }, 1000);
+    };
+    
+    startBackupTimer();
+    
+    return () => {
+      if (backupTimer) clearInterval(backupTimer);
+    };
+  }, []);
+
+  // Sistema robusto de sincronización - Capa 5: Verificación y Recuperación
+  useEffect(() => {
+    const healthCheck = () => {
+      // Verificar que la ventana padre siga activa
+      if (window.opener && window.opener.closed) {
+        console.log('⚠️ Ventana padre cerrada, cerrando reflejo');
+        window.close();
+        return;
+      }
+      
+      // Verificar que el localStorage esté actualizado
+      const lastUpdate = localStorage.getItem('lastTimerUpdate');
+      const now = Date.now();
+      
+      if (lastUpdate && (now - parseInt(lastUpdate)) > 5000) {
+        console.log('⚠️ Timer desactualizado, forzando sincronización');
+        // Forzar sincronización inmediata
+        const currentTime = localStorage.getItem('currentTimeLeft');
+        if (currentTime) {
+          setTimeLeft(parseInt(currentTime));
+        }
+      }
+    };
+    
+    // Verificación cada 1 segundo
+    const healthInterval = setInterval(healthCheck, 1000);
+    
+    return () => clearInterval(healthInterval);
+  }, []);
+
+  // Sistema robusto de sincronización - Capa 6: Event Listeners Mejorados
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Sincronización inmediata al volver visible
+        const currentTime = localStorage.getItem('currentTimeLeft');
+        if (currentTime) {
+          setTimeLeft(parseInt(currentTime));
+        }
+      }
+    };
+    
+    const handleFocus = () => {
+      // Sincronización inmediata al ganar foco
+      const currentTime = localStorage.getItem('currentTimeLeft');
+      if (currentTime) {
+        setTimeLeft(parseInt(currentTime));
+      }
+    };
+    
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.action === 'syncAll') {
+        const { currentTimeLeft, currentStageIndex, meetingStages, isTimerRunning } = event.data.data;
+        
+        if (currentTimeLeft) {
+          setTimeLeft(parseInt(currentTimeLeft));
+        }
+        
+        if (currentStageIndex) {
+          setCurrentStageIndex(parseInt(currentStageIndex));
+        }
+        
+        if (meetingStages) {
+          try {
+            setStages(JSON.parse(meetingStages));
+          } catch (error) {
+            console.error('Error parsing stages:', error);
+          }
+        }
+        
+        // Actualizar timestamp
+        localStorage.setItem('lastTimerUpdate', Date.now().toString());
+      }
+    };
+    
+    // Agregar todos los event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
   // Sincronización automática con localStorage para URL independiente
   useEffect(() => {
     const syncFromLocalStorage = () => {

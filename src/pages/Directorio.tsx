@@ -102,7 +102,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T06:19:29.790Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T11:24:29.285Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -1033,14 +1033,29 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     }
   }, [selectedMeeting, stages]);
   
-  // Sincronización adicional para ventana de reflejo abierta
+  // Sincronización agresiva para ventana de reflejo abierta - Sistema Robusto
   useEffect(() => {
     if (meetingWindow && !meetingWindow.closed) {
       const syncInterval = setInterval(() => {
         if (meetingWindow && !meetingWindow.closed) {
           const currentTime = localStorage.getItem('currentTimeLeft');
           const currentStageIdx = localStorage.getItem('currentStageIndex');
+          const meetingStages = localStorage.getItem('meetingStages');
+          const isRunning = localStorage.getItem('isTimerRunning');
           
+          // Enviar todos los datos cada 100ms (muy frecuente)
+          meetingWindow.postMessage({
+            action: 'syncAll',
+            data: {
+              currentTimeLeft: currentTime,
+              currentStageIndex: currentStageIdx,
+              meetingStages: meetingStages,
+              isTimerRunning: isRunning,
+              timestamp: Date.now()
+            }
+          }, '*');
+          
+          // Sincronización individual para compatibilidad
           if (currentTime) {
             sendMessageToReflectionWindow('setTime', { seconds: parseInt(currentTime) });
           }
@@ -1049,7 +1064,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             sendMessageToReflectionWindow('setStage', { stageIndex: parseInt(currentStageIdx) });
           }
         }
-      }, 2000); // Sincronizar cada 2 segundos
+      }, 100); // Sincronización cada 100ms (muy agresiva)
       
       return () => clearInterval(syncInterval);
     }
@@ -1182,7 +1197,22 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             localStorage.setItem('currentTimeLeft', newTime.toString());
             setTimerUpdate(prev => prev + 1);
             
-            // Sincronizar con la ventana de reflejo
+            // Sincronización agresiva con la ventana de reflejo
+            if (meetingWindow && !meetingWindow.closed) {
+              // Enviar datos completos cada segundo
+              meetingWindow.postMessage({
+                action: 'syncAll',
+                data: {
+                  currentTimeLeft: newTime.toString(),
+                  currentStageIndex: localStorage.getItem('currentStageIndex'),
+                  meetingStages: localStorage.getItem('meetingStages'),
+                  isTimerRunning: 'true',
+                  timestamp: Date.now()
+                }
+              }, '*');
+            }
+            
+            // Sincronización individual para compatibilidad
             sendMessageToReflectionWindow('setTime', { seconds: newTime });
             
             // Si el tiempo llega a 0, pausar autom�ticamente
@@ -1389,7 +1419,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.31 ({getBuildInfo()})
+                v1.7.39 ({getBuildInfo()})
               </span>
             </div>
           </div>
