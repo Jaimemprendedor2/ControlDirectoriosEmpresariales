@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createPusherService, getPusherService, ConnectionState, CommandData, TimerState } from '../services/pusherService';
+import { createPusherService, getPusherService, CommandData, TimerState } from '../services/pusherService';
 
 interface Stage {
   id?: string;
@@ -22,15 +22,6 @@ export const MeetingView: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isAlertBlinking, setIsAlertBlinking] = useState(false);
   
-  // Estado de conexión Pusher
-  const [connectionState, setConnectionState] = useState<ConnectionState>({
-    connected: false,
-    connecting: false,
-    error: null,
-    reconnectAttempts: 0,
-    lastConnected: null,
-    latency: 0
-  });
 
   const currentStage = stages[currentStageIndex];
 

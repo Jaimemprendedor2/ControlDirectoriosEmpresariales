@@ -1229,7 +1229,7 @@ export const Directorio: React.FC = () => {
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.25 ({getBuildInfo()})
+                v1.7.26 ({getBuildInfo()})
               </span>
             </div>
           </div>
