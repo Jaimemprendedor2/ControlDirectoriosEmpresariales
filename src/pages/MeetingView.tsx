@@ -209,6 +209,29 @@ export const MeetingView: React.FC = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  // Forzar tamaño de ventana
+  useEffect(() => {
+    const forceWindowSize = () => {
+      if (window.outerWidth !== 960 || window.outerHeight !== 540) {
+        window.resizeTo(960, 540);
+      }
+    };
+    
+    // Forzar tamaño inmediatamente
+    forceWindowSize();
+    
+    // Verificar tamaño periódicamente
+    const sizeInterval = setInterval(forceWindowSize, 1000);
+    
+    // Prevenir redimensionamiento
+    window.addEventListener('resize', forceWindowSize);
+    
+    return () => {
+      clearInterval(sizeInterval);
+      window.removeEventListener('resize', forceWindowSize);
+    };
+  }, []);
+
   // Sincronización automática con localStorage para URL independiente
   useEffect(() => {
     const syncFromLocalStorage = () => {
@@ -316,10 +339,20 @@ export const MeetingView: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen ${getBackgroundColor()} text-white flex items-center justify-center p-4 transition-colors duration-500`}>
+    <div 
+      className={`min-h-screen ${getBackgroundColor()} text-white flex items-center justify-center p-4 transition-colors duration-500`}
+      style={{
+        width: '960px',
+        height: '540px',
+        overflow: 'hidden',
+        position: 'fixed',
+        top: 0,
+        left: 0
+      }}
+    >
       <div className="text-center">
         {/* Cronómetro principal - Tamaño duplicado para mejor visibilidad */}
-        <div className={`text-[24rem] font-mono font-bold mb-24 ${isAlertBlinking ? 'animate-pulse' : ''}`}>
+        <div className={`text-[24rem] font-mono font-bold mb-[23px] ${isAlertBlinking ? 'animate-pulse' : ''}`}>
           {formatTime(timeLeft)}
         </div>
 
