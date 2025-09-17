@@ -102,7 +102,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T05:12:36.832Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T05:24:06.716Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -1020,8 +1020,40 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       if (currentStageIdx) {
         sendMessageToReflectionWindow('setStage', { stageIndex: parseInt(currentStageIdx) });
       }
+      
+      // Forzar actualización adicional después de un breve delay
+      setTimeout(() => {
+        if (meetingWindow && !meetingWindow.closed) {
+          const currentTime = localStorage.getItem('currentTimeLeft');
+          if (currentTime) {
+            sendMessageToReflectionWindow('setTime', { seconds: parseInt(currentTime) });
+          }
+        }
+      }, 1000);
     }
   }, [selectedMeeting, stages]);
+  
+  // Sincronización adicional para ventana de reflejo abierta
+  useEffect(() => {
+    if (meetingWindow && !meetingWindow.closed) {
+      const syncInterval = setInterval(() => {
+        if (meetingWindow && !meetingWindow.closed) {
+          const currentTime = localStorage.getItem('currentTimeLeft');
+          const currentStageIdx = localStorage.getItem('currentStageIndex');
+          
+          if (currentTime) {
+            sendMessageToReflectionWindow('setTime', { seconds: parseInt(currentTime) });
+          }
+          
+          if (currentStageIdx) {
+            sendMessageToReflectionWindow('setStage', { stageIndex: parseInt(currentStageIdx) });
+          }
+        }
+      }, 2000); // Sincronizar cada 2 segundos
+      
+      return () => clearInterval(syncInterval);
+    }
+  }, [meetingWindow]);
 
   // Inicializar automáticamente el directorio cuando se cargan las etapas
   useEffect(() => {

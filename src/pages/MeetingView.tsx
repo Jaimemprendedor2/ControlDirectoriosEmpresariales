@@ -21,6 +21,11 @@ export const MeetingView: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isAlertBlinking, setIsAlertBlinking] = useState(false);
   
+  // Establecer título de la ventana
+  useEffect(() => {
+    document.title = 'Cronómetro en Pantalla';
+  }, []);
+  
 
   const currentStage = stages[currentStageIndex];
 
@@ -207,14 +212,13 @@ export const MeetingView: React.FC = () => {
   // Sincronización automática con localStorage para URL independiente
   useEffect(() => {
     const syncFromLocalStorage = () => {
-      // Solo sincronizar si no estamos recibiendo mensajes activamente
       const currentTime = localStorage.getItem('currentTimeLeft');
       const currentStageIdx = localStorage.getItem('currentStageIndex');
       const savedStages = localStorage.getItem('meetingStages');
       
       if (currentTime) {
         const seconds = parseInt(currentTime);
-        if (!isNaN(seconds) && seconds !== timeLeft) {
+        if (!isNaN(seconds)) {
           setTimeLeft(seconds);
           console.log('🔄 Sincronizado desde localStorage - tiempo:', seconds);
         }
@@ -222,7 +226,7 @@ export const MeetingView: React.FC = () => {
       
       if (currentStageIdx) {
         const stageIdx = parseInt(currentStageIdx);
-        if (!isNaN(stageIdx) && stageIdx !== currentStageIndex) {
+        if (!isNaN(stageIdx)) {
           setCurrentStageIndex(stageIdx);
           console.log('🔄 Sincronizado desde localStorage - etapa:', stageIdx);
         }
@@ -231,10 +235,8 @@ export const MeetingView: React.FC = () => {
       if (savedStages) {
         try {
           const parsedStages = JSON.parse(savedStages);
-          if (JSON.stringify(parsedStages) !== JSON.stringify(stages)) {
-            setStages(parsedStages);
-            console.log('🔄 Sincronizado desde localStorage - stages:', parsedStages.length);
-          }
+          setStages(parsedStages);
+          console.log('🔄 Sincronizado desde localStorage - stages:', parsedStages.length);
         } catch (error) {
           console.error('Error parsing stages from localStorage:', error);
         }
@@ -244,11 +246,47 @@ export const MeetingView: React.FC = () => {
     // Sincronizar inmediatamente
     syncFromLocalStorage();
     
-    // Crear intervalo para sincronización periódica cada segundo
-    const syncInterval = setInterval(syncFromLocalStorage, 1000);
+    // Crear intervalo para sincronización periódica cada 500ms para mayor responsividad
+    const syncInterval = setInterval(syncFromLocalStorage, 500);
     
     return () => clearInterval(syncInterval);
-  }, [timeLeft, currentStageIndex, stages]);
+  }, []);
+  
+  // Sincronización adicional cuando cambia el foco de la ventana
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('🔄 Ventana enfocada - sincronizando inmediatamente');
+      const currentTime = localStorage.getItem('currentTimeLeft');
+      const currentStageIdx = localStorage.getItem('currentStageIndex');
+      const savedStages = localStorage.getItem('meetingStages');
+      
+      if (currentTime) {
+        const seconds = parseInt(currentTime);
+        if (!isNaN(seconds)) {
+          setTimeLeft(seconds);
+        }
+      }
+      
+      if (currentStageIdx) {
+        const stageIdx = parseInt(currentStageIdx);
+        if (!isNaN(stageIdx)) {
+          setCurrentStageIndex(stageIdx);
+        }
+      }
+      
+      if (savedStages) {
+        try {
+          const parsedStages = JSON.parse(savedStages);
+          setStages(parsedStages);
+        } catch (error) {
+          console.error('Error parsing stages on focus:', error);
+        }
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   // Timer effect - ELIMINADO: La ventana de reflejo debe ser pasiva
   // Solo recibe actualizaciones del cronómetro principal vía postMessage
