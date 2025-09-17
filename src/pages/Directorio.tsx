@@ -102,7 +102,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T04:42:11.892Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T04:58:56.240Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -357,11 +357,21 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     timerUpdate; // Esto hace que la función se ejecute cada vez que timerUpdate cambie
     
     const currentStage = stages[currentStageIndex];
-    if (!currentStage) return "00:00";
+    if (!currentStage) {
+      console.log('⚠️ getCurrentTime: No currentStage');
+      return "00:00";
+    }
     
     // El cronómetro principal siempre usa localStorage
     const timeLeft = localStorage.getItem('currentTimeLeft');
     let seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
+    
+    console.log('🕰️ getCurrentTime debug:', {
+      timeLeft: timeLeft,
+      parsedTimeLeft: timeLeft ? parseInt(timeLeft) : null,
+      currentStageDuration: currentStage.duration,
+      finalSeconds: seconds
+    });
     
     // Asegurar que el tiempo no sea negativo y no sea NaN
     if (isNaN(seconds)) {
@@ -618,6 +628,13 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       
       localStorage.setItem('meetingStages', JSON.stringify(stages));
       const initialStageTime = stages[0].duration;
+      console.log('🚀 Iniciando directorio - initialStageTime:', initialStageTime);
+      
+      if (!initialStageTime || initialStageTime <= 0) {
+        console.error('❌ Error: initialStageTime inválido:', initialStageTime);
+        return;
+      }
+      
       localStorage.setItem('currentTimeLeft', initialStageTime.toString());
       localStorage.setItem('initialTime', initialStageTime.toString());
       localStorage.setItem('isTimerRunning', 'true');
@@ -625,6 +642,12 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       localStorage.setItem('hasBeenStarted', 'true');
       setCurrentStageIndex(0);
       setIsTimerRunning(true);
+      
+      console.log('✅ localStorage configurado:', {
+        currentTimeLeft: localStorage.getItem('currentTimeLeft'),
+        initialTime: localStorage.getItem('initialTime'),
+        isTimerRunning: localStorage.getItem('isTimerRunning')
+      });
       
       // Enviar mensaje a la ventana de reflejo
       sendMessageToReflectionWindow('pauseResume', { isRunning: true });

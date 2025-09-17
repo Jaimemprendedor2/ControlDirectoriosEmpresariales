@@ -96,7 +96,8 @@ export const MeetingView: React.FC = () => {
             const seconds = typeof command.data.seconds === 'number' ? command.data.seconds : parseInt(command.data.seconds || '0');
             if (!isNaN(seconds)) {
               setTimeLeft(seconds);
-              localStorage.setItem('currentTimeLeft', seconds.toString());
+              // NO escribir a localStorage - solo mostrar lo recibido
+              console.log('🚀 Ventana reflejo (Pusher) actualizada a:', seconds, 'segundos');
             } else {
               console.error('Tiempo inválido recibido por Pusher:', command.data.seconds);
             }
@@ -128,18 +129,18 @@ export const MeetingView: React.FC = () => {
             const { currentTimeLeft, isTimerRunning, currentStageIndex, stages } = command.data;
             if (currentTimeLeft !== undefined) {
               setTimeLeft(parseInt(currentTimeLeft));
-              localStorage.setItem('currentTimeLeft', currentTimeLeft);
+              // NO escribir a localStorage - solo mostrar
             }
             if (isTimerRunning !== undefined) {
-              localStorage.setItem('isTimerRunning', isTimerRunning.toString());
+              // NO escribir a localStorage - solo mostrar
             }
             if (currentStageIndex !== undefined) {
               setCurrentStageIndex(currentStageIndex);
-              localStorage.setItem('currentStageIndex', currentStageIndex.toString());
+              // NO escribir a localStorage - solo mostrar
             }
             if (stages) {
               setStages(stages);
-              localStorage.setItem('meetingStages', JSON.stringify(stages));
+              // NO escribir a localStorage - solo mostrar
             }
           }
           break;
@@ -165,16 +166,17 @@ export const MeetingView: React.FC = () => {
         const seconds = typeof event.data.seconds === 'number' ? event.data.seconds : parseInt(event.data.seconds || '0');
         if (!isNaN(seconds)) {
           setTimeLeft(seconds);
-          localStorage.setItem('currentTimeLeft', seconds.toString());
+          // NO escribir a localStorage - solo mostrar lo recibido
+          console.log('🚀 Ventana reflejo actualizada a:', seconds, 'segundos');
         } else {
           console.error('Tiempo inválido recibido:', event.data.seconds);
         }
       } else if (event.data.action === 'setStage') {
         setCurrentStageIndex(event.data.stageIndex);
-        localStorage.setItem('currentStageIndex', event.data.stageIndex.toString());
+        // NO escribir a localStorage - solo mostrar
       } else if (event.data.action === 'setStages') {
         setStages(event.data.stages);
-        localStorage.setItem('meetingStages', JSON.stringify(event.data.stages));
+        // NO escribir a localStorage - solo mostrar
       } else if (event.data.action === 'stopTimer') {
         // No resetear a 0, mantener el tiempo actual
         console.log('Comando stopTimer recibido vía postMessage, manteniendo tiempo actual');
@@ -182,18 +184,18 @@ export const MeetingView: React.FC = () => {
         const { currentTimeLeft, isTimerRunning, currentStageIndex, stages } = event.data;
         if (currentTimeLeft !== undefined) {
           setTimeLeft(parseInt(currentTimeLeft));
-          localStorage.setItem('currentTimeLeft', currentTimeLeft);
+          // NO escribir a localStorage - solo mostrar
         }
         if (isTimerRunning !== undefined) {
-          localStorage.setItem('isTimerRunning', isTimerRunning.toString());
+          // NO escribir a localStorage - solo mostrar
         }
         if (currentStageIndex !== undefined) {
           setCurrentStageIndex(currentStageIndex);
-          localStorage.setItem('currentStageIndex', currentStageIndex.toString());
+          // NO escribir a localStorage - solo mostrar
         }
         if (stages) {
           setStages(stages);
-          localStorage.setItem('meetingStages', JSON.stringify(stages));
+          // NO escribir a localStorage - solo mostrar
         }
       }
     };
