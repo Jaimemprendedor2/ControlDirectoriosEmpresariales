@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CsvDropzone } from '../components/CsvDropzone';
 import { StagesList } from '../components/StagesList';
 import { StageColorConfig } from '../components/StageColorConfig';
@@ -29,6 +30,7 @@ interface Stage {
 }
 
 export const Directorio: React.FC = () => {
+  const navigate = useNavigate();
   const [stages, setStages] = useState<Stage[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -102,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T09:30:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T10:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -1209,15 +1211,15 @@ export const Directorio: React.FC = () => {
         <header className="text-center mb-8">
           <div className="flex justify-between items-center mb-4">
             <button
-              onClick={handleDeselectMeeting}
+              onClick={() => navigate('/')}
               className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300"
             >
-              ← Volver a directorios
+              ← Volver al Menú Principal
             </button>
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.19 ({getBuildInfo()})
+                v1.7.20 ({getBuildInfo()})
               </span>
             </div>
           </div>

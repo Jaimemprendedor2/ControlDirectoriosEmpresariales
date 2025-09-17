@@ -197,6 +197,31 @@
 
 ---
 
+## **📦 Versión 1.7.20** *(17/09/2025 - 10:00)*
+
+### 🔄 **Corrección de Navegación**
+- **Botón de navegación corregido**: "Volver al Menú Principal" ahora lleva correctamente al menú inicial
+- **Navegación intuitiva**: El botón lleva a la pantalla con Predirectorio, Directorio y Jornada de Coaching Empresarial
+- **Mejor flujo de usuario**: Navegación más lógica y predecible
+
+### ✅ **Cambios Implementados**
+- **Corrección del botón de navegación**:
+  - Cambiado de `handleDeselectMeeting` a `navigate('/')`
+  - Texto actualizado a "Volver al Menú Principal"
+  - Navegación directa al menú principal
+- **Reimportación de `useNavigate`**:
+  - Agregado import de `useNavigate` de `react-router-dom`
+  - Declarada variable `navigate` para navegación
+  - Funcionalidad de navegación restaurada
+
+### 🎯 **Beneficios de la Corrección**
+- **Navegación correcta**: El botón lleva al menú principal como se espera
+- **Flujo lógico**: Usuario puede volver fácilmente al menú de opciones
+- **Mejor UX**: Navegación más intuitiva y predecible
+- **Consistencia**: Comportamiento coherente con las expectativas del usuario
+
+---
+
 ## **📦 Versión 1.7.19** *(17/09/2025 - 09:30)*
 
 ### 🔧 **Corrección de Error de Build**
@@ -570,4 +595,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 09:30:00*
+*Última actualización: 2025-09-17 10:00:00*
