@@ -197,6 +197,60 @@
 
 ---
 
+## **📦 Versión 1.7.18** *(17/09/2025 - 09:00)*
+
+### 🎨 **Mejora de Interfaz - Reubicación de Botón**
+- **Botón "Abrir Reflejo" reubicado**: Ahora está al costado del título "Cronómetro Principal del Directorio"
+- **Mejor accesibilidad**: El botón está más cerca del cronómetro que controla
+- **Interfaz más intuitiva**: La funcionalidad de reflejo está asociada visualmente con el cronómetro
+
+### ✅ **Cambios Implementados**
+- **Reubicación del botón "Abrir Reflejo"**:
+  - Movido desde el bloque de controles al final de la página
+  - Colocado al costado derecho del título del cronómetro
+  - Mantiene toda su funcionalidad original
+- **Mejora en el diseño del título**:
+  - Cambiado de `flex items-center` a `flex items-center justify-between`
+  - Título y botón en la misma línea con espacio distribuido
+  - Botón con tamaño `text-sm` para mejor proporción
+
+### 🎯 **Beneficios de la Reubicación**
+- **Acceso más rápido**: El botón está más cerca del cronómetro
+- **Asociación visual**: La funcionalidad de reflejo está claramente vinculada al cronómetro
+- **Interfaz más limpia**: Menos botones en el bloque de controles al final
+- **Mejor flujo de trabajo**: El usuario puede abrir el reflejo inmediatamente al ver el cronómetro
+
+---
+
+## **📦 Versión 1.7.17** *(17/09/2025 - 08:30)*
+
+### 🔧 **Correcciones y Mejoras de UX**
+- **Corrección del botón Parar Directorio**: Ya no reinicia el cronómetro al tiempo de la primera etapa
+- **Reubicación del botón de navegación**: "Volver a directorios" ahora está en la parte superior
+- **Visualización de descripciones**: Las etapas del directorio ahora muestran sus descripciones
+
+### ✅ **Cambios Implementados**
+- **Corrección de `handleStopTimer`**:
+  - Preserva `initialTime`, `currentStageIndex` y `meetingStages` en localStorage
+  - Solo remueve `hasBeenStarted` para limpiar el estado de inicio
+  - El cronómetro mantiene su configuración actual al parar
+- **Reubicación del botón de navegación**:
+  - Movido "Volver a directorios" a la posición de "Volver al Menú Principal"
+  - Eliminado el botón duplicado de la sección del directorio seleccionado
+  - Mejor flujo de navegación
+- **Mejora en `StagesList`**:
+  - Agregada visualización de descripción de etapas
+  - La descripción aparece debajo del título si existe
+  - Mejor información visual para cada etapa
+
+### 🎯 **Beneficios de las Mejoras**
+- **Comportamiento correcto**: El botón Parar Directorio ya no resetea la configuración
+- **Navegación intuitiva**: Un solo botón de navegación en posición lógica
+- **Información completa**: Las descripciones de etapas son visibles en la lista
+- **Mejor UX**: Flujo más natural y predecible
+
+---
+
 ## **📦 Versión 1.7.16** *(17/09/2025 - 08:00)*
 
 ### 🔄 **Reorganización de Interfaz**
@@ -491,4 +545,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 08:00:00*
+*Última actualización: 2025-09-17 09:00:00*

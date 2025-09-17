@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T08:00:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T09:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -1161,16 +1161,13 @@ export const Directorio: React.FC = () => {
      // Pausar el cronómetro
      setIsTimerRunning(false);
      
-     // Limpiar localStorage pero preservar tiempo actual
+     // Limpiar localStorage pero preservar tiempo actual y configuración
      localStorage.setItem('isTimerRunning', 'false');
-     localStorage.removeItem('initialTime');
-     localStorage.removeItem('currentStageIndex');
-     localStorage.removeItem('meetingStages');
-     localStorage.removeItem('hasBeenStarted');
+     // MANTENER initialTime, currentStageIndex, meetingStages para preservar la configuración
      // MANTENER currentTimeLeft para preservar el tiempo en el reflejo
+     localStorage.removeItem('hasBeenStarted');
      
-     // Resetear estado local
-     setCurrentStageIndex(0);
+     // NO resetear estado local para mantener la configuración
      
      // Sincronizar con el reflejo
      sendMessageToReflectionWindow('stopTimer', {});
@@ -1214,15 +1211,15 @@ export const Directorio: React.FC = () => {
         <header className="text-center mb-8">
           <div className="flex justify-between items-center mb-4">
             <button
-              onClick={() => navigate('/')}
+              onClick={handleDeselectMeeting}
               className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300"
             >
-              ← Volver al Menú Principal
+              ← Volver a directorios
             </button>
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.16 ({getBuildInfo()})
+                v1.7.18 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1291,13 +1288,6 @@ export const Directorio: React.FC = () => {
             <div>
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <button
-                    onClick={handleDeselectMeeting}
-                    className="text-blue-600 hover:text-blue-800 text-sm mb-2 flex items-center space-x-1"
-                  >
-                    <span>←</span>
-                    <span>Volver a directorios</span>
-                  </button>
                   <div className="flex items-center space-x-3">
                     <h2 className="text-2xl font-bold text-gray-800">
                       {selectedMeeting.title}
@@ -1351,9 +1341,55 @@ export const Directorio: React.FC = () => {
                                           {/* Panel de Control de Tiempo - mostrar cuando hay etapas */}
             {selectedMeeting && stages.length > 0 && (
             <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-green-200">
-                                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                     <span className="text-2xl mr-2">⏱️</span>
-                     Cronómetro Principal del Directorio
+                                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center justify-between">
+                     <div className="flex items-center">
+                       <span className="text-2xl mr-2">⏱️</span>
+                       Cronómetro Principal del Directorio
+                     </div>
+                     <button
+                       onClick={() => {
+                         if (meetingWindow && !meetingWindow.closed) {
+                           meetingWindow.close();
+                           setMeetingWindow(null);
+                         } else {
+                           const newMeetingWindow = window.open(
+                             '/meeting',
+                             'meeting',
+                             'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
+                           );
+                           if (newMeetingWindow) {
+                             setMeetingWindow(newMeetingWindow);
+                             // Enviar estado actual a la ventana de reflejo
+                             setTimeout(() => {
+                               const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+                               const isRunning = localStorage.getItem('isTimerRunning');
+                               const currentStage = localStorage.getItem('currentStageIndex');
+                               const stages = localStorage.getItem('meetingStages');
+                               
+                               if (newMeetingWindow && !newMeetingWindow.closed) {
+                                 newMeetingWindow.postMessage({
+                                   action: 'syncState',
+                                   data: {
+                                     currentTimeLeft: currentTimeLeft,
+                                     isTimerRunning: isRunning === 'true',
+                                     currentStageIndex: currentStage ? parseInt(currentStage) : 0,
+                                     stages: stages ? JSON.parse(stages) : []
+                                   }
+                                 }, '*');
+                               }
+                             }, 100);
+                           }
+                         }
+                       }}
+                       className={`font-medium py-2 px-4 rounded-lg transition-colors text-sm ${
+                         meetingWindow && !meetingWindow.closed
+                           ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                           : 'bg-blue-600 hover:bg-blue-700 text-white'
+                       }`}
+                       title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
+                     >
+                       {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
+                     </button>
                    </h3>
                   
                   {/* Vista del Cronómetro */}
@@ -1544,51 +1580,6 @@ export const Directorio: React.FC = () => {
 
                {/* Botones de control */}
                <div className="mt-4 flex space-x-2">
-                 <button
-                   onClick={() => {
-                     if (meetingWindow && !meetingWindow.closed) {
-                       meetingWindow.close();
-                       setMeetingWindow(null);
-                     } else {
-                       const newMeetingWindow = window.open(
-                         '/meeting',
-                         'meeting',
-                         'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
-                       );
-                       if (newMeetingWindow) {
-                         setMeetingWindow(newMeetingWindow);
-                         // Enviar estado actual a la ventana de reflejo
-                         setTimeout(() => {
-                           const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-                           const isRunning = localStorage.getItem('isTimerRunning');
-                           const currentStage = localStorage.getItem('currentStageIndex');
-                           const stages = localStorage.getItem('meetingStages');
-                           
-                           if (newMeetingWindow && !newMeetingWindow.closed) {
-                             newMeetingWindow.postMessage({
-                               action: 'syncState',
-                               data: {
-                                 currentTimeLeft: currentTimeLeft,
-                                 isTimerRunning: isRunning === 'true',
-                                 currentStageIndex: currentStage ? parseInt(currentStage) : 0,
-                                 stages: stages ? JSON.parse(stages) : []
-                               }
-                             }, '*');
-                           }
-                         }, 100);
-                       }
-                     }
-                   }}
-                   className={`font-medium py-2 px-4 rounded-lg transition-colors ${
-                     meetingWindow && !meetingWindow.closed
-                       ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                       : 'bg-blue-600 hover:bg-blue-700 text-white'
-                   }`}
-                   title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
-                 >
-                   {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
-                 </button>
-                 
                  <button
                    onClick={handleCopyControlURL}
                    className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"

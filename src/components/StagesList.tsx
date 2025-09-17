@@ -106,6 +106,11 @@ export const StagesList: React.FC<StagesListProps> = ({
                      `}>
                        {stage.title}
                      </h4>
+                     {stage.description && (
+                       <p className="text-sm text-gray-600 mt-1">
+                         {stage.description}
+                       </p>
+                     )}
                      <p className="text-sm text-gray-500">
                        {formatDuration(stage.duration)}
                      </p>
