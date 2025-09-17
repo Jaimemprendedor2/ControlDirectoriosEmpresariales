@@ -12,10 +12,10 @@ interface Stage {
     backgroundColor: string;
   }>;
   alertColor?: string;
+  alertSeconds?: number;
 }
 
 export const MeetingView: React.FC = () => {
-  // Estados para reflejar el cronómetro principal
   const [stages, setStages] = useState<Stage[]>([]);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -40,53 +40,48 @@ export const MeetingView: React.FC = () => {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Función para enviar estado del timer
-  const sendTimerState = () => {
-    const pusherService = getPusherService();
-    if (!pusherService || !pusherService.isConnected()) return;
+  // Cargar estado inicial desde localStorage
+  useEffect(() => {
+    const loadInitialState = () => {
+      const savedTimeLeft = localStorage.getItem('currentTimeLeft');
+      const savedIsRunning = localStorage.getItem('isTimerRunning');
+      const savedStages = localStorage.getItem('meetingStages');
+      const savedStageIndex = localStorage.getItem('currentStageIndex');
 
-    const timerState: TimerState = {
-      currentTimeLeft: timeLeft,
-      isRunning: isRunning,
-      currentStageIndex: currentStageIndex,
-      stages: stages,
-      timestamp: Date.now()
+      if (savedTimeLeft) {
+        setTimeLeft(parseInt(savedTimeLeft));
+      }
+
+      if (savedIsRunning) {
+        setIsRunning(savedIsRunning === 'true');
+      }
+
+      if (savedStages) {
+        try {
+          const parsedStages = JSON.parse(savedStages);
+          setStages(parsedStages);
+        } catch (error) {
+          console.error('Error parsing stages:', error);
+        }
+      }
+
+      if (savedStageIndex) {
+        setCurrentStageIndex(parseInt(savedStageIndex));
+      }
     };
 
-    pusherService.sendTimerState(timerState);
-  };
+    loadInitialState();
+  }, []);
 
-  // Inicializar Pusher
+  // Configurar Pusher
   useEffect(() => {
-    // Obtener ID de la sala desde localStorage o generar uno
-    const meetingStages = localStorage.getItem('meetingStages');
-    const currentStageIndex = localStorage.getItem('currentStageIndex');
-    const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-    const isTimerRunning = localStorage.getItem('isTimerRunning');
+    const pusherConfig = getPusherConfig();
     
-    if (meetingStages) {
-      try {
-        const parsedStages = JSON.parse(meetingStages);
-        setStages(parsedStages);
-      } catch (error) {
-        console.error('Error parsing stages:', error);
-      }
-    }
-    
-    if (currentStageIndex) {
-      setCurrentStageIndex(parseInt(currentStageIndex));
-    }
-    
-    if (currentTimeLeft) {
-      setTimeLeft(parseInt(currentTimeLeft));
-    }
-    
-    if (isTimerRunning) {
-      setIsRunning(isTimerRunning === 'true');
+    if (!pusherConfig.appKey || pusherConfig.appKey === 'tu_pusher_key_aqui') {
+      console.log('Pusher no configurado, usando solo localStorage');
+      return;
     }
 
-    // Crear servicio Pusher
-    const pusherConfig = getPusherConfig();
     const pusherService = createPusherService({
       appKey: pusherConfig.appKey,
       cluster: pusherConfig.cluster,
@@ -108,269 +103,113 @@ export const MeetingView: React.FC = () => {
             localStorage.setItem('currentTimeLeft', command.data.seconds.toString());
           }
           break;
-        case 'setRunning':
+        case 'pauseResume':
           if (command.data?.isRunning !== undefined) {
             setIsRunning(command.data.isRunning);
             localStorage.setItem('isTimerRunning', command.data.isRunning.toString());
           }
           break;
-        case 'nextStage':
+        case 'setStage':
           if (command.data?.stageIndex !== undefined) {
             setCurrentStageIndex(command.data.stageIndex);
             localStorage.setItem('currentStageIndex', command.data.stageIndex.toString());
-            if (stages[command.data.stageIndex]) {
-              const newTime = stages[command.data.stageIndex].duration;
-              setTimeLeft(newTime);
-              localStorage.setItem('currentTimeLeft', newTime.toString());
-              localStorage.setItem('initialTime', newTime.toString());
-            }
           }
           break;
-        case 'previousStage':
-          if (command.data?.stageIndex !== undefined) {
-            setCurrentStageIndex(command.data.stageIndex);
-            localStorage.setItem('currentStageIndex', command.data.stageIndex.toString());
-            if (stages[command.data.stageIndex]) {
-              const newTime = stages[command.data.stageIndex].duration;
-              setTimeLeft(newTime);
-              localStorage.setItem('currentTimeLeft', newTime.toString());
-              localStorage.setItem('initialTime', newTime.toString());
-            }
-          }
-          break;
-        case 'addTime':
-          const addSeconds = command.data?.seconds || 30;
-          const newTimeAdd = timeLeft + addSeconds;
-          setTimeLeft(newTimeAdd);
-          localStorage.setItem('currentTimeLeft', newTimeAdd.toString());
-          break;
-        case 'subtractTime':
-          const subSeconds = command.data?.seconds || 30;
-          const newTimeSub = Math.max(0, timeLeft - subSeconds);
-          setTimeLeft(newTimeSub);
-          localStorage.setItem('currentTimeLeft', newTimeSub.toString());
-          break;
-        case 'pauseResume':
-          const newRunningState = !isRunning;
-          setIsRunning(newRunningState);
-          localStorage.setItem('isTimerRunning', newRunningState.toString());
-          break;
-        case 'stopTimer':
-          // Parar cronómetro pero mantener tiempo actual
-          setIsRunning(false);
-          localStorage.setItem('isTimerRunning', 'false');
-          // MANTENER timeLeft y currentTimeLeft - NO resetear a 0
-          console.log('🛑 Cronómetro parado (tiempo preservado) desde reflejo');
-          break;
-      }
-    });
-
-    pusherService.onTimerState((state: TimerState) => {
-      console.log('Estado del timer recibido:', state);
-      // Sincronizar con el estado recibido
-      if (state.currentTimeLeft !== undefined) {
-        setTimeLeft(state.currentTimeLeft);
-        localStorage.setItem('currentTimeLeft', state.currentTimeLeft.toString());
-      }
-      if (state.isRunning !== undefined) {
-        setIsRunning(state.isRunning);
-        localStorage.setItem('isTimerRunning', state.isRunning.toString());
-      }
-      if (state.currentStageIndex !== undefined) {
-        setCurrentStageIndex(state.currentStageIndex);
-        localStorage.setItem('currentStageIndex', state.currentStageIndex.toString());
-      }
-      if (state.stages && state.stages.length > 0) {
-        setStages(state.stages);
-        localStorage.setItem('meetingStages', JSON.stringify(state.stages));
-      }
-    });
-
-    pusherService.onError((error) => {
-      console.error('Error Pusher en MeetingView:', error);
-    });
-
-    // Conectar al servidor
-    console.log('Conectando MeetingView a Pusher...');
-    pusherService.connect()
-      .then(() => {
-        console.log('MeetingView conectado exitosamente a Pusher');
-      })
-      .catch((error) => {
-        console.error('Error de conexión en MeetingView:', error);
-      });
-
-    // Cleanup al desmontar
-    return () => {
-      console.log('Desconectando MeetingView de Pusher...');
-      pusherService.disconnect();
-    };
-  }, []);
-
-  // Escuchar mensajes postMessage del panel principal
-  useEffect(() => {
-    const handlePostMessage = (event: MessageEvent) => {
-      console.log('📨 Mensaje postMessage recibido en MeetingView:', event.data);
-      
-      // Verificar que el mensaje tenga el formato esperado
-      if (!event.data || !event.data.action) return;
-      
-      switch (event.data.action) {
-        case 'pauseResume':
-          if (event.data.data?.isRunning !== undefined) {
-            console.log('▶️ Actualizando estado de ejecución via postMessage:', event.data.data.isRunning);
-            setIsRunning(event.data.data.isRunning);
-            localStorage.setItem('isTimerRunning', event.data.data.isRunning.toString());
-          }
-          break;
-        case 'setTime':
-          if (event.data.data?.seconds !== undefined) {
-            console.log('⏱️ Estableciendo tiempo via postMessage:', event.data.data.seconds);
-            setTimeLeft(event.data.data.seconds);
-            localStorage.setItem('currentTimeLeft', event.data.data.seconds.toString());
-          }
-          break;
-        case 'addTime':
-          if (event.data.data?.seconds !== undefined) {
-            const newTime = timeLeft + event.data.data.seconds;
-            console.log('➕ Agregando tiempo via postMessage:', event.data.data.seconds, '-> nuevo tiempo:', newTime);
-            setTimeLeft(newTime);
-            localStorage.setItem('currentTimeLeft', newTime.toString());
-          }
-          break;
-        case 'subtractTime':
-          if (event.data.data?.seconds !== undefined) {
-            const newTime = Math.max(0, timeLeft - event.data.data.seconds);
-            console.log('➖ Restando tiempo via postMessage:', event.data.data.seconds, '-> nuevo tiempo:', newTime);
-            setTimeLeft(newTime);
-            localStorage.setItem('currentTimeLeft', newTime.toString());
-          }
-          break;
-        case 'nextStage':
-          if (event.data.data?.stageIndex !== undefined) {
-            console.log('⏭️ Siguiente etapa via postMessage:', event.data.data.stageIndex);
-            setCurrentStageIndex(event.data.data.stageIndex);
-            localStorage.setItem('currentStageIndex', event.data.data.stageIndex.toString());
-            if (stages[event.data.data.stageIndex]) {
-              const newTime = stages[event.data.data.stageIndex].duration;
-              setTimeLeft(newTime);
-              localStorage.setItem('currentTimeLeft', newTime.toString());
-              localStorage.setItem('initialTime', newTime.toString());
-            }
-          }
-          break;
-        case 'previousStage':
-          if (event.data.data?.stageIndex !== undefined) {
-            console.log('⏮️ Etapa anterior via postMessage:', event.data.data.stageIndex);
-            setCurrentStageIndex(event.data.data.stageIndex);
-            localStorage.setItem('currentStageIndex', event.data.data.stageIndex.toString());
-            if (stages[event.data.data.stageIndex]) {
-              const newTime = stages[event.data.data.stageIndex].duration;
-              setTimeLeft(newTime);
-              localStorage.setItem('currentTimeLeft', newTime.toString());
-              localStorage.setItem('initialTime', newTime.toString());
-            }
+        case 'setStages':
+          if (command.data?.stages) {
+            setStages(command.data.stages);
+            localStorage.setItem('meetingStages', JSON.stringify(command.data.stages));
           }
           break;
         case 'stopTimer':
-          console.log('🛑 Parando timer via postMessage (tiempo preservado)');
-          setIsRunning(false);
-          localStorage.setItem('isTimerRunning', 'false');
-          // MANTENER timeLeft y currentTimeLeft - NO resetear a 0
+          // No resetear a 0, mantener el tiempo actual
+          console.log('Comando stopTimer recibido, manteniendo tiempo actual');
           break;
         case 'syncState':
-          // Sincronizar estado completo del cronómetro
-          if (event.data.data) {
-            console.log('🔄 Sincronizando estado completo via postMessage:', event.data.data);
-            const { currentTimeLeft, isTimerRunning, currentStageIndex: stageIndex, stages: newStages } = event.data.data;
-            
+          if (command.data) {
+            const { currentTimeLeft, isTimerRunning, currentStageIndex, stages } = command.data;
             if (currentTimeLeft !== undefined) {
-              setTimeLeft(parseInt(currentTimeLeft) || 0);
-              localStorage.setItem('currentTimeLeft', currentTimeLeft.toString());
+              setTimeLeft(parseInt(currentTimeLeft));
+              localStorage.setItem('currentTimeLeft', currentTimeLeft);
             }
             if (isTimerRunning !== undefined) {
               setIsRunning(isTimerRunning);
               localStorage.setItem('isTimerRunning', isTimerRunning.toString());
             }
-            if (stageIndex !== undefined) {
-              setCurrentStageIndex(stageIndex);
-              localStorage.setItem('currentStageIndex', stageIndex.toString());
+            if (currentStageIndex !== undefined) {
+              setCurrentStageIndex(currentStageIndex);
+              localStorage.setItem('currentStageIndex', currentStageIndex.toString());
             }
-            if (newStages && newStages.length > 0) {
-              setStages(newStages);
-              localStorage.setItem('meetingStages', JSON.stringify(newStages));
+            if (stages) {
+              setStages(stages);
+              localStorage.setItem('meetingStages', JSON.stringify(stages));
             }
           }
           break;
-        default:
-          console.log('⚠️ Acción de postMessage no reconocida:', event.data.action);
       }
-    };
+    });
 
-    // Agregar listener para postMessage
-    window.addEventListener('message', handlePostMessage);
-    
     // Cleanup
     return () => {
-      window.removeEventListener('message', handlePostMessage);
-    };
-  }, [timeLeft, stages]); // Dependencias necesarias para acceso a estados actuales
-
-  // Sincronizar con localStorage
-  useEffect(() => {
-    const syncWithLocalStorage = () => {
-      const timeLeft = localStorage.getItem('currentTimeLeft');
-      const isRunning = localStorage.getItem('isTimerRunning');
-      const currentStage = localStorage.getItem('currentStageIndex');
-      const stages = localStorage.getItem('meetingStages');
-      
-      if (timeLeft) {
-        const seconds = parseInt(timeLeft);
-        if (!isNaN(seconds)) {
-          setTimeLeft(seconds);
-        }
+      if (pusherService) {
+        pusherService.disconnect();
       }
-      
-      if (isRunning) {
-        setIsRunning(isRunning === 'true');
-      }
-      
-      if (currentStage) {
-        const stageIndex = parseInt(currentStage);
-        if (!isNaN(stageIndex)) {
-          setCurrentStageIndex(stageIndex);
-        }
-      }
-      
-      if (stages) {
-        try {
-          const parsedStages = JSON.parse(stages);
-          setStages(parsedStages);
-        } catch (error) {
-          console.log('Error parsing stages from localStorage:', error);
-        }
-      }
-    };
-
-    // Sincronizar cada 500ms
-    const syncInterval = setInterval(syncWithLocalStorage, 500);
-    
-    // Verificación inicial
-    syncWithLocalStorage();
-    
-    return () => {
-      clearInterval(syncInterval);
     };
   }, []);
 
-  // Timer para contar regresivamente
+  // Escuchar mensajes del parent window
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      console.log('Mensaje recibido en MeetingView:', event.data);
+      
+      if (event.data.action === 'pauseResume') {
+        setIsRunning(event.data.isRunning);
+        localStorage.setItem('isTimerRunning', event.data.isRunning.toString());
+      } else if (event.data.action === 'setTime') {
+        setTimeLeft(event.data.seconds);
+        localStorage.setItem('currentTimeLeft', event.data.seconds.toString());
+      } else if (event.data.action === 'setStage') {
+        setCurrentStageIndex(event.data.stageIndex);
+        localStorage.setItem('currentStageIndex', event.data.stageIndex.toString());
+      } else if (event.data.action === 'setStages') {
+        setStages(event.data.stages);
+        localStorage.setItem('meetingStages', JSON.stringify(event.data.stages));
+      } else if (event.data.action === 'stopTimer') {
+        // No resetear a 0, mantener el tiempo actual
+        console.log('Comando stopTimer recibido vía postMessage, manteniendo tiempo actual');
+      } else if (event.data.action === 'syncState') {
+        const { currentTimeLeft, isTimerRunning, currentStageIndex, stages } = event.data;
+        if (currentTimeLeft !== undefined) {
+          setTimeLeft(parseInt(currentTimeLeft));
+          localStorage.setItem('currentTimeLeft', currentTimeLeft);
+        }
+        if (isTimerRunning !== undefined) {
+          setIsRunning(isTimerRunning);
+          localStorage.setItem('isTimerRunning', isTimerRunning.toString());
+        }
+        if (currentStageIndex !== undefined) {
+          setCurrentStageIndex(currentStageIndex);
+          localStorage.setItem('currentStageIndex', currentStageIndex.toString());
+        }
+        if (stages) {
+          setStages(stages);
+          localStorage.setItem('meetingStages', JSON.stringify(stages));
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    
+
     if (isRunning && timeLeft > 0) {
       interval = setInterval(() => {
         setTimeLeft(prev => {
-          const newTime = Math.max(0, prev - 1);
+          const newTime = prev - 1;
           localStorage.setItem('currentTimeLeft', newTime.toString());
           return newTime;
         });
@@ -384,18 +223,7 @@ export const MeetingView: React.FC = () => {
     };
   }, [isRunning, timeLeft]);
 
-  // Enviar estado del timer periódicamente
-  useEffect(() => {
-    const stateInterval = setInterval(() => {
-      sendTimerState();
-    }, 2000); // Enviar estado cada 2 segundos
-
-    return () => {
-      clearInterval(stateInterval);
-    };
-  }, [timeLeft, isRunning, currentStageIndex, stages]);
-
-  // Efecto de alerta cuando queda poco tiempo
+  // Efecto para parpadeo de alerta
   useEffect(() => {
     if (timeLeft <= 15 && timeLeft > 0) {
       setIsAlertBlinking(true);
@@ -419,8 +247,8 @@ export const MeetingView: React.FC = () => {
   return (
     <div className={`min-h-screen ${getBackgroundColor()} text-white flex items-center justify-center p-4 transition-colors duration-500`}>
       <div className="text-center">
-        {/* Cronómetro principal - Tamaño duplicado */}
-        <div className={`text-16xl font-mono font-bold mb-8 ${isAlertBlinking ? 'animate-pulse' : ''}`}>
+        {/* Cronómetro principal - Tamaño corregido */}
+        <div className={`text-9xl font-mono font-bold mb-8 ${isAlertBlinking ? 'animate-pulse' : ''}`}>
           {formatTime(timeLeft)}
         </div>
 
