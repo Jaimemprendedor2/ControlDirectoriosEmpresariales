@@ -95,7 +95,6 @@ export const MeetingView: React.FC = () => {
 
     // Configurar callbacks
     pusherService.onConnectionChange((state) => {
-      setConnectionState(state);
       console.log('Estado de conexión Pusher:', state);
     });
 
