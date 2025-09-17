@@ -340,26 +340,46 @@ export const MeetingView: React.FC = () => {
 
   return (
     <div 
-      className={`min-h-screen ${getBackgroundColor()} text-white flex items-center justify-center p-4 transition-colors duration-500`}
+      className={`${getBackgroundColor()} text-white flex flex-col items-center justify-center transition-colors duration-500`}
       style={{
         width: '960px',
         height: '540px',
         overflow: 'hidden',
         position: 'fixed',
         top: 0,
-        left: 0
+        left: 0,
+        padding: '20px',
+        boxSizing: 'border-box'
       }}
     >
-      <div className="text-center">
-        {/* Cronómetro principal - Tamaño duplicado para mejor visibilidad */}
-        <div className={`text-[24rem] font-mono font-bold mb-[23px] ${isAlertBlinking ? 'animate-pulse' : ''}`}>
-          {formatTime(timeLeft)}
-        </div>
+      {/* Cronómetro principal - Tamaño ajustado para ventana 960x540px */}
+      <div 
+        className={`font-mono font-bold ${isAlertBlinking ? 'animate-pulse' : ''}`}
+        style={{
+          fontSize: '200px',
+          lineHeight: '0.8',
+          textAlign: 'center',
+          marginBottom: '20px',
+          maxWidth: '100%',
+          overflow: 'hidden'
+        }}
+      >
+        {formatTime(timeLeft)}
+      </div>
 
-        {/* Información de la etapa */}
-        <div className="text-[12rem]">
-          {currentStage?.title || 'Etapa'}
-        </div>
+      {/* Información de la etapa */}
+      <div 
+        className="font-bold"
+        style={{
+          fontSize: '60px',
+          lineHeight: '1',
+          textAlign: 'center',
+          maxWidth: '100%',
+          overflow: 'hidden',
+          wordWrap: 'break-word'
+        }}
+      >
+        {currentStage?.title || 'Etapa'}
       </div>
     </div>
   );
