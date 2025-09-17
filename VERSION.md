@@ -197,6 +197,63 @@
 
 ---
 
+## **📦 Versión 1.7.16** *(17/09/2025 - 08:00)*
+
+### 🔄 **Reorganización de Interfaz**
+- **Bloque movido al final**: Todo el bloque de información de etapa, atajos, estado de Pusher y botones de control se ha movido al final de la página
+- **Mejor flujo visual**: La información de control ahora aparece después de la configuración de etapas
+- **Interfaz más limpia**: El cronómetro principal queda más prominente en la parte superior
+
+### ✅ **Cambios Implementados**
+- **Reubicación completa del bloque de información**:
+  - Información de etapa actual
+  - Descripción del cronómetro principal
+  - Atajos configurados
+  - Estado de Pusher con logs
+  - Botones de control (Abrir Reflejo, Copiar URL, Reconectar)
+  - Botones de configuración (Configurar Atajos, Debug Atajos)
+- **Nuevo contenedor**: El bloque ahora está en una tarjeta separada con borde gris
+- **Mejor organización**: La información de control está al final, después de la configuración de etapas
+
+### 🎯 **Beneficios de la Reorganización**
+- **Cronómetro prominente**: El cronómetro principal queda más visible
+- **Flujo lógico**: Configuración primero, controles después
+- **Mejor experiencia**: La información de control está donde el usuario la espera al final
+- **Interfaz más limpia**: Menos elementos compitiendo por atención en la parte superior
+
+---
+
+## **📦 Versión 1.7.15** *(17/09/2025 - 07:30)*
+
+### ✏️ **Funcionalidad de Edición de Directorio**
+- **Funcionalidad completa**: El botón de editar nombre del directorio ahora es completamente funcional
+- **Integración con base de datos**: Los cambios se guardan automáticamente en Supabase
+- **Interfaz simplificada**: Eliminado el botón de "Nuevo Directorio" para una interfaz más limpia
+- **Actualización en tiempo real**: El nombre se actualiza inmediatamente en la interfaz
+
+### ✅ **Cambios Implementados**
+- **Función `handleEditDirectoryName`**: 
+  - Validación de entrada con prompt
+  - Actualización en base de datos via `MeetingService.updateMeeting`
+  - Actualización del estado local inmediatamente
+  - Recarga de la lista de directorios para sincronización
+- **Nueva función `updateMeeting` en MeetingService**:
+  - Permite actualizar título y descripción de directorios
+  - Manejo de errores robusto
+  - Integración completa con Supabase
+- **Eliminación de botones**:
+  - Removido botón "Nuevo Directorio" de la vista principal
+  - Removido botón "Nuevo Directorio" de la vista de directorio seleccionado
+  - Interfaz más limpia y enfocada
+
+### 🎯 **Beneficios de la Funcionalidad**
+- **Edición rápida**: Un clic en el lápiz para editar el nombre
+- **Persistencia**: Los cambios se guardan automáticamente
+- **Sincronización**: La lista se actualiza inmediatamente
+- **Interfaz simplificada**: Menos botones, más funcionalidad
+
+---
+
 ## **📦 Versión 1.7.14** *(17/09/2025 - 07:00)*
 
 ### 🎨 **Mejoras de Interfaz de Usuario**
@@ -434,4 +491,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 07:00:00*
+*Última actualización: 2025-09-17 08:00:00*

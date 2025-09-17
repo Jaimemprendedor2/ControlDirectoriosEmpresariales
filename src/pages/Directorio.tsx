@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T07:00:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T08:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -180,6 +180,34 @@ export const Directorio: React.FC = () => {
     } catch (error) {
       console.error('Error creando directorio:', error);
       alert('Error al crear el directorio');
+    }
+  };
+
+  // Editar nombre del directorio
+  const handleEditDirectoryName = async () => {
+    if (!selectedMeeting) return;
+
+    const newName = prompt('Nuevo nombre del directorio:', selectedMeeting.title);
+    if (!newName || newName.trim() === '' || newName === selectedMeeting.title) {
+      return;
+    }
+
+    try {
+      // Actualizar el directorio en la base de datos
+      await MeetingService.updateMeeting(selectedMeeting.id, {
+        title: newName.trim()
+      });
+
+      // Actualizar el estado local
+      setSelectedMeeting(prev => prev ? { ...prev, title: newName.trim() } : null);
+      
+      // Recargar la lista de directorios para actualizar la vista
+      await loadMeetings();
+      
+      console.log('✅ Nombre del directorio actualizado exitosamente');
+    } catch (error) {
+      console.error('Error actualizando nombre del directorio:', error);
+      alert('Error al actualizar el nombre del directorio');
     }
   };
 
@@ -1194,7 +1222,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.14 ({getBuildInfo()})
+                v1.7.16 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1210,13 +1238,6 @@ export const Directorio: React.FC = () => {
                 <h2 className="text-2xl font-bold text-gray-800">
                   Directorios Empresariales
                 </h2>
-                <button
-                  onClick={() => setShowNewMeetingModal(true)}
-                  className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
-                >
-                  <span>➕</span>
-                  <span>Nuevo Directorio</span>
-                </button>
               </div>
 
               {meetings.length === 0 ? (
@@ -1282,14 +1303,7 @@ export const Directorio: React.FC = () => {
                       {selectedMeeting.title}
                     </h2>
                     <button
-                      onClick={() => {
-                        const newName = prompt('Nuevo nombre del directorio:', selectedMeeting.title);
-                        if (newName && newName.trim() && newName !== selectedMeeting.title) {
-                          // Aquí se implementaría la lógica para actualizar el nombre
-                          console.log('Nuevo nombre:', newName);
-                          alert('Función de editar nombre en desarrollo');
-                        }
-                      }}
+                      onClick={handleEditDirectoryName}
                       className="text-blue-600 hover:text-blue-800 text-sm p-1 rounded transition-colors"
                       title="Editar nombre del directorio"
                     >
@@ -1305,12 +1319,6 @@ export const Directorio: React.FC = () => {
                   >
                     <span>🗑️</span>
                     <span>Eliminar Directorio</span>
-                  </button>
-                  <button
-                    onClick={() => setShowNewMeetingModal(true)}
-                    className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
-                  >
-                    🔄 Nuevo Directorio
                   </button>
                 </div>
               </div>
@@ -1441,164 +1449,6 @@ export const Directorio: React.FC = () => {
                      </button>
                    </div>
 
-                                     <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                     <div className="text-sm text-gray-600">
-                       <div className="font-medium">Etapa actual: {currentStageIndex + 1} de {stages.length}</div>
-                                               <div className="text-xs mt-1">
-                          Cronómetro principal - Los controles afectan directamente el tiempo
-                        </div>
-                       <div className="text-xs mt-2 text-blue-600">
-                         Atajos configurados: {formatShortcut(keyboardShortcuts.pauseResume)} (Pausar/Reanudar/Resetear), 
-                         {formatShortcut(keyboardShortcuts.nextStage)} (Siguiente), 
-                         {formatShortcut(keyboardShortcuts.previousStage)} (Anterior), 
-                         {formatShortcut(keyboardShortcuts.addTime)}/{formatShortcut(keyboardShortcuts.subtractTime)} (Tiempo)
-                       </div>
-                       
-                                               {/* Indicador de estado Pusher */}
-                        <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-blue-700 font-medium">
-                              Estado Pusher:
-                            </span>
-                           <span className={`text-xs px-2 py-1 rounded-full ${
-                             connectionState.connected 
-                               ? 'bg-green-100 text-green-700' 
-                               : connectionState.connecting 
-                               ? 'bg-yellow-100 text-yellow-700'
-                               : 'bg-red-100 text-red-700'
-                           }`}>
-                             {connectionState.connected ? 'Conectado' : 
-                              connectionState.connecting ? 'Conectando...' : 'Desconectado'}
-                           </span>
-                         </div>
-                         
-                         {connectionState.connected && (
-                           <div className="text-xs text-blue-600 space-y-1">
-                             <div>Latencia: {connectionState.latency}ms</div>
-                             <div>Reconexiones: {connectionState.reconnectAttempts}</div>
-                             {connectionState.lastConnected && (
-                               <div>Última conexión: {new Date(connectionState.lastConnected).toLocaleTimeString()}</div>
-                             )}
-                           </div>
-                         )}
-                         
-                         {connectionState.error && (
-                           <div className="text-xs text-red-600 mt-1">
-                             Error: {connectionState.error}
-                           </div>
-                         )}
-                         
-                         <div className="mt-2 flex space-x-2">
-                           <button
-                             onClick={() => setShowConnectionLogs(!showConnectionLogs)}
-                             className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                           >
-                             {showConnectionLogs ? 'Ocultar Logs' : 'Ver Logs'}
-                           </button>
-                         </div>
-                       </div>
-                       
-                       {/* Logs de conexión */}
-                       {showConnectionLogs && (
-                         <div className="mt-2 p-2 bg-gray-100 rounded border max-h-32 overflow-y-auto">
-                           <div className="text-xs text-gray-700 space-y-1">
-                             {connectionLogs.length === 0 ? (
-                               <div className="text-gray-500">No hay logs disponibles</div>
-                             ) : (
-                               connectionLogs.map((log, index) => (
-                                 <div key={index} className="font-mono text-xs">{log}</div>
-                               ))
-                             )}
-                           </div>
-                         </div>
-                       )}
-
-                       {/* Botones de control - Movidos debajo del estado de Pusher */}
-                       <div className="mt-4 flex space-x-2">
-                         <button
-                           onClick={() => {
-                             if (meetingWindow && !meetingWindow.closed) {
-                               meetingWindow.close();
-                               setMeetingWindow(null);
-                             } else {
-                               const newMeetingWindow = window.open(
-                                 '/meeting',
-                                 'meeting',
-                                 'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
-                               );
-                               if (newMeetingWindow) {
-                                 setMeetingWindow(newMeetingWindow);
-                                 // Enviar estado actual a la ventana de reflejo
-                                 setTimeout(() => {
-                                   const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-                                   const isRunning = localStorage.getItem('isTimerRunning');
-                                   const currentStage = localStorage.getItem('currentStageIndex');
-                                   const stages = localStorage.getItem('meetingStages');
-                                   
-                                   if (newMeetingWindow && !newMeetingWindow.closed) {
-                                     newMeetingWindow.postMessage({
-                                       action: 'syncState',
-                                       data: {
-                                         currentTimeLeft: currentTimeLeft,
-                                         isTimerRunning: isRunning === 'true',
-                                         currentStageIndex: currentStage ? parseInt(currentStage) : 0,
-                                         stages: stages ? JSON.parse(stages) : []
-                                       }
-                                     }, '*');
-                                   }
-                                 }, 100);
-                               }
-                             }
-                           }}
-                           className={`font-medium py-2 px-4 rounded-lg transition-colors ${
-                             meetingWindow && !meetingWindow.closed
-                               ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                               : 'bg-blue-600 hover:bg-blue-700 text-white'
-                           }`}
-                           title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
-                         >
-                           {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
-                         </button>
-                         
-                         <button
-                           onClick={handleCopyControlURL}
-                           className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
-                           title="Copiar URL para control móvil"
-                         >
-                           📱 Copiar URL
-                         </button>
-                         
-                         <button
-                           onClick={forceControlReconnection}
-                           className="font-medium py-2 px-4 rounded-lg transition-colors bg-orange-600 hover:bg-orange-700 text-white"
-                           title="Forzar reconexión de Pusher"
-                         >
-                           🔄 Reconectar
-                         </button>
-                       </div>
-                                               
-                                               <div className="mt-3 flex space-x-2">
-                          <button
-                            onClick={() => setShowShortcutsModal(true)}
-                            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-lg transition-colors flex items-center space-x-2"
-                          >
-                            <span>⌨️</span>
-                            <span>Configurar Atajos</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              console.log('🔍 Estado actual de atajos:', keyboardShortcuts);
-                              console.log('🔍 Ventana de reunión:', meetingWindow ? !meetingWindow.closed : false);
-                            }}
-                            className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs rounded-lg transition-colors flex items-center space-x-2"
-                            title="Ver estado de atajos en consola"
-                          >
-                            <span>🔍</span>
-                            <span>Debug Atajos</span>
-                          </button>
-                        </div>
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -1615,6 +1465,168 @@ export const Directorio: React.FC = () => {
                 onSaveEdit={handleSaveEdit}
                 onCancelEdit={handleCancelEdit}
               />
+            </div>
+          )}
+
+          {/* Bloque de información y controles - Movido al final */}
+          {selectedMeeting && stages.length > 0 && (
+            <div className="bg-white rounded-lg shadow-lg p-6 border-2 border-gray-200">
+              <div className="text-sm text-gray-600">
+                <div className="font-medium">Etapa actual: {currentStageIndex + 1} de {stages.length}</div>
+                <div className="text-xs mt-1">
+                  Cronómetro principal - Los controles afectan directamente el tiempo
+                </div>
+                <div className="text-xs mt-2 text-blue-600">
+                  Atajos configurados: {formatShortcut(keyboardShortcuts.pauseResume)} (Pausar/Reanudar/Resetear), 
+                  {formatShortcut(keyboardShortcuts.nextStage)} (Siguiente), 
+                  {formatShortcut(keyboardShortcuts.previousStage)} (Anterior), 
+                  {formatShortcut(keyboardShortcuts.addTime)}/{formatShortcut(keyboardShortcuts.subtractTime)} (Tiempo)
+                </div>
+                
+                {/* Indicador de estado Pusher */}
+                <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-blue-700 font-medium">
+                      Estado Pusher:
+                    </span>
+                   <span className={`text-xs px-2 py-1 rounded-full ${
+                     connectionState.connected 
+                       ? 'bg-green-100 text-green-700' 
+                       : connectionState.connecting 
+                       ? 'bg-yellow-100 text-yellow-700'
+                       : 'bg-red-100 text-red-700'
+                   }`}>
+                     {connectionState.connected ? 'Conectado' : 
+                      connectionState.connecting ? 'Conectando...' : 'Desconectado'}
+                   </span>
+                 </div>
+                 
+                 {connectionState.connected && (
+                   <div className="text-xs text-blue-600 space-y-1">
+                     <div>Latencia: {connectionState.latency}ms</div>
+                     <div>Reconexiones: {connectionState.reconnectAttempts}</div>
+                     {connectionState.lastConnected && (
+                       <div>Última conexión: {new Date(connectionState.lastConnected).toLocaleTimeString()}</div>
+                     )}
+                   </div>
+                 )}
+                 
+                 {connectionState.error && (
+                   <div className="text-xs text-red-600 mt-1">
+                     Error: {connectionState.error}
+                   </div>
+                 )}
+                 
+                 <div className="mt-2 flex space-x-2">
+                   <button
+                     onClick={() => setShowConnectionLogs(!showConnectionLogs)}
+                     className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                   >
+                     {showConnectionLogs ? 'Ocultar Logs' : 'Ver Logs'}
+                   </button>
+                 </div>
+               </div>
+               
+               {/* Logs de conexión */}
+               {showConnectionLogs && (
+                 <div className="mt-2 p-2 bg-gray-100 rounded border max-h-32 overflow-y-auto">
+                   <div className="text-xs text-gray-700 space-y-1">
+                     {connectionLogs.length === 0 ? (
+                       <div className="text-gray-500">No hay logs disponibles</div>
+                     ) : (
+                       connectionLogs.map((log, index) => (
+                         <div key={index} className="font-mono text-xs">{log}</div>
+                       ))
+                     )}
+                   </div>
+                 </div>
+               )}
+
+               {/* Botones de control */}
+               <div className="mt-4 flex space-x-2">
+                 <button
+                   onClick={() => {
+                     if (meetingWindow && !meetingWindow.closed) {
+                       meetingWindow.close();
+                       setMeetingWindow(null);
+                     } else {
+                       const newMeetingWindow = window.open(
+                         '/meeting',
+                         'meeting',
+                         'width=500,height=400,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
+                       );
+                       if (newMeetingWindow) {
+                         setMeetingWindow(newMeetingWindow);
+                         // Enviar estado actual a la ventana de reflejo
+                         setTimeout(() => {
+                           const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+                           const isRunning = localStorage.getItem('isTimerRunning');
+                           const currentStage = localStorage.getItem('currentStageIndex');
+                           const stages = localStorage.getItem('meetingStages');
+                           
+                           if (newMeetingWindow && !newMeetingWindow.closed) {
+                             newMeetingWindow.postMessage({
+                               action: 'syncState',
+                               data: {
+                                 currentTimeLeft: currentTimeLeft,
+                                 isTimerRunning: isRunning === 'true',
+                                 currentStageIndex: currentStage ? parseInt(currentStage) : 0,
+                                 stages: stages ? JSON.parse(stages) : []
+                               }
+                             }, '*');
+                           }
+                         }, 100);
+                       }
+                     }
+                   }}
+                   className={`font-medium py-2 px-4 rounded-lg transition-colors ${
+                     meetingWindow && !meetingWindow.closed
+                       ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                       : 'bg-blue-600 hover:bg-blue-700 text-white'
+                   }`}
+                   title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
+                 >
+                   {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
+                 </button>
+                 
+                 <button
+                   onClick={handleCopyControlURL}
+                   className="font-medium py-2 px-4 rounded-lg transition-colors bg-purple-600 hover:bg-purple-700 text-white"
+                   title="Copiar URL para control móvil"
+                 >
+                   📱 Copiar URL
+                 </button>
+                 
+                 <button
+                   onClick={forceControlReconnection}
+                   className="font-medium py-2 px-4 rounded-lg transition-colors bg-orange-600 hover:bg-orange-700 text-white"
+                   title="Forzar reconexión de Pusher"
+                 >
+                   🔄 Reconectar
+                 </button>
+               </div>
+                                       
+               <div className="mt-3 flex space-x-2">
+                  <button
+                    onClick={() => setShowShortcutsModal(true)}
+                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs rounded-lg transition-colors flex items-center space-x-2"
+                  >
+                    <span>⌨️</span>
+                    <span>Configurar Atajos</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      console.log('🔍 Estado actual de atajos:', keyboardShortcuts);
+                      console.log('🔍 Ventana de reunión:', meetingWindow ? !meetingWindow.closed : false);
+                    }}
+                    className="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs rounded-lg transition-colors flex items-center space-x-2"
+                    title="Ver estado de atajos en consola"
+                  >
+                    <span>🔍</span>
+                    <span>Debug Atajos</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

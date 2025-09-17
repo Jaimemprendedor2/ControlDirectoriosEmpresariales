@@ -242,6 +242,28 @@ export class MeetingService {
     }
   }
 
+  // Actualizar una reunión
+  static async updateMeeting(meetingId: string, updates: { title?: string; description?: string }): Promise<Meeting> {
+    try {
+      const { data, error } = await supabase
+        .from('meetings')
+        .update(updates)
+        .eq('id', meetingId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating meeting:', error)
+        throw new Error(`Error al actualizar directorio: ${error.message}`)
+      }
+      
+      return data
+    } catch (error) {
+      console.error('Exception updating meeting:', error)
+      throw error
+    }
+  }
+
   // Eliminar una reunión
   static async deleteMeeting(meetingId: string): Promise<void> {
     const { error } = await supabase
