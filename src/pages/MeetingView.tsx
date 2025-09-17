@@ -93,8 +93,13 @@ export const MeetingView: React.FC = () => {
       switch (command.action) {
         case 'setTime':
           if (command.data?.seconds !== undefined) {
-            setTimeLeft(command.data.seconds);
-            localStorage.setItem('currentTimeLeft', command.data.seconds.toString());
+            const seconds = typeof command.data.seconds === 'number' ? command.data.seconds : parseInt(command.data.seconds || '0');
+            if (!isNaN(seconds)) {
+              setTimeLeft(seconds);
+              localStorage.setItem('currentTimeLeft', seconds.toString());
+            } else {
+              console.error('Tiempo inválido recibido por Pusher:', command.data.seconds);
+            }
           }
           break;
         case 'pauseResume':
@@ -157,8 +162,13 @@ export const MeetingView: React.FC = () => {
       if (event.data.action === 'pauseResume') {
         localStorage.setItem('isTimerRunning', event.data.isRunning.toString());
       } else if (event.data.action === 'setTime') {
-        setTimeLeft(event.data.seconds);
-        localStorage.setItem('currentTimeLeft', event.data.seconds.toString());
+        const seconds = typeof event.data.seconds === 'number' ? event.data.seconds : parseInt(event.data.seconds || '0');
+        if (!isNaN(seconds)) {
+          setTimeLeft(seconds);
+          localStorage.setItem('currentTimeLeft', seconds.toString());
+        } else {
+          console.error('Tiempo inválido recibido:', event.data.seconds);
+        }
       } else if (event.data.action === 'setStage') {
         setCurrentStageIndex(event.data.stageIndex);
         localStorage.setItem('currentStageIndex', event.data.stageIndex.toString());

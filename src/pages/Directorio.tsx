@@ -102,7 +102,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T04:33:56.912Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T04:42:11.892Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -992,7 +992,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
           case 'setTime':
             if (command.data?.seconds !== undefined) {
               localStorage.setItem('currentTimeLeft', command.data.seconds.toString());
-              sendMessageToReflectionWindow('setTime', command.data);
+              sendMessageToReflectionWindow('setTime', { seconds: command.data.seconds });
             }
             break;
           case 'addTime':
