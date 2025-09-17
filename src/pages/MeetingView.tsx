@@ -204,6 +204,52 @@ export const MeetingView: React.FC = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  // Sincronización automática con localStorage para URL independiente
+  useEffect(() => {
+    const syncFromLocalStorage = () => {
+      // Solo sincronizar si no estamos recibiendo mensajes activamente
+      const currentTime = localStorage.getItem('currentTimeLeft');
+      const currentStageIdx = localStorage.getItem('currentStageIndex');
+      const savedStages = localStorage.getItem('meetingStages');
+      
+      if (currentTime) {
+        const seconds = parseInt(currentTime);
+        if (!isNaN(seconds) && seconds !== timeLeft) {
+          setTimeLeft(seconds);
+          console.log('🔄 Sincronizado desde localStorage - tiempo:', seconds);
+        }
+      }
+      
+      if (currentStageIdx) {
+        const stageIdx = parseInt(currentStageIdx);
+        if (!isNaN(stageIdx) && stageIdx !== currentStageIndex) {
+          setCurrentStageIndex(stageIdx);
+          console.log('🔄 Sincronizado desde localStorage - etapa:', stageIdx);
+        }
+      }
+      
+      if (savedStages) {
+        try {
+          const parsedStages = JSON.parse(savedStages);
+          if (JSON.stringify(parsedStages) !== JSON.stringify(stages)) {
+            setStages(parsedStages);
+            console.log('🔄 Sincronizado desde localStorage - stages:', parsedStages.length);
+          }
+        } catch (error) {
+          console.error('Error parsing stages from localStorage:', error);
+        }
+      }
+    };
+
+    // Sincronizar inmediatamente
+    syncFromLocalStorage();
+    
+    // Crear intervalo para sincronización periódica cada segundo
+    const syncInterval = setInterval(syncFromLocalStorage, 1000);
+    
+    return () => clearInterval(syncInterval);
+  }, [timeLeft, currentStageIndex, stages]);
+
   // Timer effect - ELIMINADO: La ventana de reflejo debe ser pasiva
   // Solo recibe actualizaciones del cronómetro principal vía postMessage
   // No debe tener su propio timer para evitar conflictos de sincronización

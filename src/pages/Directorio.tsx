@@ -102,7 +102,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T04:58:56.240Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T05:12:36.832Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -212,12 +212,8 @@ export const Directorio: React.FC = () => {
   // Cargar un directorio específico con sus etapas
   const loadMeetingWithStages = async (meetingId: string) => {
     try {
-      // Cerrar ventana de reflejo si está abierta al cambiar de directorio
-      if (meetingWindow && !meetingWindow.closed) {
-        console.log('🔄 Cerrando ventana de reflejo al cambiar de directorio');
-        meetingWindow.close();
-        setMeetingWindow(null);
-      }
+      // NO cerrar ventana de reflejo - mantenerla abierta y sincronizar
+      console.log('🔄 Cambiando de directorio - manteniendo ventana de reflejo abierta');
 
       const { meeting, stages: meetingStages } = await MeetingService.getMeetingWithStages(meetingId);
       
@@ -235,6 +231,11 @@ export const Directorio: React.FC = () => {
       
       setStages(convertedStages);
       setSelectedMeeting(meeting);
+      
+      // Abrir ventana de reflejo automáticamente al entrar a configuración de directorio
+      setTimeout(() => {
+        openReflectionWindow();
+      }, 500);
 
       // Si hay etapas, setear el cronómetro al tiempo de la primera etapa
       if (convertedStages.length > 0) {
@@ -282,14 +283,10 @@ export const Directorio: React.FC = () => {
 
   // Deseleccionar directorio y cerrar ventana de reflejo
   const handleDeselectMeeting = () => {
-    console.log('🔄 Deseleccionando directorio y cerrando ventana de reflejo');
+    console.log('🔄 Deseleccionando directorio - manteniendo ventana de reflejo abierta');
     
-    // Cerrar ventana de reflejo si está abierta
-    if (meetingWindow && !meetingWindow.closed) {
-      console.log('🔄 Cerrando ventana de reflejo al salir del directorio');
-      meetingWindow.close();
-      setMeetingWindow(null);
-    }
+    // NO cerrar ventana de reflejo - mantenerla abierta para próximo directorio
+    console.log('📺 Manteniendo ventana de reflejo abierta para reutilizar');
     
     // Limpiar estado del cronómetro
     localStorage.removeItem('currentTimeLeft');
@@ -508,6 +505,78 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     }
   };
 
+  // Función para generar URL única de reflejo
+  const getReflectionURL = () => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/meeting`;
+  };
+
+  // Función para copiar URL del reflejo al portapapeles
+  const copyReflectionURL = async () => {
+    try {
+      const url = getReflectionURL();
+      await navigator.clipboard.writeText(url);
+      alert(`✅ URL copiada al portapapeles:\n${url}`);
+      console.log('📋 URL del reflejo copiada:', url);
+    } catch (error) {
+      console.error('❌ Error al copiar URL:', error);
+      // Fallback para navegadores que no soportan clipboard API
+      const url = getReflectionURL();
+      prompt('Copiar URL del reflejo:', url);
+    }
+  };
+
+  // Función para abrir ventana de reflejo automáticamente
+  const openReflectionWindow = () => {
+    if (!meetingWindow || meetingWindow.closed) {
+      console.log('📺 Abriendo ventana de reflejo automáticamente');
+      const reflectionURL = getReflectionURL();
+      const newMeetingWindow = window.open(
+        reflectionURL,
+        'meeting',
+        'width=400,height=300,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
+      );
+      if (newMeetingWindow) {
+        setMeetingWindow(newMeetingWindow);
+        
+        // Sincronizar inmediatamente después de abrir
+        setTimeout(() => {
+          const currentTime = localStorage.getItem('currentTimeLeft');
+          const currentStageIdx = localStorage.getItem('currentStageIndex');
+          const isRunning = localStorage.getItem('isTimerRunning');
+          
+          if (currentTime) {
+            newMeetingWindow.postMessage({ 
+              action: 'setTime', 
+              seconds: parseInt(currentTime) 
+            }, '*');
+          }
+          
+          if (currentStageIdx) {
+            newMeetingWindow.postMessage({ 
+              action: 'setStage', 
+              stageIndex: parseInt(currentStageIdx) 
+            }, '*');
+          }
+          
+          if (stages.length > 0) {
+            newMeetingWindow.postMessage({ 
+              action: 'setStages', 
+              stages: stages 
+            }, '*');
+          }
+          
+          if (isRunning) {
+            newMeetingWindow.postMessage({ 
+              action: 'pauseResume', 
+              isRunning: isRunning === 'true' 
+            }, '*');
+          }
+        }, 500);
+      }
+    }
+  };
+
   // Función para enviar mensajes a la ventana de reflejo (solo para sincronización local)
   const sendMessageToReflectionWindow = (action: string, data?: any) => {
     if (meetingWindow && !meetingWindow.closed) {
@@ -619,12 +688,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     if (!localStorage.getItem('currentTimeLeft') && stages.length > 0) {
       console.log('🚀 Iniciando directorio por primera vez');
       
-      // Cerrar reflejo existente si está abierto
-      if (meetingWindow && !meetingWindow.closed) {
-        console.log('🔄 Cerrando reflejo existente antes de iniciar nuevo directorio');
-        meetingWindow.close();
-        setMeetingWindow(null);
-      }
+      // Mantener reflejo abierto y sincronizado
+      console.log('📺 Manteniendo reflejo abierto para nuevo directorio');
       
       localStorage.setItem('meetingStages', JSON.stringify(stages));
       const initialStageTime = stages[0].duration;
@@ -934,26 +999,37 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     loadMeetings();
   }, []);
 
-  // Cerrar ventana de reflejo cuando se cambia de directorio
+  // Sincronizar ventana de reflejo cuando se cambia de directorio
   useEffect(() => {
     if (selectedMeeting && meetingWindow && !meetingWindow.closed) {
-      console.log('🔄 Cerrando ventana de reflejo al cambiar de directorio');
-      meetingWindow.close();
-      setMeetingWindow(null);
+      console.log('🔄 Sincronizando ventana de reflejo con nuevo directorio:', selectedMeeting.title);
+      
+      // Enviar stages del nuevo directorio
+      if (stages.length > 0) {
+        sendMessageToReflectionWindow('setStages', { stages: stages });
+      }
+      
+      // Sincronizar tiempo actual
+      const currentTime = localStorage.getItem('currentTimeLeft');
+      if (currentTime) {
+        sendMessageToReflectionWindow('setTime', { seconds: parseInt(currentTime) });
+      }
+      
+      // Sincronizar índice de etapa
+      const currentStageIdx = localStorage.getItem('currentStageIndex');
+      if (currentStageIdx) {
+        sendMessageToReflectionWindow('setStage', { stageIndex: parseInt(currentStageIdx) });
+      }
     }
-  }, [selectedMeeting]);
+  }, [selectedMeeting, stages]);
 
   // Inicializar automáticamente el directorio cuando se cargan las etapas
   useEffect(() => {
     if (stages.length > 0 && selectedMeeting && !localStorage.getItem('currentTimeLeft')) {
       console.log('🚀 Inicializando directorio automáticamente');
       
-      // Cerrar ventana de reflejo si está abierta
-      if (meetingWindow && !meetingWindow.closed) {
-        console.log('🔄 Cerrando ventana de reflejo al ingresar al directorio');
-        meetingWindow.close();
-        setMeetingWindow(null);
-      }
+      // Mantener ventana de reflejo abierta y sincronizada
+      console.log('📺 Manteniendo ventana de reflejo para sincronización');
       
       localStorage.setItem('meetingStages', JSON.stringify(stages));
       const initialStageTime = stages[0].duration;
@@ -1422,8 +1498,9 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                            meetingWindow.close();
                            setMeetingWindow(null);
                          } else {
+                           const reflectionURL = getReflectionURL();
                            const newMeetingWindow = window.open(
-                             '/meeting',
+                             reflectionURL,
                              'meeting',
                              'width=400,height=300,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no'
                            );
@@ -1459,6 +1536,15 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                        title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
                      >
                        {meetingWindow && !meetingWindow.closed ? '🔄 Cerrar Reflejo' : '📺 Abrir Reflejo'}
+                     </button>
+                     
+                     {/* Botón Copiar URL del Reflejo */}
+                     <button
+                       onClick={copyReflectionURL}
+                       className="ml-2 font-medium py-2 px-4 rounded-lg transition-colors text-sm bg-green-600 hover:bg-green-700 text-white"
+                       title="Copiar URL del reflejo del cronómetro"
+                     >
+                       📋 Copiar URL
                      </button>
                    </h3>
                   
