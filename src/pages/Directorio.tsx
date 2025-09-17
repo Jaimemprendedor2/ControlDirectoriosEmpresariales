@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T05:00:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T06:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -186,6 +186,13 @@ export const Directorio: React.FC = () => {
   // Cargar un directorio específico con sus etapas
   const loadMeetingWithStages = async (meetingId: string) => {
     try {
+      // Cerrar ventana de reflejo si está abierta al cambiar de directorio
+      if (meetingWindow && !meetingWindow.closed) {
+        console.log('🔄 Cerrando ventana de reflejo al cambiar de directorio');
+        meetingWindow.close();
+        setMeetingWindow(null);
+      }
+
       const { meeting, stages: meetingStages } = await MeetingService.getMeetingWithStages(meetingId);
       
       // Convertir MeetingStage[] a Stage[]
@@ -202,6 +209,38 @@ export const Directorio: React.FC = () => {
       
       setStages(convertedStages);
       setSelectedMeeting(meeting);
+
+      // Si hay etapas, setear el cronómetro al tiempo de la primera etapa
+      if (convertedStages.length > 0) {
+        const firstStageTime = convertedStages[0].duration;
+        console.log(`⏰ Seteando cronómetro al tiempo de la primera etapa: ${firstStageTime} segundos`);
+        
+        // Limpiar estado anterior
+        localStorage.removeItem('currentTimeLeft');
+        localStorage.removeItem('initialTime');
+        localStorage.removeItem('isTimerRunning');
+        localStorage.removeItem('currentStageIndex');
+        localStorage.removeItem('meetingStages');
+        localStorage.removeItem('hasBeenStarted');
+        
+        // Setear nuevo estado
+        localStorage.setItem('currentTimeLeft', firstStageTime.toString());
+        localStorage.setItem('initialTime', firstStageTime.toString());
+        localStorage.setItem('isTimerRunning', 'false');
+        localStorage.setItem('currentStageIndex', '0');
+        localStorage.setItem('meetingStages', JSON.stringify(convertedStages));
+        
+        // Actualizar estado del componente
+        setCurrentStageIndex(0);
+        setIsTimerRunning(false);
+        
+        // Forzar actualización del cronómetro
+        setTimeout(() => {
+          setTimerUpdate(prev => prev + 1);
+        }, 100);
+        
+        console.log('✅ Cronómetro actualizado al tiempo de la primera etapa');
+      }
     } catch (error) {
       console.error('Error cargando directorio:', error);
     }
@@ -210,6 +249,37 @@ export const Directorio: React.FC = () => {
   // Seleccionar un directorio de la lista
   const handleSelectMeeting = (meeting: Meeting) => {
     loadMeetingWithStages(meeting.id);
+  };
+
+  // Deseleccionar directorio y cerrar ventana de reflejo
+  const handleDeselectMeeting = () => {
+    console.log('🔄 Deseleccionando directorio y cerrando ventana de reflejo');
+    
+    // Cerrar ventana de reflejo si está abierta
+    if (meetingWindow && !meetingWindow.closed) {
+      console.log('🔄 Cerrando ventana de reflejo al salir del directorio');
+      meetingWindow.close();
+      setMeetingWindow(null);
+    }
+    
+    // Limpiar estado del cronómetro
+    localStorage.removeItem('currentTimeLeft');
+    localStorage.removeItem('initialTime');
+    localStorage.removeItem('isTimerRunning');
+    localStorage.removeItem('currentStageIndex');
+    localStorage.removeItem('meetingStages');
+    localStorage.removeItem('hasBeenStarted');
+    
+    // Limpiar estado del componente
+    setSelectedMeeting(null);
+    setStages([]);
+    setCurrentStageIndex(0);
+    setIsTimerRunning(false);
+    
+    // Forzar actualización
+    setTimerUpdate(prev => prev + 1);
+    
+    console.log('✅ Directorio deseleccionado y ventana de reflejo cerrada');
   };
 
   // Eliminar un directorio
@@ -234,9 +304,8 @@ export const Directorio: React.FC = () => {
       // Eliminar el directorio de la base de datos
       await MeetingService.deleteMeeting(selectedMeeting.id);
       
-      // Limpiar el estado local
-      setSelectedMeeting(null);
-      setStages([]);
+      // Limpiar el estado local y cerrar ventana de reflejo
+      handleDeselectMeeting();
       
       // Recargar la lista de directorios
       await loadMeetings();
@@ -1125,7 +1194,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.10 ({getBuildInfo()})
+                v1.7.12 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1202,10 +1271,7 @@ export const Directorio: React.FC = () => {
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <button
-                    onClick={() => {
-                      setSelectedMeeting(null);
-                      setStages([]);
-                    }}
+                    onClick={handleDeselectMeeting}
                     className="text-blue-600 hover:text-blue-800 text-sm mb-2 flex items-center space-x-1"
                   >
                     <span>←</span>

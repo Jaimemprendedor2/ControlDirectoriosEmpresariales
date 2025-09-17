@@ -197,6 +197,38 @@
 
 ---
 
+## **📦 Versión 1.7.12** *(17/09/2025 - 06:00)*
+
+### 🎯 **Funcionalidades de Configuración de Directorio**
+- **Nueva funcionalidad**: Al ingresar a la configuración de un directorio, el cronómetro se actualiza automáticamente al tiempo de la primera etapa
+- **Nueva funcionalidad**: Al salir de la configuración del directorio, se cierra automáticamente la ventana de reflejo del cronómetro
+- **Mejora UX**: Gestión automática del estado del cronómetro al cambiar entre directorios
+
+### ✅ **Funcionalidades Implementadas**
+- **Al ingresar a directorio**: 
+  - Cierre automático de ventana de reflejo existente
+  - Seteo del cronómetro al tiempo de la primera etapa
+  - Limpieza del estado anterior del cronómetro
+  - Actualización forzada de la UI
+- **Al salir de directorio**:
+  - Cierre automático de ventana de reflejo
+  - Limpieza completa del estado del cronómetro
+  - Reset del estado del componente
+  - Actualización forzada de la UI
+
+### 🔄 **Flujo Optimizado**
+1. **Usuario selecciona directorio** → Cierra reflejo existente + Setea cronómetro a primera etapa
+2. **Usuario trabaja con directorio** → Cronómetro listo para usar
+3. **Usuario sale del directorio** → Cierra reflejo + Limpia estado completamente
+
+### 🛠️ **Mejoras Técnicas**
+- **Función `loadMeetingWithStages`**: Mejorada para manejar cierre de ventana y seteo de cronómetro
+- **Nueva función `handleDeselectMeeting`**: Maneja la deselección y limpieza completa
+- **Gestión de estado**: Limpieza automática de localStorage y estado del componente
+- **Logs mejorados**: Mejor seguimiento de las operaciones
+
+---
+
 ## **📦 Versión 1.7.10** *(17/09/2025 - 05:00)*
 
 ### 🔧 **Cierre Automático de Ventana de Reflejo**
@@ -353,4 +385,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 05:00:00*
+*Última actualización: 2025-09-17 06:00:00*
