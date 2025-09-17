@@ -1,6 +1,6 @@
 # 📋 Historial de Versiones - Control de Reunión
 
-## 🚀 Versión 1.7.29 - [2025-09-17 00:29:24]
+## 🚀 Versión 1.7.31 - [2025-09-17 00:58:09]
 
 ### ✅ **Cambios Realizados:**
 - **Corrección final de compilación**: Eliminada referencia a `setConnectionState` en MeetingView.tsx
@@ -765,4 +765,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 00:29:24*
+*Última actualización: 2025-09-17 00:58:09*

@@ -1,0 +1,2 @@
+            // Sincronizar con la ventana de reflejo
+            sendMessageToReflectionWindow('setTime', { seconds: newTime });

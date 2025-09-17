@@ -102,7 +102,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T03:29:24.797Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T03:58:09.290Z'); // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -263,6 +263,9 @@ export const Directorio: React.FC = () => {
         // Forzar actualización del cronómetro
         setTimeout(() => {
           setTimerUpdate(prev => prev + 1);
+            
+            // Sincronizar con la ventana de reflejo
+            sendMessageToReflectionWindow('setTime', { seconds: firstStageTime });
         }, 100);
         
         console.log('✅ Cronómetro actualizado al tiempo de la primera etapa');
@@ -304,6 +307,9 @@ export const Directorio: React.FC = () => {
     
     // Forzar actualización
     setTimerUpdate(prev => prev + 1);
+            
+            // Sincronizar con la ventana de reflejo
+            sendMessageToReflectionWindow('setTime', { seconds: 0 });
     
     console.log('✅ Directorio deseleccionado y ventana de reflejo cerrada');
   };
@@ -314,7 +320,9 @@ export const Directorio: React.FC = () => {
 
     // Confirmar la eliminación
     const confirmDelete = window.confirm(
-      `¿Estás seguro de que quieres eliminar el directorio "${selectedMeeting.title}"?\n\nEsta acción no se puede deshacer y eliminará todas las etapas asociadas.`
+      `¿Estás seguro de que quieres eliminar el directorio "${selectedMeeting.title}"?
+
+Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     );
 
     if (!confirmDelete) return;
@@ -634,11 +642,17 @@ export const Directorio: React.FC = () => {
       // Forzar una actualización inmediata del panel de control
       setTimeout(() => {
         setTimerUpdate(prev => prev + 1);
+            
+            // Sincronizar con la ventana de reflejo
+            sendMessageToReflectionWindow('setTime', { seconds: initialStageTime });
       }, 50);
       
       // Forzar actualización del cronómetro principal
       setTimeout(() => {
         setTimerUpdate(prev => prev + 1);
+            
+            // Sincronizar con la ventana de reflejo
+            sendMessageToReflectionWindow('setTime', { seconds: initialStageTime });
       }, 100);
       
       console.log('✅ Directorio iniciado y cronómetro iniciado');
@@ -694,6 +708,9 @@ export const Directorio: React.FC = () => {
       console.log('💾 Tiempo en localStorage después de pausa:', currentTimeLeft);
       // Forzar una actualización inmediata del panel de control
       setTimerUpdate(prev => prev + 1);
+            
+            // Sincronizar con la ventana de reflejo
+            sendMessageToReflectionWindow('setTime', { seconds: parseInt(currentTimeLeft || '0') });
     }, 50);
   };
 
@@ -770,7 +787,7 @@ export const Directorio: React.FC = () => {
         newTime = isMultipleOf30 ? currentSeconds + 30 : Math.ceil(currentSeconds / 30) * 30;
       }
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToReflectionWindow('setTime', { seconds: newTime });
+      sendMessageToReflectionWindow('setTime', { seconds: currentTimeLeft });
       
       // Enviar comando a través de Pusher
       if (window.pusherService) {
@@ -784,6 +801,9 @@ export const Directorio: React.FC = () => {
       
       // Forzar actualización de la UI cuando está detenido
       setTimerUpdate(prev => prev + 1);
+            
+            // Sincronizar con la ventana de reflejo
+            sendMessageToReflectionWindow('setTime', { seconds: currentTimeLeft });
     } else {
       // Si está funcionando: sumar 30s inmediatamente
       const newTime = currentSeconds + 30;
@@ -820,7 +840,7 @@ export const Directorio: React.FC = () => {
           : Math.floor(currentSeconds / 30) * 30;
       }
       localStorage.setItem('currentTimeLeft', newTime.toString());
-      sendMessageToReflectionWindow('setTime', { seconds: newTime });
+      sendMessageToReflectionWindow('setTime', { seconds: currentTimeLeft });
       
       // Enviar comando a través de Pusher
       if (window.pusherService) {
@@ -834,6 +854,9 @@ export const Directorio: React.FC = () => {
       
       // Forzar actualización de la UI cuando está detenido
       setTimerUpdate(prev => prev + 1);
+            
+            // Sincronizar con la ventana de reflejo
+            sendMessageToReflectionWindow('setTime', { seconds: currentTimeLeft });
     } else {
       // Si está funcionando: restar 30s inmediatamente
       const newTime = Math.max(0, currentSeconds - 30);
@@ -928,6 +951,9 @@ export const Directorio: React.FC = () => {
       // Forzar una actualización inmediata del panel de control
       setTimeout(() => {
         setTimerUpdate(prev => prev + 1);
+            
+            // Sincronizar con la ventana de reflejo
+            sendMessageToReflectionWindow('setTime', { seconds: initialStageTime });
       }, 50);
       
       console.log('✅ Directorio inicializado automáticamente (listo para iniciar)');
@@ -1031,7 +1057,10 @@ export const Directorio: React.FC = () => {
             localStorage.setItem('currentTimeLeft', newTime.toString());
             setTimerUpdate(prev => prev + 1);
             
-            // Si el tiempo llega a 0, pausar automáticamente
+            // Sincronizar con la ventana de reflejo
+            sendMessageToReflectionWindow('setTime', { seconds: currentTimeLeft });
+            
+            // Si el tiempo llega a 0, pausar autom�ticamente
             if (newTime === 0) {
               setIsTimerRunning(false);
             }
@@ -1142,12 +1171,12 @@ export const Directorio: React.FC = () => {
 
              const handleStopTimer = () => {
      // Mostrar confirmación antes de parar
-     const confirmStop = window.confirm(
-       '¿Estás seguro de que quieres parar el directorio?\n\n' +
-       '• El cronómetro volverá al tiempo inicial\n' +
-       '• Se cerrará la ventana de reflejo\n' +
-       '• Podrás iniciar un nuevo directorio después'
-     );
+    const confirmStop = window.confirm(
+      '¿Estás seguro de que quieres parar el directorio?\n\n' +
+      '• El cronómetro volverá al tiempo inicial\n' +
+      '• Se cerrará la ventana de reflejo\n' +
+      '• Podrás iniciar un nuevo directorio después'
+    );
      
      if (!confirmStop) {
        console.log('❌ Parar directorio cancelado por el usuario');
@@ -1194,6 +1223,12 @@ export const Directorio: React.FC = () => {
      
      // Forzar actualización de la UI
      setTimerUpdate(prev => prev + 1);
+            
+            // Sincronizar con la ventana de reflejo
+            const initialTimeValue = localStorage.getItem('initialTime');
+            if (initialTimeValue) {
+              sendMessageToReflectionWindow('setTime', { seconds: parseInt(initialTimeValue) });
+            }
      
      console.log('✅ Cronómetro parado, tiempo restaurado al inicial y reflejo cerrado');
    };
