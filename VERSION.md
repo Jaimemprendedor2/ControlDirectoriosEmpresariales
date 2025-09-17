@@ -197,6 +197,36 @@
 
 ---
 
+## **📦 Versión 1.7.6** *(17/09/2025 - 03:00)*
+
+### 🔧 **Corrección Comportamiento Botón "Parar Directorio"**
+- **Problema solucionado**: El reflejo del cronómetro se reseteaba a 0:00 al presionar "Parar Directorio"
+- **Nuevo comportamiento**: El reflejo mantiene el tiempo actual cuando se para el cronómetro
+- **Funcionalidad**: "Parar" ahora solo detiene el cronómetro sin resetear el tiempo
+- **UX mejorado**: El tiempo se preserva visualmente en el reflejo hasta que se inicie un nuevo directorio
+
+### ✅ **Cambios Técnicos**
+- **MeetingView.tsx**: Elimina reseteo de `timeLeft` en comando `stopTimer`
+- **Directorio.tsx**: Preserva `currentTimeLeft` en localStorage al parar
+- **Comportamiento**: Solo se limpia el flag `hasBeenStarted` para volver botón a "Iniciar"
+
+---
+
+## **📦 Versión 1.7.5** *(17/09/2025 - 02:30)*
+
+### 🔧 **Corrección UX del Botón Principal**
+- **Problema solucionado**: Botón cambiaba incorrectamente a "Reanudar" al agregar tiempo cuando cronómetro estaba detenido
+- **Nuevo flag**: `hasBeenStarted` diferencia entre "nunca iniciado" e "iniciado y pausado"
+- **Lógica mejorada**: Botón se mantiene como "Iniciar" hasta que el cronómetro se inicie por primera vez
+- **Limpieza automática**: Flag se resetea al parar completamente el cronómetro
+
+### ✅ **Comportamiento Corregido**
+- **Estado "Iniciar"**: Cronómetro nunca iniciado (agregar/restar tiempo mantiene botón como "Iniciar")
+- **Estado "Reanudar"**: Cronómetro fue iniciado y está pausado
+- **Estado "Pausar"**: Cronómetro está corriendo actualmente
+
+---
+
 ## **📦 Versión 1.7.4** *(17/09/2025 - 02:00)*
 
 ### 🎯 **Lógica de Múltiplos de 30s (Cronómetro Detenido)**
@@ -244,4 +274,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 02:00:00*
+*Última actualización: 2025-09-17 03:00:00*

@@ -166,16 +166,11 @@ export const MeetingView: React.FC = () => {
           localStorage.setItem('isTimerRunning', newRunningState.toString());
           break;
         case 'stopTimer':
-          // Parar y resetear completamente el cronómetro
+          // Parar cronómetro pero mantener tiempo actual
           setIsRunning(false);
-          setTimeLeft(0);
-          setCurrentStageIndex(0);
-          localStorage.removeItem('currentTimeLeft');
-          localStorage.removeItem('initialTime');
-          localStorage.removeItem('isTimerRunning');
-          localStorage.removeItem('currentStageIndex');
-          localStorage.removeItem('meetingStages');
-          console.log('🛑 Cronómetro parado y reseteado desde reflejo');
+          localStorage.setItem('isTimerRunning', 'false');
+          // MANTENER timeLeft y currentTimeLeft - NO resetear a 0
+          console.log('🛑 Cronómetro parado (tiempo preservado) desde reflejo');
           break;
       }
     });
@@ -288,15 +283,10 @@ export const MeetingView: React.FC = () => {
           }
           break;
         case 'stopTimer':
-          console.log('🛑 Parando timer via postMessage');
+          console.log('🛑 Parando timer via postMessage (tiempo preservado)');
           setIsRunning(false);
-          setTimeLeft(0);
-          setCurrentStageIndex(0);
-          localStorage.removeItem('currentTimeLeft');
-          localStorage.removeItem('initialTime');
-          localStorage.removeItem('isTimerRunning');
-          localStorage.removeItem('currentStageIndex');
-          localStorage.removeItem('meetingStages');
+          localStorage.setItem('isTimerRunning', 'false');
+          // MANTENER timeLeft y currentTimeLeft - NO resetear a 0
           break;
         case 'syncState':
           // Sincronizar estado completo del cronómetro

@@ -104,7 +104,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T02:00:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T03:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -511,6 +511,7 @@ export const Directorio: React.FC = () => {
       localStorage.setItem('initialTime', initialStageTime.toString());
       localStorage.setItem('isTimerRunning', 'true');
       localStorage.setItem('currentStageIndex', '0');
+      localStorage.setItem('hasBeenStarted', 'true');
       setCurrentStageIndex(0);
       setIsTimerRunning(true);
       
@@ -543,6 +544,11 @@ export const Directorio: React.FC = () => {
       to: newRunningState
     });
     
+    // Marcar que el cronómetro ha sido iniciado cuando se reanuda
+    if (newRunningState) {
+      localStorage.setItem('hasBeenStarted', 'true');
+    }
+    
     setIsTimerRunning(newRunningState);
     
     // Enviar mensaje a la ventana de reflejo
@@ -572,6 +578,7 @@ export const Directorio: React.FC = () => {
   const handleResetToZero = () => {
     // Resetear a 00:00
     localStorage.setItem('currentTimeLeft', '0');
+    localStorage.removeItem('hasBeenStarted');
     sendMessageToReflectionWindow('setTime', { seconds: 0 });
     setIsTimerRunning(false);
     
@@ -992,17 +999,18 @@ export const Directorio: React.FC = () => {
   }, [meetingWindow, keyboardShortcuts]);
 
              const handleStopTimer = () => {
-     console.log('🛑 Parando y reseteando cronómetro del directorio');
+     console.log('🛑 Parando cronómetro del directorio (tiempo preservado)');
      
      // Pausar el cronómetro
      setIsTimerRunning(false);
      
-     // Limpiar localStorage
-     localStorage.removeItem('currentTimeLeft');
+     // Limpiar localStorage pero preservar tiempo actual
+     localStorage.setItem('isTimerRunning', 'false');
      localStorage.removeItem('initialTime');
-     localStorage.removeItem('isTimerRunning');
      localStorage.removeItem('currentStageIndex');
      localStorage.removeItem('meetingStages');
+     localStorage.removeItem('hasBeenStarted');
+     // MANTENER currentTimeLeft para preservar el tiempo en el reflejo
      
      // Resetear estado local
      setCurrentStageIndex(0);
@@ -1057,7 +1065,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.4 ({getBuildInfo()})
+                v1.7.6 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1302,13 +1310,13 @@ export const Directorio: React.FC = () => {
                        onTouchStart={handlePauseButtonMouseDown}
                        onTouchEnd={handlePauseButtonMouseUp}
                        className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 relative"
-                       title={`Clic: ${isTimerRunning ? 'Pausar cronómetro' : (localStorage.getItem('currentTimeLeft') ? 'Reanudar cronómetro' : 'Iniciar directorio')} | Mantener 1s: Resetear a 00:00 (${formatShortcut(keyboardShortcuts.pauseResume)})`}
+                       title={`Clic: ${isTimerRunning ? 'Pausar cronómetro' : (localStorage.getItem('hasBeenStarted') === 'true' ? 'Reanudar cronómetro' : 'Iniciar directorio')} | Mantener 1s: Resetear a 00:00 (${formatShortcut(keyboardShortcuts.pauseResume)})`}
                      >
                        <span className="text-xl">{isTimerRunning ? '⏸️' : '▶️'}</span>
                        <span className="text-sm">
                          {isTimerRunning 
                            ? 'Pausar' 
-                           : (localStorage.getItem('currentTimeLeft') 
+                           : (localStorage.getItem('hasBeenStarted') === 'true'
                                ? 'Reanudar' 
                                : 'Iniciar'
                              )
