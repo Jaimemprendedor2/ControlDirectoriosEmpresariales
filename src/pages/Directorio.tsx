@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { CsvDropzone } from '../components/CsvDropzone';
 import { StagesList } from '../components/StagesList';
 import { StageColorConfig } from '../components/StageColorConfig';
@@ -30,7 +29,6 @@ interface Stage {
 }
 
 export const Directorio: React.FC = () => {
-  const navigate = useNavigate();
   const [stages, setStages] = useState<Stage[]>([]);
   const [showImport, setShowImport] = useState(false);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -104,7 +102,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-17T11:00:00.000Z'); // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-17T12:00:00.000Z'); // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -1225,7 +1223,7 @@ export const Directorio: React.FC = () => {
             <div className="flex-1"></div>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.22 ({getBuildInfo()})
+                v1.7.24 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1309,12 +1307,12 @@ export const Directorio: React.FC = () => {
                 </div>
                 <div className="flex space-x-3">
                   <button
-                    onClick={() => navigate('/')}
+                    onClick={handleDeselectMeeting}
                     className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
-                    title="Volver al menú principal"
+                    title="Volver a la lista de directorios"
                   >
                     <span>←</span>
-                    <span>Volver al Menú Principal</span>
+                    <span>Volver a Directorios</span>
                   </button>
                   <button
                     onClick={handleDeleteMeeting}

@@ -197,6 +197,60 @@
 
 ---
 
+## **📦 Versión 1.7.24** *(17/09/2025 - 12:00)*
+
+### 🔄 **Cambio de Funcionalidad del Botón de Navegación**
+- **Botón actualizado**: "Volver al Menú Principal" ahora es "Volver a Directorios"
+- **Funcionalidad corregida**: El botón ahora lleva a la lista de directorios en lugar del menú principal
+- **Navegación mejorada**: Flujo más lógico para el usuario
+- **Limpieza de código**: Eliminado import y variable `navigate` no utilizados
+
+### ✅ **Cambios Implementados**
+- **Modificación del botón de navegación**:
+  - Cambiado `onClick={() => navigate('/')}` por `onClick={handleDeselectMeeting}`
+  - Texto actualizado de "Volver al Menú Principal" a "Volver a Directorios"
+  - Tooltip actualizado a "Volver a la lista de directorios"
+- **Limpieza de código**:
+  - Eliminado import de `useNavigate` de `react-router-dom`
+  - Eliminada variable `navigate` no utilizada
+  - Código más limpio sin warnings
+
+### 🎯 **Beneficios del Cambio**
+- **Navegación lógica**: El botón lleva donde el usuario espera (lista de directorios)
+- **Mejor flujo de usuario**: No necesita ir al menú principal para ver otros directorios
+- **Funcionalidad consistente**: Comportamiento más predecible
+- **Código más limpio**: Sin imports ni variables innecesarias
+
+---
+
+## **📦 Versión 1.7.23** *(17/09/2025 - 11:30)*
+
+### 🎨 **Simplificación de Ventana de Reflejo**
+- **Ventana simplificada**: Solo muestra el cronómetro y el nombre de la etapa
+- **Tipografía agrandada**: El tiempo ahora es el doble de tamaño para mejor visibilidad
+- **Interfaz minimalista**: Eliminados elementos innecesarios para un enfoque limpio
+- **Mejor legibilidad**: Diseño más claro y fácil de leer desde distancia
+
+### ✅ **Cambios Implementados**
+- **Simplificación de `MeetingView.tsx`**:
+  - Eliminado indicador de conexión
+  - Eliminado progreso de etapas
+  - Eliminado estado del timer (Ejecutando/Pausado)
+  - Eliminada información adicional
+  - Solo mantiene cronómetro y nombre de etapa
+- **Tipografía mejorada**:
+  - Cronómetro: `text-8xl` → `text-16xl` (doble de tamaño)
+  - Nombre de etapa: `text-2xl` → `text-4xl` (doble de tamaño)
+  - Mejor espaciado con `mb-8` entre elementos
+
+### 🎯 **Beneficios de la Simplificación**
+- **Mejor visibilidad**: Tiempo más grande y fácil de leer
+- **Interfaz limpia**: Sin distracciones, solo información esencial
+- **Mejor para presentaciones**: Ideal para mostrar en pantallas grandes
+- **Enfoque claro**: El usuario se concentra solo en el tiempo y la etapa
+
+---
+
 ## **📦 Versión 1.7.22** *(17/09/2025 - 11:00)*
 
 ### 🎨 **Reubicación de Botón de Navegación**
@@ -648,4 +702,4 @@
 
 ---
 
-*Última actualización: 2025-09-17 11:00:00*
+*Última actualización: 2025-09-17 12:00:00*

@@ -429,42 +429,14 @@ export const MeetingView: React.FC = () => {
   return (
     <div className={`min-h-screen ${getBackgroundColor()} text-white flex items-center justify-center p-4 transition-colors duration-500`}>
       <div className="text-center">
-        {/* Indicador de conexión */}
-        <div className={`mb-4 px-3 py-1 rounded-full text-xs font-medium inline-block ${
-          connectionState.connected 
-            ? 'bg-green-100 text-green-800' 
-            : 'bg-red-100 text-red-800'
-        }`}>
-          <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
-            connectionState.connected ? 'bg-green-500' : 'bg-red-500'
-          }`}></span>
-          {connectionState.connected ? 'Conectado' : 'Desconectado'}
-        </div>
-
-        {/* Cronómetro principal */}
-        <div className={`text-8xl font-mono font-bold mb-4 ${isAlertBlinking ? 'animate-pulse' : ''}`}>
+        {/* Cronómetro principal - Tamaño duplicado */}
+        <div className={`text-16xl font-mono font-bold mb-8 ${isAlertBlinking ? 'animate-pulse' : ''}`}>
           {formatTime(timeLeft)}
         </div>
 
         {/* Información de la etapa */}
-        <div className="text-2xl mb-2">
+        <div className="text-4xl">
           {currentStage?.title || 'Etapa'}
-        </div>
-
-        {/* Progreso */}
-        <div className="text-lg text-gray-300">
-          Etapa {currentStageIndex + 1} de {stages.length}
-        </div>
-
-        {/* Estado del timer */}
-        <div className="mt-4 text-sm text-gray-400">
-          {isRunning ? '▶️ Ejecutando' : '⏸️ Pausado'}
-        </div>
-
-        {/* Información adicional */}
-        <div className="mt-8 text-xs text-gray-500">
-          <p>Reflejo del Cronómetro Principal</p>
-          <p>Sincronizado en tiempo real</p>
         </div>
       </div>
     </div>
