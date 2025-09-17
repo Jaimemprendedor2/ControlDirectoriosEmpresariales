@@ -209,6 +209,23 @@ export const MeetingView: React.FC = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  // Eliminar márgenes globales para cobertura completa
+  useEffect(() => {
+    // Eliminar márgenes del body y html
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.documentElement.style.margin = '0';
+    document.documentElement.style.padding = '0';
+    
+    return () => {
+      // Restaurar estilos al desmontar
+      document.body.style.margin = '';
+      document.body.style.padding = '';
+      document.documentElement.style.margin = '';
+      document.documentElement.style.padding = '';
+    };
+  }, []);
+
   // Forzar tamaño de ventana
   useEffect(() => {
     const forceWindowSize = () => {
@@ -341,15 +358,16 @@ export const MeetingView: React.FC = () => {
   return (
     <div 
       className={`${getBackgroundColor()} text-white flex flex-col items-center justify-center transition-colors duration-500`}
-      style={{
-        width: '960px',
-        height: '614px',
+            style={{
+        width: '100vw',
+        height: '100vh',
         overflow: 'hidden',
         position: 'fixed',
         top: 0,
         left: 0,
         padding: '20px',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        margin: 0
       }}
     >
       {/* Cronómetro principal - Tamaño ajustado para ventana 960x614px */}
