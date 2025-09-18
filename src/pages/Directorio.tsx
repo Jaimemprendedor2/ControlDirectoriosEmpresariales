@@ -501,6 +501,10 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
         alertColor
       };
       setStages(newStages);
+      
+      // Actualizar localStorage para sincronización
+      localStorage.setItem('meetingStages', JSON.stringify(newStages));
+      
       setConfiguringColors(null);
     }
   };

@@ -524,22 +524,37 @@ export const MeetingView: React.FC = () => {
     }
   }, [timeLeft]);
 
-  // Obtener color de fondo basado en el tiempo restante
+  // Obtener color de fondo basado en el tiempo restante y colores configurados
   const getBackgroundColor = () => {
-    if (!currentStage) return 'bg-gray-900';
+    if (!currentStage) return '#1f2937'; // bg-gray-900 equivalente
     
+    // Si hay colores configurados, usarlos
+    if (currentStage.colors && currentStage.colors.length > 0) {
+      const timeElapsed = currentStage.duration - timeLeft;
+      
+      // Encontrar el color correspondiente al tiempo transcurrido
+      const applicableColors = currentStage.colors
+        .filter(color => timeElapsed >= color.timeInSeconds)
+        .sort((a, b) => b.timeInSeconds - a.timeInSeconds);
+      
+      if (applicableColors.length > 0) {
+        return applicableColors[0].backgroundColor;
+      }
+    }
+    
+    // Si no hay colores configurados o no se aplica ninguno, usar colores por defecto
     const timePercentage = (timeLeft / currentStage.duration) * 100;
     
-    if (timePercentage <= 10) return 'bg-red-900';
-    if (timePercentage <= 25) return 'bg-orange-900';
-    if (timePercentage <= 50) return 'bg-yellow-900';
-    return 'bg-gray-900';
+    if (timePercentage <= 10) return '#7f1d1d'; // bg-red-900 equivalente
+    if (timePercentage <= 25) return '#9a3412'; // bg-orange-900 equivalente
+    if (timePercentage <= 50) return '#713f12'; // bg-yellow-900 equivalente
+    return '#1f2937'; // bg-gray-900 equivalente
   };
 
   return (
     <div 
-      className={`${getBackgroundColor()} text-white flex flex-col items-center justify-center transition-colors duration-500`}
-            style={{
+      className="text-white flex flex-col items-center justify-center transition-colors duration-500"
+      style={{
         width: '100vw',
         height: '100vh',
         overflow: 'hidden',
@@ -548,7 +563,8 @@ export const MeetingView: React.FC = () => {
         left: 0,
         padding: '20px',
         boxSizing: 'border-box',
-        margin: 0
+        margin: 0,
+        backgroundColor: getBackgroundColor()
       }}
     >
       {/* Cronómetro principal - Tamaño ajustado para ventana 960x614px */}
