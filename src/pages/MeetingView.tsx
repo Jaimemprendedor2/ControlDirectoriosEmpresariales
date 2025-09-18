@@ -526,24 +526,44 @@ export const MeetingView: React.FC = () => {
 
   // Obtener color de fondo basado en el tiempo restante y colores configurados
   const getBackgroundColor = () => {
-    if (!currentStage) return '#1f2937'; // bg-gray-900 equivalente
+    if (!currentStage) {
+      console.log('🔍 getBackgroundColor: No currentStage, usando color por defecto');
+      return '#1f2937'; // bg-gray-900 equivalente
+    }
+    
+    console.log('🔍 getBackgroundColor debug:', {
+      currentStage: currentStage.title,
+      duration: currentStage.duration,
+      timeLeft: timeLeft,
+      colors: currentStage.colors,
+      colorsLength: currentStage.colors?.length || 0
+    });
     
     // Si hay colores configurados, usarlos
     if (currentStage.colors && currentStage.colors.length > 0) {
       const timeElapsed = currentStage.duration - timeLeft;
+      console.log('🔍 Tiempo transcurrido:', timeElapsed, 'segundos');
       
       // Encontrar el color correspondiente al tiempo transcurrido
       const applicableColors = currentStage.colors
         .filter(color => timeElapsed >= color.timeInSeconds)
         .sort((a, b) => b.timeInSeconds - a.timeInSeconds);
       
+      console.log('🔍 Colores aplicables:', applicableColors);
+      
       if (applicableColors.length > 0) {
+        console.log('🎨 Aplicando color configurado:', applicableColors[0].backgroundColor);
         return applicableColors[0].backgroundColor;
+      } else {
+        console.log('⚠️ No hay colores aplicables para el tiempo transcurrido');
       }
+    } else {
+      console.log('⚠️ No hay colores configurados para esta etapa');
     }
     
     // Si no hay colores configurados o no se aplica ninguno, usar colores por defecto
     const timePercentage = (timeLeft / currentStage.duration) * 100;
+    console.log('🔍 Usando colores por defecto, porcentaje:', timePercentage);
     
     if (timePercentage <= 10) return '#7f1d1d'; // bg-red-900 equivalente
     if (timePercentage <= 25) return '#9a3412'; // bg-orange-900 equivalente
