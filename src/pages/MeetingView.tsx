@@ -543,19 +543,46 @@ export const MeetingView: React.FC = () => {
     if (currentStage.colors && currentStage.colors.length > 0) {
       const timeElapsed = currentStage.duration - timeLeft;
       console.log('🔍 Tiempo transcurrido:', timeElapsed, 'segundos');
+      console.log('🔍 Colores disponibles:', currentStage.colors);
       
       // Encontrar el color correspondiente al tiempo transcurrido
+      // Buscar el color con el tiempoInSeconds más alto que sea menor o igual al tiempo transcurrido
       const applicableColors = currentStage.colors
         .filter(color => timeElapsed >= color.timeInSeconds)
         .sort((a, b) => b.timeInSeconds - a.timeInSeconds);
       
-      console.log('🔍 Colores aplicables:', applicableColors);
+      console.log('🔍 Colores aplicables (filtrados):', applicableColors);
       
       if (applicableColors.length > 0) {
         console.log('🎨 Aplicando color configurado:', applicableColors[0].backgroundColor);
         return applicableColors[0].backgroundColor;
       } else {
         console.log('⚠️ No hay colores aplicables para el tiempo transcurrido');
+        console.log('🔍 Probando lógica alternativa...');
+        
+        // Lógica alternativa: usar el color más cercano al tiempo transcurrido
+        const sortedColors = currentStage.colors.sort((a, b) => a.timeInSeconds - b.timeInSeconds);
+        console.log('🔍 Colores ordenados por tiempo:', sortedColors);
+        
+        // Si el tiempo transcurrido es menor que el primer color, usar el primer color
+        if (timeElapsed < sortedColors[0].timeInSeconds) {
+          console.log('🎨 Usando primer color (tiempo aún no alcanzado):', sortedColors[0].backgroundColor);
+          return sortedColors[0].backgroundColor;
+        }
+        
+        // Si el tiempo transcurrido es mayor que el último color, usar el último color
+        if (timeElapsed >= sortedColors[sortedColors.length - 1].timeInSeconds) {
+          console.log('🎨 Usando último color (tiempo superado):', sortedColors[sortedColors.length - 1].backgroundColor);
+          return sortedColors[sortedColors.length - 1].backgroundColor;
+        }
+        
+        // Encontrar el color más cercano
+        for (let i = 0; i < sortedColors.length - 1; i++) {
+          if (timeElapsed >= sortedColors[i].timeInSeconds && timeElapsed < sortedColors[i + 1].timeInSeconds) {
+            console.log('🎨 Usando color intermedio:', sortedColors[i].backgroundColor);
+            return sortedColors[i].backgroundColor;
+          }
+        }
       }
     } else {
       console.log('⚠️ No hay colores configurados para esta etapa');
