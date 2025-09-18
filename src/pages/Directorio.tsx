@@ -505,6 +505,15 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       // Actualizar localStorage para sincronización
       localStorage.setItem('meetingStages', JSON.stringify(newStages));
       
+      // Enviar inmediatamente los colores actualizados a la ventana de reflejo
+      console.log('🎨 Enviando colores actualizados a la ventana de reflejo:', newStages);
+      if (meetingWindow && !meetingWindow.closed) {
+        sendMessageToReflectionWindow('setStages', { stages: newStages });
+        console.log('✅ Colores enviados exitosamente a la ventana de reflejo');
+      } else {
+        console.log('⚠️ Ventana de reflejo no está abierta - colores guardados en localStorage');
+      }
+      
       setConfiguringColors(null);
     }
   };
@@ -1423,7 +1432,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.43 ({getBuildInfo()})
+                v1.7.44 ({getBuildInfo()})
               </span>
             </div>
           </div>
