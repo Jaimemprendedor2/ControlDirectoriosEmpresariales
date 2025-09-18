@@ -545,44 +545,42 @@ export const MeetingView: React.FC = () => {
       console.log('🔍 Tiempo transcurrido:', timeElapsed, 'segundos');
       console.log('🔍 Colores disponibles:', currentStage.colors);
       
-      // Encontrar el color correspondiente al tiempo transcurrido
-      // Buscar el color con el tiempoInSeconds más alto que sea menor o igual al tiempo transcurrido
-      const applicableColors = currentStage.colors
-        .filter(color => timeElapsed >= color.timeInSeconds)
-        .sort((a, b) => b.timeInSeconds - a.timeInSeconds);
+      // Ordenar colores por tiempo de activación (de menor a mayor)
+      const sortedColors = currentStage.colors.sort((a, b) => a.timeInSeconds - b.timeInSeconds);
+      console.log('🔍 Colores ordenados por tiempo:', sortedColors);
       
-      console.log('🔍 Colores aplicables (filtrados):', applicableColors);
+      // Lógica mejorada: encontrar el color apropiado basado en el tiempo transcurrido
+      let selectedColor = null;
       
-      if (applicableColors.length > 0) {
-        console.log('🎨 Aplicando color configurado:', applicableColors[0].backgroundColor);
-        return applicableColors[0].backgroundColor;
+      // Si el tiempo transcurrido es menor que el primer color configurado,
+      // usar el color por defecto (no aplicar ningún color configurado)
+      if (timeElapsed < sortedColors[0].timeInSeconds) {
+        console.log('🔍 Tiempo transcurrido menor al primer color configurado, usando color por defecto');
+        selectedColor = null; // Esto hará que se use el color por defecto
       } else {
-        console.log('⚠️ No hay colores aplicables para el tiempo transcurrido');
-        console.log('🔍 Probando lógica alternativa...');
-        
-        // Lógica alternativa: usar el color más cercano al tiempo transcurrido
-        const sortedColors = currentStage.colors.sort((a, b) => a.timeInSeconds - b.timeInSeconds);
-        console.log('🔍 Colores ordenados por tiempo:', sortedColors);
-        
-        // Si el tiempo transcurrido es menor que el primer color, usar el primer color
-        if (timeElapsed < sortedColors[0].timeInSeconds) {
-          console.log('🎨 Usando primer color (tiempo aún no alcanzado):', sortedColors[0].backgroundColor);
-          return sortedColors[0].backgroundColor;
-        }
-        
-        // Si el tiempo transcurrido es mayor que el último color, usar el último color
-        if (timeElapsed >= sortedColors[sortedColors.length - 1].timeInSeconds) {
-          console.log('🎨 Usando último color (tiempo superado):', sortedColors[sortedColors.length - 1].backgroundColor);
-          return sortedColors[sortedColors.length - 1].backgroundColor;
-        }
-        
-        // Encontrar el color más cercano
-        for (let i = 0; i < sortedColors.length - 1; i++) {
-          if (timeElapsed >= sortedColors[i].timeInSeconds && timeElapsed < sortedColors[i + 1].timeInSeconds) {
-            console.log('🎨 Usando color intermedio:', sortedColors[i].backgroundColor);
-            return sortedColors[i].backgroundColor;
+        // Buscar el color que corresponde al tiempo transcurrido
+        for (let i = 0; i < sortedColors.length; i++) {
+          const color = sortedColors[i];
+          const nextColor = sortedColors[i + 1];
+          
+          // Si es el último color o el tiempo transcurrido está entre este color y el siguiente
+          if (!nextColor || (timeElapsed >= color.timeInSeconds && timeElapsed < nextColor.timeInSeconds)) {
+            selectedColor = color;
+            break;
           }
         }
+        
+        // Si no se encontró un color específico, usar el último color si el tiempo ya superó todos
+        if (!selectedColor && timeElapsed >= sortedColors[sortedColors.length - 1].timeInSeconds) {
+          selectedColor = sortedColors[sortedColors.length - 1];
+        }
+      }
+      
+      if (selectedColor) {
+        console.log('🎨 Aplicando color configurado:', selectedColor.backgroundColor, 'para tiempo transcurrido:', timeElapsed, 'segundos');
+        return selectedColor.backgroundColor;
+      } else {
+        console.log('🔍 No se aplica color configurado, usando color por defecto');
       }
     } else {
       console.log('⚠️ No hay colores configurados para esta etapa');

@@ -17,16 +17,14 @@ function getCurrentVersion() {
   }
 }
 
-// Función para actualizar la versión y fecha en Directorio.tsx
-function syncDirectorioVersion(version) {
-  const directorioPath = path.join(process.cwd(), 'src', 'pages', 'Directorio.tsx');
-  
-  if (!fs.existsSync(directorioPath)) {
-    console.error('❌ No se encontró el archivo Directorio.tsx');
+// Función para actualizar la versión y fecha en un archivo TSX
+function syncTsxFile(filePath, fileName, version) {
+  if (!fs.existsSync(filePath)) {
+    console.error(`❌ No se encontró el archivo ${fileName}`);
     return false;
   }
 
-  let content = fs.readFileSync(directorioPath, 'utf8');
+  let content = fs.readFileSync(filePath, 'utf8');
   
   // Obtener fecha actual
   const now = new Date();
@@ -38,9 +36,9 @@ function syncDirectorioVersion(version) {
   
   if (versionPattern.test(content)) {
     content = content.replace(versionPattern, newVersionDisplay);
-    console.log(`✅ Versión actualizada en interfaz: v${version}`);
+    console.log(`✅ Versión actualizada en ${fileName}: v${version}`);
   } else {
-    console.log('⚠️ No se encontró el patrón de versión en la interfaz');
+    console.log(`⚠️ No se encontró el patrón de versión en ${fileName}`);
   }
   
   // 2. Actualizar la fecha de compilación
@@ -49,14 +47,26 @@ function syncDirectorioVersion(version) {
   
   if (buildDatePattern.test(content)) {
     content = content.replace(buildDatePattern, newBuildDateLine);
-    console.log(`✅ Fecha de compilación actualizada: ${now.toLocaleString('es-ES')}`);
+    console.log(`✅ Fecha de compilación actualizada en ${fileName}: ${now.toLocaleString('es-ES')}`);
   } else {
-    console.log('⚠️ No se encontró el patrón de fecha de compilación');
+    console.log(`⚠️ No se encontró el patrón de fecha de compilación en ${fileName}`);
   }
   
   // Escribir los cambios
-  fs.writeFileSync(directorioPath, content, 'utf8');
+  fs.writeFileSync(filePath, content, 'utf8');
   return true;
+}
+
+// Función para actualizar la versión y fecha en Directorio.tsx
+function syncDirectorioVersion(version) {
+  const directorioPath = path.join(process.cwd(), 'src', 'pages', 'Directorio.tsx');
+  return syncTsxFile(directorioPath, 'Directorio.tsx', version);
+}
+
+// Función para actualizar la versión y fecha en MainMenu.tsx
+function syncMainMenuVersion(version) {
+  const mainMenuPath = path.join(process.cwd(), 'src', 'pages', 'MainMenu.tsx');
+  return syncTsxFile(mainMenuPath, 'MainMenu.tsx', version);
 }
 
 // Función para actualizar VERSION.md
@@ -109,9 +119,10 @@ function syncAll() {
   
   // Sincronizar todos los archivos
   const directorioSuccess = syncDirectorioVersion(version);
+  const mainMenuSuccess = syncMainMenuVersion(version);
   const versionSuccess = syncVersionFile(version);
   
-  if (directorioSuccess && versionSuccess) {
+  if (directorioSuccess && mainMenuSuccess && versionSuccess) {
     console.log('\n🎉 ¡Sincronización completada exitosamente!');
     console.log(`✅ Versión ${version} sincronizada en todos los archivos`);
     console.log(`⏰ Fecha y hora actualizadas: ${new Date().toLocaleString('es-ES')}`);
