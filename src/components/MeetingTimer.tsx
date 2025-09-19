@@ -36,12 +36,22 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
   // Inicializar el cronómetro cuando se abre
   useEffect(() => {
     if (isOpen && stages.length > 0) {
-      setCurrentStageIndex(0);
-      setTimeLeft(stages[0].duration);
+      // Solo resetear índice si está fuera de rango
+      if (currentStageIndex >= stages.length) {
+        setCurrentStageIndex(0);
+      }
+      setTimeLeft(stages[currentStageIndex].duration);
       setIsRunning(true);
       setIsPaused(false);
     }
-  }, [isOpen, stages]);
+  }, [isOpen, stages.length]);
+
+  // Actualizar tiempo cuando cambia la duración de la etapa actual
+  useEffect(() => {
+    if (currentStage && !isRunning) {
+      setTimeLeft(currentStage.duration);
+    }
+  }, [currentStage?.duration, isRunning]);
 
   // Manejar el cronómetro
   useEffect(() => {

@@ -457,13 +457,13 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
   const handleSaveEdit = async (index: number, title: string, description: string, duration: number, alertColor: string, alertSeconds: number) => {
     try {
       const stageToUpdate = stages[index];
-      
+
       // Si la etapa tiene ID (está en la base de datos), actualizarla
       if (stageToUpdate.id && selectedMeeting) {
         await MeetingService.updateStageDetails(stageToUpdate.id, title, duration);
         console.log('Etapa actualizada en BD:', stageToUpdate.id, { title, duration });
       }
-      
+
       // Actualizar el estado local
       const newStages = [...stages];
       newStages[index] = {
@@ -476,7 +476,15 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       };
       setStages(newStages);
       setEditingIndex(null);
-      
+
+      // Si la etapa editada es la actual y el cronómetro no está corriendo, actualizar el tiempo
+      if (index === currentStageIndex && !isTimerRunning) {
+        localStorage.setItem('currentTimeLeft', duration.toString());
+        localStorage.setItem('initialTime', duration.toString());
+        sendMessageToReflectionWindow('setTime', { seconds: duration });
+        console.log('Tiempo actualizado por cambio de duración:', duration);
+      }
+
       console.log('Etapa actualizada exitosamente:', index, title);
     } catch (error) {
       console.error('Error actualizando etapa:', error);
