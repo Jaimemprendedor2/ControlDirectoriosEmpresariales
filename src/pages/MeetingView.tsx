@@ -161,6 +161,37 @@ export const MeetingView: React.FC = () => {
             console.log('✅ Stage cambiado a:', stages[newIndex]);
           }
         }
+      } else if (event.data.action === 'syncAll') {
+        console.log('📡 MeetingView recibió syncAll:', event.data.data);
+        if (event.data.data) {
+          const data = event.data.data;
+          if (data.currentTimeLeft !== undefined) {
+            const newTime = parseInt(data.currentTimeLeft);
+            if (!isNaN(newTime)) {
+              setTimeLeft(newTime);
+              setTotalTime(newTime); // Sincronizar totalTime con timeLeft
+            }
+          }
+          if (data.currentStageIndex !== undefined) {
+            const newIndex = parseInt(data.currentStageIndex);
+            if (!isNaN(newIndex)) {
+              setCurrentStageIndex(newIndex);
+            }
+          }
+          if (data.meetingStages) {
+            try {
+              const parsedStages = JSON.parse(data.meetingStages);
+              setStages(parsedStages);
+            } catch (error) {
+              console.error('❌ Error parsing meetingStages en syncAll:', error);
+            }
+          }
+          if (data.isTimerRunning !== undefined) {
+            const running = data.isTimerRunning === 'true' || data.isTimerRunning === true;
+            setIsRunning(running);
+            setIsPaused(!running);
+          }
+        }
       }
     };
 
@@ -168,58 +199,6 @@ export const MeetingView: React.FC = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, [stages, currentStageIndex, startTime, pausedTime]);
 
-  // Timer principal
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-
-    if (isRunning && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft(prev => {
-          const newTime = prev - 1;
-          
-          // Guardar en localStorage
-          localStorage.setItem('timeLeft', newTime.toString());
-          
-          // Si llegó a cero, pasar al siguiente stage
-          if (newTime <= 0) {
-            console.log('⏰ Tiempo agotado para stage:', stages[currentStageIndex]?.title);
-            
-            // Marcar stage como completado
-            const newStages = [...stages];
-            if (newStages[currentStageIndex]) {
-              newStages[currentStageIndex].is_completed = true;
-              setStages(newStages);
-              localStorage.setItem('meetingStages', JSON.stringify(newStages));
-            }
-            
-            // Pasar al siguiente stage
-            if (currentStageIndex < stages.length - 1) {
-              const nextIndex = currentStageIndex + 1;
-              setCurrentStageIndex(nextIndex);
-              setTimeLeft(stages[nextIndex].duration);
-              setTotalTime(stages[nextIndex].duration);
-              localStorage.setItem('currentStageIndex', nextIndex.toString());
-              localStorage.setItem('timeLeft', stages[nextIndex].duration.toString());
-              localStorage.setItem('totalTime', stages[nextIndex].duration.toString());
-              console.log('➡️ Pasando al siguiente stage:', stages[nextIndex]?.title);
-            } else {
-              // Todos los stages completados
-              setIsRunning(false);
-              console.log('🏁 Todos los stages completados');
-            }
-          }
-          
-          return newTime;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [isRunning, timeLeft, currentStageIndex, stages]);
 
   // Efecto de parpadeo
   useEffect(() => {
