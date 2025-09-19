@@ -251,10 +251,16 @@ export const MeetingView: React.FC = () => {
     console.log('  - Tiempo transcurrido:', timeElapsed);
     console.log('  - Colores configurados:', currentStage.colors);
 
+    // Verificar que currentStage.colors existe y es un array
+    if (!currentStage.colors || !Array.isArray(currentStage.colors)) {
+      console.log('🎨 No hay colores configurados o no es un array válido');
+      return '#1f2937';
+    }
+
     // Buscar el color correspondiente al tiempo transcurrido
     for (let i = currentStage.colors.length - 1; i >= 0; i--) {
       const colorConfig = currentStage.colors[i];
-      if (timeElapsed >= colorConfig.timeInSeconds) {
+      if (colorConfig && timeElapsed >= colorConfig.timeInSeconds) {
         console.log('🎨 Aplicando color:', colorConfig.backgroundColor, 'para tiempo:', colorConfig.timeInSeconds);
         return colorConfig.backgroundColor;
       }
