@@ -25,6 +25,11 @@ export const MeetingView: React.FC = () => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pausedTime, setPausedTime] = useState(0);
 
+  // Establecer título de la ventana
+  useEffect(() => {
+    document.title = "Ventana Cronómetro";
+  }, []);
+
   // Cargar estado inicial desde localStorage
   useEffect(() => {
     const loadInitialState = () => {
