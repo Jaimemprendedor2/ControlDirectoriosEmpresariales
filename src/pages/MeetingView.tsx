@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface Stage {
   id?: string;
@@ -25,6 +25,9 @@ export const MeetingView: React.FC = () => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pausedTime, setPausedTime] = useState(0);
   const [currentTimestamp, setCurrentTimestamp] = useState(Date.now());
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Establecer título de la ventana
   useEffect(() => {
@@ -254,13 +257,135 @@ export const MeetingView: React.FC = () => {
     };
   }, [timeLeft]);
 
-  // Actualización continua del timestamp para forzar re-renders en cámara virtual
+  // Configurar MediaStream con canvas para streaming continuo
   useEffect(() => {
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+
+    if (!canvas || !video) return;
+
+    // Configurar canvas
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = 960;
+    canvas.height = 614;
+
+    // Crear MediaStream desde canvas
+    const stream = canvas.captureStream(30); // 30 FPS
+    streamRef.current = stream;
+    video.srcObject = stream;
+
+    // Función para dibujar el cronómetro en el canvas
+    const drawTimer = () => {
+      if (!ctx) return;
+
+      // Limpiar canvas
+      ctx.fillStyle = getBackgroundColor();
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Dibujar título de etapa
+      ctx.fillStyle = getTextColor();
+      ctx.font = '48px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(currentStage?.title || 'Stage Actual', canvas.width / 2, 80);
+
+      // Dibujar contador de etapas
+      ctx.font = '24px Arial';
+      ctx.fillText(`${currentStageIndex + 1} de ${stages.length} etapas`, canvas.width / 2, 120);
+
+      // Dibujar tiempo principal
+      ctx.font = '120px monospace';
+      ctx.fillText(formatTime(timeLeft), canvas.width / 2, 280);
+
+      // Dibujar barra de progreso
+      const progress = currentStage ? ((currentStage.duration - timeLeft) / currentStage.duration) * 100 : 0;
+      const barWidth = 600;
+      const barHeight = 20;
+      const barX = (canvas.width - barWidth) / 2;
+      const barY = 350;
+
+      // Fondo de barra
+      ctx.fillStyle = '#374151';
+      ctx.fillRect(barX, barY, barWidth, barHeight);
+
+      // Barra de progreso
+      ctx.fillStyle = getTextColor();
+      ctx.fillRect(barX, barY, (progress / 100) * barWidth, barHeight);
+
+      // Texto de progreso
+      ctx.font = '18px Arial';
+      ctx.fillStyle = getTextColor();
+      ctx.textAlign = 'center';
+      ctx.fillText(`${Math.floor(progress)}% completado`, canvas.width / 2, 390);
+
+      // Estado
+      ctx.font = '24px Arial';
+      const statusText = isRunning ? '⏱️ Ejecutando' : isPaused ? '⏸️ Pausado' : '⏹️ Detenido';
+      ctx.fillText(statusText, canvas.width / 2, 430);
+
+      // Timestamp para forzar actualización
+      ctx.font = '12px monospace';
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.textAlign = 'left';
+      ctx.fillText(`TS: ${currentTimestamp}`, 10, canvas.height - 10);
+    };
+
+    // Dibujar inicialmente
+    drawTimer();
+
+    // Actualizar cada frame para streaming continuo
+    let animationId: number;
+    const animate = () => {
+      drawTimer();
+      animationId = requestAnimationFrame(animate);
+    };
+    animate();
+
+    // Actualización continua del timestamp para forzar re-renders
     const timestampInterval = setInterval(() => {
       setCurrentTimestamp(Date.now());
-    }, 100); // Actualizar cada 100ms para coincidir con syncAll
+    }, 100); // Actualizar cada 100ms
 
-    return () => clearInterval(timestampInterval);
+    return () => {
+      cancelAnimationFrame(animationId);
+      clearInterval(timestampInterval);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stages, currentStageIndex, timeLeft, isRunning, isPaused, currentTimestamp]);
+
+  // Sistema robusto de sincronización - Capa 3: Timer Interno de Respaldo
+  useEffect(() => {
+    let backupTimer: NodeJS.Timeout;
+
+    const startBackupTimer = () => {
+      backupTimer = setInterval(() => {
+        const currentTime = localStorage.getItem("timeLeft");
+        const isRunning = localStorage.getItem("isRunning");
+
+        if (currentTime && isRunning === "true") {
+          const seconds = parseInt(currentTime);
+          if (!isNaN(seconds) && seconds > 0) {
+            const newTime = seconds - 1;
+            localStorage.setItem("timeLeft", newTime.toString());
+            setTimeLeft(newTime);
+
+            if (newTime === 0) {
+              localStorage.setItem("isRunning", "false");
+              setIsRunning(false);
+            }
+          }
+        }
+      }, 1000);
+    };
+
+    startBackupTimer();
+
+    return () => {
+      if (backupTimer) clearInterval(backupTimer);
+    };
   }, []);
 
   // Función para obtener el color de fondo basado en el tiempo transcurrido
@@ -330,55 +455,23 @@ export const MeetingView: React.FC = () => {
   const textColor = getTextColor();
 
   return (
-    <div 
-      className="min-h-screen flex flex-col items-center justify-center transition-all duration-500"
-      style={{ backgroundColor }}
-    >
-      {/* Título del Stage */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-2" style={{ color: textColor }}>
-          {currentStage?.title || 'Stage Actual'}
-        </h1>
-        <p className="text-lg opacity-80" style={{ color: textColor }}>
-          {currentStageIndex + 1} de {stages.length} etapas
-        </p>
-      </div>
+    <div className="min-h-screen bg-black flex items-center justify-center relative">
+      {/* Canvas oculto para generar el stream */}
+      <canvas
+        ref={canvasRef}
+        className="hidden"
+        style={{ display: 'none' }}
+      />
 
-      {/* Cronómetro Principal */}
-      <div className="text-center mb-8">
-        <div 
-          className={`text-8xl font-mono font-bold transition-all duration-300 ${
-            isBlinking ? 'animate-pulse' : ''
-          }`}
-          style={{ color: textColor }}
-        >
-          {formatTime(timeLeft)}
-        </div>
-        
-        {/* Barra de Progreso */}
-        <div className="w-96 h-4 bg-gray-700 rounded-full mt-6 overflow-hidden">
-          <div 
-            className="h-full bg-white transition-all duration-1000 ease-linear"
-            style={{ 
-              width: `${((totalTime - timeLeft) / totalTime) * 100}%`,
-              backgroundColor: textColor
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Información del Estado */}
-      <div className="text-center">
-        <div className="text-lg mb-2" style={{ color: textColor }}>
-          {isRunning ? '⏱️ Ejecutando' : isPaused ? '⏸️ Pausado' : '⏹️ Detenido'}
-        </div>
-        
-        {timeLeft <= 15 && (
-          <div className="text-sm opacity-80" style={{ color: textColor }}>
-            {timeLeft === 0 ? '⏰ Tiempo agotado' : '⚠️ Tiempo crítico'}
-          </div>
-        )}
-      </div>
+      {/* Video element que muestra el stream del canvas */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="w-full h-full object-contain"
+        style={{ maxWidth: '100vw', maxHeight: '100vh' }}
+      />
 
       {/* Información de Debug (solo en desarrollo) */}
       {process.env.NODE_ENV === 'development' && (
@@ -388,6 +481,7 @@ export const MeetingView: React.FC = () => {
           <div>Estado: {isRunning ? 'Ejecutando' : isPaused ? 'Pausado' : 'Detenido'}</div>
           <div>Color: {backgroundColor}</div>
           <div>Timestamp: {currentTimestamp}</div>
+          <div>Stream: {streamRef.current ? 'Activo' : 'Inactivo'}</div>
         </div>
       )}
 
