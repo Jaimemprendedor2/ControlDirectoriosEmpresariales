@@ -24,10 +24,44 @@ export const MeetingView: React.FC = () => {
   const [totalTime, setTotalTime] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pausedTime, setPausedTime] = useState(0);
+  const [currentTimestamp, setCurrentTimestamp] = useState(Date.now());
 
   // Establecer título de la ventana
   useEffect(() => {
     document.title = "Ventana Cronómetro";
+  }, []);
+
+  // Solicitar Wake Lock para mantener pantalla activa durante streaming
+  useEffect(() => {
+    let wakeLock: WakeLockSentinel | null = null;
+
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+          console.log('Wake Lock activado para streaming continuo');
+        }
+      } catch (err) {
+        console.log('Wake Lock no disponible:', err);
+      }
+    };
+
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !wakeLock) {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLock) {
+        wakeLock.release();
+      }
+    };
   }, []);
 
   // Cargar estado inicial desde localStorage
@@ -220,6 +254,15 @@ export const MeetingView: React.FC = () => {
     };
   }, [timeLeft]);
 
+  // Actualización continua del timestamp para forzar re-renders en cámara virtual
+  useEffect(() => {
+    const timestampInterval = setInterval(() => {
+      setCurrentTimestamp(Date.now());
+    }, 100); // Actualizar cada 100ms para coincidir con syncAll
+
+    return () => clearInterval(timestampInterval);
+  }, []);
+
   // Función para obtener el color de fondo basado en el tiempo transcurrido
   const getBackgroundColor = () => {
     if (!stages[currentStageIndex] || !stages[currentStageIndex].colors) {
@@ -344,8 +387,15 @@ export const MeetingView: React.FC = () => {
           <div>Tiempo: {timeLeft}s / {totalTime}s</div>
           <div>Estado: {isRunning ? 'Ejecutando' : isPaused ? 'Pausado' : 'Detenido'}</div>
           <div>Color: {backgroundColor}</div>
+          <div>Timestamp: {currentTimestamp}</div>
         </div>
       )}
+
+      {/* Indicador de actividad para cámara virtual (siempre visible pero sutil) */}
+      <div
+        className="fixed top-4 right-4 w-2 h-2 bg-green-500 rounded-full opacity-30 animate-pulse"
+        title="Indicador de actividad para streaming"
+      ></div>
     </div>
   );
 };
