@@ -452,7 +452,6 @@ export const MeetingView: React.FC = () => {
 
   const currentStage = stages[currentStageIndex];
   const backgroundColor = getBackgroundColor();
-  const textColor = getTextColor();
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center relative">
