@@ -507,8 +507,10 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       
       // Enviar inmediatamente los colores actualizados a la ventana de reflejo
       console.log('🎨 Enviando colores actualizados a la ventana de reflejo:', newStages);
+      console.log('🎨 Estructura del mensaje que se enviará:', { action: 'setStages', data: { stages: newStages } });
       if (meetingWindow && !meetingWindow.closed) {
-        sendMessageToReflectionWindow('setStages', { stages: newStages });
+        console.log('📤 Enviando mensaje postMessage a ventana de reflejo...');
+        meetingWindow.postMessage({ action: 'setStages', data: { stages: newStages } }, '*');
         console.log('✅ Colores enviados exitosamente a la ventana de reflejo');
       } else {
         console.log('⚠️ Ventana de reflejo no está abierta - colores guardados en localStorage');
@@ -1432,7 +1434,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.44 ({getBuildInfo()})
+                v1.7.45 ({getBuildInfo()})
               </span>
             </div>
           </div>
