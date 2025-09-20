@@ -6,7 +6,7 @@
 echo "🚀 Ejecutando pre-commit hook..."
 
 # Ejecutar script de actualización de versión
-node scripts/auto-update-version.js
+node scripts/simple-version-update.js
 
 # Verificar si el script se ejecutó correctamente
 if [ $? -eq 0 ]; then
