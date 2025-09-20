@@ -1,46 +1,4 @@
-import { supabase } from '../lib/supabase';
-
-export interface Meeting {
-  id: string;
-  title: string;
-  description?: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string | null;
-  is_active: boolean;
-}
-
-export interface MeetingStage {
-  id: string;
-  meeting_id: string;
-  title: string;
-  description?: string;
-  duration: number;
-  order_index: number;
-  is_completed: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface MeetingSession {
-  id: string;
-  meeting_id: string;
-  started_at: string;
-  ended_at?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface StageProgress {
-  id: string;
-  session_id: string;
-  stage_id: string;
-  started_at: string;
-  ended_at?: string;
-  is_completed: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { supabase, Meeting, MeetingStage, MeetingSession, StageProgress } from '../lib/supabase';
 
 export class MeetingService {
   // Obtener todos los meetings

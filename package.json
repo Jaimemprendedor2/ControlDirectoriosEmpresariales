@@ -1,11 +1,11 @@
 {
   "name": "configuracion-directorios-empresariales-gemini",
   "private": true,
-  "version": "1.7.56",
+  "version": "1.7.58",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run force-version-sync && tsc && vite build",
+    "build": "vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "sync-version": "node scripts/sync-version.js",
