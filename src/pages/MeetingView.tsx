@@ -24,7 +24,6 @@ export const MeetingView: React.FC = () => {
   const [totalTime, setTotalTime] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pausedTime, setPausedTime] = useState(0);
-  const [currentTimestamp, setCurrentTimestamp] = useState(Date.now());
 
   // Establecer título de la ventana
   useEffect(() => {
