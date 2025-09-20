@@ -15,7 +15,7 @@ export const TimerNavigationBar: React.FC<NavigationBarProps> = ({
         <button className="p-1 hover:bg-gray-700 rounded transition-colors">
           <span className="text-lg">≡</span>
         </button>
-        <span className="text-sm font-medium">Cronómetro v1.7.46</span>
+        <span className="text-sm font-medium">Cronómetro v1.7.53</span>
       </div>
       
       <div className="flex items-center space-x-1">
