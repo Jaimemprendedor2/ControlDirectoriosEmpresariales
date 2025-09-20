@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { TimerSettings, TimerSettingsProps } from '../types/timer';
+import { TimerSettings as TimerSettingsType, TimerSettingsProps } from '../types/timer';
 
 export const TimerSettings: React.FC<TimerSettingsProps> = ({
   isOpen,
   onClose,
   onSave
 }) => {
-  const [settings, setSettings] = useState<TimerSettings>({
+  const [settings, setSettings] = useState<TimerSettingsType>({
     fontSize: 16,
     backgroundColor: '#000000',
     textColor: '#ffffff',
