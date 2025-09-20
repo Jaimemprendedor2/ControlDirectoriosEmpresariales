@@ -8,6 +8,7 @@
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -120,7 +121,6 @@ npm run verify-sync
 *Generado automáticamente el ${new Date().toLocaleString('es-ES')}*
 `;
 
-  const fs = require('fs');
   const docPath = path.join(projectRoot, 'AUTO_VERSIONING.md');
   fs.writeFileSync(docPath, docContent);
   console.log('✅ Documentación creada: AUTO_VERSIONING.md');

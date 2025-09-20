@@ -1,14 +1,4 @@
-export interface TimerState {
-  stages: any[];
-  currentStageIndex: number;
-  timeLeft: number;
-  isRunning: boolean;
-  isPaused: boolean;
-  totalTime: number;
-  startTime: number | null;
-  pausedTime: number;
-  timestamp: number;
-}
+import { TimerState } from '../types/timer';
 
 export class PersistencePlugin {
   private storageKey = 'timer-window-state';

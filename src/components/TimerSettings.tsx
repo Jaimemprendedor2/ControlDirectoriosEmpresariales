@@ -1,21 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-interface TimerSettingsProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (settings: TimerSettings) => void;
-}
-
-interface TimerSettings {
-  fontSize: number;
-  backgroundColor: string;
-  textColor: string;
-  showSeconds: boolean;
-  autoStart: boolean;
-  showProgress: boolean;
-  soundEnabled: boolean;
-  notificationEnabled: boolean;
-}
+import { TimerSettings, TimerSettingsProps } from '../types/timer';
 
 export const TimerSettings: React.FC<TimerSettingsProps> = ({
   isOpen,

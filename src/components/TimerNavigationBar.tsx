@@ -1,13 +1,5 @@
 import React from 'react';
-
-interface NavigationBarProps {
-  onToggleSettings: () => void;
-  onToggleAlwaysOnTop: () => void;
-  onToggleBackgroundMode: () => void;
-  onClose: () => void;
-  isAlwaysOnTop: boolean;
-  isBackgroundMode: boolean;
-}
+import { NavigationBarProps } from '../types/timer';
 
 export const TimerNavigationBar: React.FC<NavigationBarProps> = ({
   onToggleSettings,

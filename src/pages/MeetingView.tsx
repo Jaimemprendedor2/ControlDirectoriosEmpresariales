@@ -4,6 +4,7 @@ import { TimerSettings } from '../components/TimerSettings';
 import { useWindowPlugins } from '../hooks/useWindowPlugins';
 import { NotificationPlugin } from '../plugins/NotificationPlugin';
 import { PersistencePlugin } from '../plugins/PersistencePlugin';
+import { TimerSettings as TimerSettingsType } from '../types/timer';
 
 interface Stage {
   id?: string;
@@ -82,7 +83,7 @@ export const MeetingView: React.FC = () => {
   }, [settings]);
 
   // Funciones para manejar configuración
-  const handleSaveSettings = (newSettings: any) => {
+  const handleSaveSettings = (newSettings: TimerSettingsType) => {
     setSettings(newSettings);
     persistencePlugin.saveSettings(newSettings);
     notificationPlugin.setEnabled(newSettings.notificationEnabled);
