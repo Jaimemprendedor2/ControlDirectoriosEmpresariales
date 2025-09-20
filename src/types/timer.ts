@@ -21,11 +21,7 @@ export interface TimerState {
   timestamp: number;
 }
 
-export interface WakeLockSentinel {
-  release(): Promise<void>;
-  addEventListener(type: string, listener: () => void): void;
-  removeEventListener(type: string, listener: () => void): void;
-}
+// WakeLockSentinel se usa el tipo nativo del navegador
 
 export interface NavigationBarProps {
   onToggleSettings: () => void;

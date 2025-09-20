@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { WakeLockSentinel } from '../types/timer';
 
 declare global {
-  interface Navigator {
-    wakeLock?: {
-      request(type: 'screen'): Promise<WakeLockSentinel>;
-    };
-  }
-  
   interface Window {
     electronAPI?: {
       setAlwaysOnTop: (alwaysOnTop: boolean) => void;
