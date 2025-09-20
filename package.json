@@ -16,7 +16,10 @@
     "version-major": "npm version major && npm run sync-version",
     "auto-commit": "npm run sync-version && git add . && git commit",
     "force-version-sync": "node scripts/force-version-sync.js",
-    "verify-sync": "node scripts/verify-sync.js"
+    "verify-sync": "node scripts/verify-sync.js",
+    "auto-update-version": "node scripts/auto-update-version.js",
+    "setup-git-hooks": "node scripts/setup-git-hooks.js",
+    "commit-with-version": "npm run auto-update-version && git commit"
   },
   "dependencies": {
     "react": "^18.2.0",

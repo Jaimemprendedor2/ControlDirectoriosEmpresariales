@@ -43,6 +43,13 @@ export const Directorio: React.FC = () => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  
+  // Estado para plugins de ventana
+  const [timerPlugins, setTimerPlugins] = useState({
+    alwaysOnTop: false,
+    backgroundMode: false,
+    notifications: true
+  });
 
   // Tipo para los atajos de teclado
   type KeyboardShortcut = {
@@ -552,15 +559,24 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
   // Función para abrir ventana de reflejo automáticamente
   const openReflectionWindow = () => {
     if (!meetingWindow || meetingWindow.closed) {
-      console.log('📺 Abriendo ventana de reflejo automáticamente');
+      console.log('📺 Abriendo ventana de reflejo con plugins');
       const reflectionURL = getReflectionURL();
       const newMeetingWindow = window.open(
         reflectionURL,
         'meeting',
-        'width=960,height=614,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no,directories=no,fullscreen=no'
+        'width=960,height=614,scrollbars=no,resizable=yes,menubar=no,toolbar=no,location=no,status=no,directories=no,fullscreen=no'
       );
       if (newMeetingWindow) {
         setMeetingWindow(newMeetingWindow);
+        
+        // Enviar configuración de plugins a la ventana de reflejo
+        setTimeout(() => {
+          newMeetingWindow.postMessage({
+            action: 'setPlugins',
+            data: { plugins: timerPlugins }
+          }, '*');
+          console.log('🔧 Configuración de plugins enviada:', timerPlugins);
+        }, 100);
         
         // Sincronizar inmediatamente después de abrir
         setTimeout(() => {
@@ -1578,6 +1594,52 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                        <span className="text-2xl mr-2">⏱️</span>
                        Cronómetro Principal del Directorio
                      </div>
+                     
+                     {/* Controles de plugins */}
+                     <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                       <h4 className="text-sm font-medium text-gray-700 mb-2">🔧 Plugins de Ventana</h4>
+                       <div className="flex flex-wrap gap-3">
+                         <label className="flex items-center">
+                           <input
+                             type="checkbox"
+                             checked={timerPlugins.alwaysOnTop}
+                             onChange={(e) => setTimerPlugins({
+                               ...timerPlugins,
+                               alwaysOnTop: e.target.checked
+                             })}
+                             className="mr-2 rounded"
+                           />
+                           <span className="text-sm">📌 Siempre visible</span>
+                         </label>
+                         
+                         <label className="flex items-center">
+                           <input
+                             type="checkbox"
+                             checked={timerPlugins.backgroundMode}
+                             onChange={(e) => setTimerPlugins({
+                               ...timerPlugins,
+                               backgroundMode: e.target.checked
+                             })}
+                             className="mr-2 rounded"
+                           />
+                           <span className="text-sm">🔒 Modo segundo plano</span>
+                         </label>
+                         
+                         <label className="flex items-center">
+                           <input
+                             type="checkbox"
+                             checked={timerPlugins.notifications}
+                             onChange={(e) => setTimerPlugins({
+                               ...timerPlugins,
+                               notifications: e.target.checked
+                             })}
+                             className="mr-2 rounded"
+                           />
+                           <span className="text-sm">🔔 Notificaciones</span>
+                         </label>
+                       </div>
+                     </div>
+                     
                      {/* Botones de control del reflejo */}
                      <div className="grid grid-cols-2 gap-3 w-full max-w-md">
                        <button

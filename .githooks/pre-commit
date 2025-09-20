@@ -1,12 +1,21 @@
 #!/bin/sh
-# Pre-commit hook para sincronización automática de versión
 
-echo "🔄 Ejecutando sincronización automática de versión..."
+# Git Hook Pre-Commit
+# Actualiza automáticamente la versión antes de cada commit
 
-# Ejecutar auto-versión basada en cambios
-npm run auto-version
+echo "🚀 Ejecutando pre-commit hook..."
 
-# Agregar archivos actualizados al commit
-git add src/pages/Directorio.tsx VERSION.md package.json
+# Ejecutar script de actualización de versión
+node scripts/auto-update-version.js
 
-echo "✅ Sincronización de versión completada"
+# Verificar si el script se ejecutó correctamente
+if [ $? -eq 0 ]; then
+    echo "✅ Pre-commit hook completado exitosamente"
+    echo "📝 Archivos de versión actualizados y agregados al commit"
+else
+    echo "❌ Error en pre-commit hook"
+    exit 1
+fi
+
+# Continuar con el commit
+exit 0

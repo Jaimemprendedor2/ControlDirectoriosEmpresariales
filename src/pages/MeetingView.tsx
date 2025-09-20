@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { TimerNavigationBar } from '../components/TimerNavigationBar';
+import { TimerSettings } from '../components/TimerSettings';
+import { useWindowPlugins } from '../hooks/useWindowPlugins';
+import { NotificationPlugin } from '../plugins/NotificationPlugin';
+import { PersistencePlugin } from '../plugins/PersistencePlugin';
 
 interface Stage {
   id?: string;
@@ -25,11 +30,83 @@ export const MeetingView: React.FC = () => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pausedTime, setPausedTime] = useState(0);
   const [currentTimestamp, setCurrentTimestamp] = useState(Date.now());
+  
+  // Estados para plugins y configuración
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState({
+    fontSize: 16,
+    backgroundColor: '#000000',
+    textColor: '#ffffff',
+    showSeconds: true,
+    autoStart: false,
+    showProgress: true,
+    soundEnabled: true,
+    notificationEnabled: true
+  });
+
+  // Inicializar plugins
+  const notificationPlugin = new NotificationPlugin();
+  const persistencePlugin = new PersistencePlugin();
+  
+  // Hook para plugins de ventana
+  const {
+    isAlwaysOnTop,
+    isBackgroundMode,
+    toggleAlwaysOnTop,
+    toggleBackgroundMode,
+    requestNotificationPermission
+  } = useWindowPlugins();
 
   // Establecer título de la ventana
   useEffect(() => {
     document.title = "Ventana Cronómetro";
   }, []);
+
+  // Cargar configuración al inicializar
+  useEffect(() => {
+    const savedSettings = persistencePlugin.loadSettings();
+    if (savedSettings) {
+      setSettings(prev => ({ ...prev, ...savedSettings }));
+    }
+    
+    // Solicitar permisos de notificación
+    requestNotificationPermission();
+  }, []);
+
+  // Aplicar configuración en tiempo real
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--timer-font-size', `${settings.fontSize}px`);
+    root.style.setProperty('--timer-bg-color', settings.backgroundColor);
+    root.style.setProperty('--timer-text-color', settings.textColor);
+  }, [settings]);
+
+  // Funciones para manejar configuración
+  const handleSaveSettings = (newSettings: any) => {
+    setSettings(newSettings);
+    persistencePlugin.saveSettings(newSettings);
+    notificationPlugin.setEnabled(newSettings.notificationEnabled);
+  };
+
+  const handleClose = () => {
+    // Guardar estado antes de cerrar
+    persistencePlugin.saveTimerState({
+      stages,
+      currentStageIndex,
+      timeLeft,
+      isRunning,
+      isPaused,
+      totalTime,
+      startTime,
+      pausedTime
+    });
+
+    // Notificar a la ventana padre que se está cerrando
+    if (window.opener) {
+      window.opener.postMessage({ action: 'windowClosed' }, '*');
+    }
+    window.close();
+  };
 
   // Solicitar Wake Lock para mantener pantalla activa durante streaming
   useEffect(() => {
@@ -362,9 +439,21 @@ export const MeetingView: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center transition-all duration-100"
+      className="min-h-screen flex flex-col transition-all duration-100"
       style={{ backgroundColor: getBackgroundColor() }}
     >
+      {/* Barra de navegación */}
+      <TimerNavigationBar
+        onToggleSettings={() => setShowSettings(true)}
+        onToggleAlwaysOnTop={toggleAlwaysOnTop}
+        onToggleBackgroundMode={toggleBackgroundMode}
+        onClose={handleClose}
+        isAlwaysOnTop={isAlwaysOnTop}
+        isBackgroundMode={isBackgroundMode}
+      />
+
+      {/* Contenido principal del cronómetro */}
+      <div className="flex-1 flex flex-col items-center justify-center">
       {/* Título del Stage */}
       <div className="text-center mb-8">
         <h1
@@ -452,6 +541,14 @@ export const MeetingView: React.FC = () => {
       <div className="opacity-0 text-xs fixed bottom-0 right-0 pointer-events-none">
         {currentTimestamp}
       </div>
+      </div>
+
+      {/* Componente de configuración */}
+      <TimerSettings
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        onSave={handleSaveSettings}
+      />
     </div>
   );
 };
