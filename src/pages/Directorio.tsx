@@ -103,7 +103,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-20T05:29:40.934Z'); // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-20T05:35:33.574Z'); // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -235,7 +235,7 @@ export const Directorio: React.FC = () => {
       
       // Abrir ventana de reflejo automáticamente al entrar a configuración de directorio
       setTimeout(() => {
-        openReflectionWindow();
+        openOrFocusMirror();
       }, 500);
 
       // Si hay etapas, setear el cronómetro al tiempo de la primera etapa
@@ -326,9 +326,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     if (!confirmDelete) return;
 
     try {
-      // Cerrar la ventana de reunión si está abierta
+      // Limpiar referencia a ventana de reflejo
       if (meetingWindow && !meetingWindow.closed) {
-        meetingWindow.close();
         setMeetingWindow(null);
         setIsTimerRunning(false);
       }
@@ -535,29 +534,16 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     return `${baseUrl}/meeting`;
   };
 
-  // Función para copiar URL del reflejo al portapapeles
-  const copyReflectionURL = async () => {
-    try {
-      const url = getReflectionURL();
-      await navigator.clipboard.writeText(url);
-      alert(`✅ URL copiada al portapapeles:\n${url}`);
-      console.log('📋 URL del reflejo copiada:', url);
-    } catch (error) {
-      console.error('❌ Error al copiar URL:', error);
-      // Fallback para navegadores que no soportan clipboard API
-      const url = getReflectionURL();
-      prompt('Copiar URL del reflejo:', url);
-    }
-  };
 
-  // Función para abrir ventana de reflejo automáticamente
-  const openReflectionWindow = () => {
+  // Función para abrir o enfocar la pestaña de reflejo
+  const openOrFocusMirror = () => {
     if (!meetingWindow || meetingWindow.closed) {
-      console.log('📺 Abriendo pestaña de reflejo del cronómetro');
+      console.log('📺 Abriendo nueva pestaña de reflejo del cronómetro');
       const reflectionURL = getReflectionURL();
       const newMeetingWindow = window.open(
         reflectionURL,
-        'meeting'
+        'meeting',
+        'noopener,noreferrer'
       );
       if (newMeetingWindow) {
         setMeetingWindow(newMeetingWindow);
@@ -598,6 +584,9 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
           }
         }, 500);
       }
+    } else {
+      console.log('📺 Enfocando pestaña de reflejo existente');
+      meetingWindow.focus();
     }
   };
 
@@ -1367,10 +1356,9 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
      // Pausar el cronómetro
      setIsTimerRunning(false);
      
-     // Cerrar ventana de reflejo si está abierta
+     // Limpiar referencia a ventana de reflejo (no cerrar para mantener disponibilidad)
      if (meetingWindow && !meetingWindow.closed) {
-       console.log('🔄 Cerrando ventana de reflejo');
-       meetingWindow.close();
+       console.log('🔄 Limpiando referencia a ventana de reflejo');
        setMeetingWindow(null);
      }
      
@@ -1443,7 +1431,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.58 ({getBuildInfo()})
+                v1.7.59 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1581,62 +1569,15 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                      </div>
                      
                      
-                     {/* Botones de control del reflejo */}
-                     <div className="grid grid-cols-2 gap-3 w-full max-w-md">
+                     {/* Botón de control del reflejo */}
+                     <div className="w-full max-w-md">
                        <button
-                         onClick={() => {
-                           if (meetingWindow && !meetingWindow.closed) {
-                             meetingWindow.close();
-                             setMeetingWindow(null);
-                           } else {
-                             const reflectionURL = getReflectionURL();
-                             const newMeetingWindow = window.open(
-                               reflectionURL,
-                               'meeting',
-                               'width=960,height=614,scrollbars=no,resizable=no,menubar=no,toolbar=no,location=no,status=no,left=100,top=100,directories=no,fullscreen=no'
-                             );
-                             if (newMeetingWindow) {
-                               setMeetingWindow(newMeetingWindow);
-                               // Enviar estado actual a la ventana de reflejo
-                               setTimeout(() => {
-                                 const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-                                 const isRunning = localStorage.getItem('isTimerRunning');
-                                 const currentStage = localStorage.getItem('currentStageIndex');
-                                 const stages = localStorage.getItem('meetingStages');
-                                 
-                                 if (newMeetingWindow && !newMeetingWindow.closed) {
-                                   newMeetingWindow.postMessage({
-                                     action: 'syncState',
-                                     data: {
-                                       currentTimeLeft: currentTimeLeft,
-                                       isTimerRunning: isRunning === 'true',
-                                       currentStageIndex: currentStage ? parseInt(currentStage) : 0,
-                                       stages: stages ? JSON.parse(stages) : []
-                                     }
-                                   }, '*');
-                                 }
-                               }, 100);
-                             }
-                           }
-                         }}
-                         className={`font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center space-x-2 ${
-                           meetingWindow && !meetingWindow.closed
-                             ? 'bg-orange-600 hover:bg-orange-700 text-white'
-                             : 'bg-blue-600 hover:bg-blue-700 text-white'
-                         }`}
-                         title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
+                         onClick={openOrFocusMirror}
+                         className="font-medium py-2 px-4 rounded-lg transition-colors text-sm bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2 w-full"
+                         title="Abrir o enfocar pestaña de reflejo del cronómetro"
                        >
-                         <span>{meetingWindow && !meetingWindow.closed ? '🔄' : '📺'}</span>
-                         <span>{meetingWindow && !meetingWindow.closed ? 'Cerrar Reflejo' : 'Abrir Pestaña Reflejo'}</span>
-                       </button>
-                       
-                       <button
-                         onClick={copyReflectionURL}
-                         className="font-medium py-2 px-4 rounded-lg transition-colors text-sm bg-green-600 hover:bg-green-700 text-white flex items-center justify-center space-x-2"
-                         title="Copiar URL del reflejo del cronómetro"
-                       >
-                         <span>📋</span>
-                         <span>Copiar URL</span>
+                         <span>📺</span>
+                         <span>Abrir Reflejo</span>
                        </button>
                      </div>
                    </h3>
