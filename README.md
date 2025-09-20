@@ -12,7 +12,8 @@ Una plataforma moderna y eficiente para configurar y gestionar directorios empre
 - **🎯 Gestión de Etapas**: Organiza y gestiona las etapas del directorio
 - **⌨️ Atajos de Teclado**: Navegación rápida y eficiente
 - **📊 Progreso Visual**: Seguimiento en tiempo real del progreso
-- **🔄 Sincronización**: Funciona en múltiples ventanas simultáneamente
+- **🔄 Sincronización**: Funciona en múltiples pestañas simultáneamente
+- **📺 Pestaña de Reflejo**: Se abre automáticamente una pestaña con el cronómetro en tiempo real
 
 ## 📋 Formato CSV
 

@@ -44,12 +44,6 @@ export const Directorio: React.FC = () => {
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   
-  // Estado para plugins de ventana
-  const [timerPlugins, setTimerPlugins] = useState({
-    alwaysOnTop: false,
-    backgroundMode: false,
-    notifications: true
-  });
 
   // Tipo para los atajos de teclado
   type KeyboardShortcut = {
@@ -109,7 +103,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-20T03:48:31.221Z'); // Actualizado automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-20T03:48:58.904Z'); // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -559,24 +553,15 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
   // Función para abrir ventana de reflejo automáticamente
   const openReflectionWindow = () => {
     if (!meetingWindow || meetingWindow.closed) {
-      console.log('📺 Abriendo ventana de reflejo con plugins');
+      console.log('📺 Abriendo pestaña de reflejo del cronómetro');
       const reflectionURL = getReflectionURL();
       const newMeetingWindow = window.open(
         reflectionURL,
-        'meeting',
-        'width=960,height=614,scrollbars=no,resizable=yes,menubar=no,toolbar=no,location=no,status=no,directories=no,fullscreen=no'
+        'meeting'
       );
       if (newMeetingWindow) {
         setMeetingWindow(newMeetingWindow);
-        
-        // Enviar configuración de plugins a la ventana de reflejo
-        setTimeout(() => {
-          newMeetingWindow.postMessage({
-            action: 'setPlugins',
-            data: { plugins: timerPlugins }
-          }, '*');
-          console.log('🔧 Configuración de plugins enviada:', timerPlugins);
-        }, 100);
+        console.log('✅ Pestaña de reflejo abierta correctamente');
         
         // Sincronizar inmediatamente después de abrir
         setTimeout(() => {
@@ -1458,7 +1443,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.53 ({getBuildInfo()})
+                v1.7.54 ({getBuildInfo()})
               </span>
             </div>
           </div>
@@ -1595,50 +1580,6 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                        Cronómetro Principal del Directorio
                      </div>
                      
-                     {/* Controles de plugins */}
-                     <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                       <h4 className="text-sm font-medium text-gray-700 mb-2">🔧 Plugins de Ventana</h4>
-                       <div className="flex flex-wrap gap-3">
-                         <label className="flex items-center">
-                           <input
-                             type="checkbox"
-                             checked={timerPlugins.alwaysOnTop}
-                             onChange={(e) => setTimerPlugins({
-                               ...timerPlugins,
-                               alwaysOnTop: e.target.checked
-                             })}
-                             className="mr-2 rounded"
-                           />
-                           <span className="text-sm">📌 Siempre visible</span>
-                         </label>
-                         
-                         <label className="flex items-center">
-                           <input
-                             type="checkbox"
-                             checked={timerPlugins.backgroundMode}
-                             onChange={(e) => setTimerPlugins({
-                               ...timerPlugins,
-                               backgroundMode: e.target.checked
-                             })}
-                             className="mr-2 rounded"
-                           />
-                           <span className="text-sm">🔒 Modo segundo plano</span>
-                         </label>
-                         
-                         <label className="flex items-center">
-                           <input
-                             type="checkbox"
-                             checked={timerPlugins.notifications}
-                             onChange={(e) => setTimerPlugins({
-                               ...timerPlugins,
-                               notifications: e.target.checked
-                             })}
-                             className="mr-2 rounded"
-                           />
-                           <span className="text-sm">🔔 Notificaciones</span>
-                         </label>
-                       </div>
-                     </div>
                      
                      {/* Botones de control del reflejo */}
                      <div className="grid grid-cols-2 gap-3 w-full max-w-md">
@@ -1686,7 +1627,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                          title="Abrir/cerrar reflejo del cronómetro en nueva pestaña"
                        >
                          <span>{meetingWindow && !meetingWindow.closed ? '🔄' : '📺'}</span>
-                         <span>{meetingWindow && !meetingWindow.closed ? 'Cerrar Reflejo' : 'Abrir Reflejo'}</span>
+                         <span>{meetingWindow && !meetingWindow.closed ? 'Cerrar Reflejo' : 'Abrir Pestaña Reflejo'}</span>
                        </button>
                        
                        <button

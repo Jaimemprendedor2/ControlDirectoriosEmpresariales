@@ -1,10 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { TimerNavigationBar } from '../components/TimerNavigationBar';
-import { TimerSettings } from '../components/TimerSettings';
-import { useWindowPlugins } from '../hooks/useWindowPlugins';
-import { NotificationPlugin } from '../plugins/NotificationPlugin';
-import { PersistencePlugin } from '../plugins/PersistencePlugin';
-import { TimerSettings as TimerSettingsType } from '../types/timer';
 
 interface Stage {
   id?: string;
@@ -31,115 +25,10 @@ export const MeetingView: React.FC = () => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pausedTime, setPausedTime] = useState(0);
   const [currentTimestamp, setCurrentTimestamp] = useState(Date.now());
-  
-  // Estados para plugins y configuración
-  const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState({
-    fontSize: 16,
-    backgroundColor: '#000000',
-    textColor: '#ffffff',
-    showSeconds: true,
-    autoStart: false,
-    showProgress: true,
-    soundEnabled: true,
-    notificationEnabled: true
-  });
-
-  // Inicializar plugins
-  const notificationPlugin = new NotificationPlugin();
-  const persistencePlugin = new PersistencePlugin();
-  
-  // Hook para plugins de ventana
-  const {
-    isAlwaysOnTop,
-    isBackgroundMode,
-    toggleAlwaysOnTop,
-    toggleBackgroundMode,
-    requestNotificationPermission
-  } = useWindowPlugins();
 
   // Establecer título de la ventana
   useEffect(() => {
     document.title = "Ventana Cronómetro";
-  }, []);
-
-  // Cargar configuración al inicializar
-  useEffect(() => {
-    const savedSettings = persistencePlugin.loadSettings();
-    if (savedSettings) {
-      setSettings(prev => ({ ...prev, ...savedSettings }));
-    }
-    
-    // Solicitar permisos de notificación
-    requestNotificationPermission();
-  }, []);
-
-  // Aplicar configuración en tiempo real
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty('--timer-font-size', `${settings.fontSize}px`);
-    root.style.setProperty('--timer-bg-color', settings.backgroundColor);
-    root.style.setProperty('--timer-text-color', settings.textColor);
-  }, [settings]);
-
-  // Funciones para manejar configuración
-  const handleSaveSettings = (newSettings: TimerSettingsType) => {
-    setSettings(newSettings);
-    persistencePlugin.saveSettings(newSettings);
-    notificationPlugin.setEnabled(newSettings.notificationEnabled);
-  };
-
-  const handleClose = () => {
-    // Guardar estado antes de cerrar
-    persistencePlugin.saveTimerState({
-      stages,
-      currentStageIndex,
-      timeLeft,
-      isRunning,
-      isPaused,
-      totalTime,
-      startTime,
-      pausedTime
-    });
-
-    // Notificar a la ventana padre que se está cerrando
-    if (window.opener) {
-      window.opener.postMessage({ action: 'windowClosed' }, '*');
-    }
-    window.close();
-  };
-
-  // Solicitar Wake Lock para mantener pantalla activa durante streaming
-  useEffect(() => {
-    let wakeLock: WakeLockSentinel | null = null;
-
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await (navigator as any).wakeLock.request('screen');
-          console.log('Wake Lock activado para streaming continuo');
-        }
-      } catch (err) {
-        console.log('Wake Lock no disponible:', err);
-      }
-    };
-
-    requestWakeLock();
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !wakeLock) {
-        requestWakeLock();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (wakeLock) {
-        wakeLock.release();
-      }
-    };
   }, []);
 
   // Cargar estado inicial desde localStorage
@@ -155,9 +44,6 @@ export const MeetingView: React.FC = () => {
         const savedPausedTime = localStorage.getItem('pausedTime');
 
         console.log('🔄 Cargando estado inicial desde localStorage...');
-        console.log('📊 Stages guardados:', savedStages);
-        console.log('📊 Stage actual:', savedCurrentStage);
-        console.log('📊 Tiempo restante:', savedTimeLeft);
 
         if (savedStages) {
           const parsedStages = JSON.parse(savedStages);
@@ -222,334 +108,257 @@ export const MeetingView: React.FC = () => {
   // Escuchar mensajes de la ventana principal
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      console.log('📨 MeetingView recibió mensaje:', event.data);
-      
-      if (event.data.action === 'startTimer') {
-        console.log('▶️ Iniciando cronómetro...');
-        setIsRunning(true);
-        setIsPaused(false);
-        setStartTime(Date.now());
-        setPausedTime(0);
-      } else if (event.data.action === 'pauseTimer') {
-        console.log('⏸️ Pausando cronómetro...');
-        setIsRunning(false);
-        setIsPaused(true);
-        if (startTime) {
-          setPausedTime(pausedTime + (Date.now() - startTime));
-        }
-      } else if (event.data.action === 'resumeTimer') {
-        console.log('▶️ Reanudando cronómetro...');
-        setIsRunning(true);
-        setIsPaused(false);
-        setStartTime(Date.now());
-      } else if (event.data.action === 'resetTimer') {
-        console.log('🔄 Reiniciando cronómetro...');
-        setIsRunning(false);
-        setIsPaused(false);
-        setStartTime(null);
-        setPausedTime(0);
-        if (stages.length > 0) {
-          setTimeLeft(stages[currentStageIndex].duration);
-          setTotalTime(stages[currentStageIndex].duration);
-        }
-      } else if (event.data.action === 'setStages') {
-        console.log('🎨 MeetingView recibió setStages:', event.data);
-        console.log('🎨 Stages recibidos:', event.data.data?.stages);
-        console.log('🎨 Estructura completa del mensaje:', event.data);
-        if (event.data.data?.stages) {
-          setStages(event.data.data.stages);
-          console.log('✅ Stages actualizados en MeetingView');
-        } else {
-          console.log('⚠️ No se encontraron stages en el mensaje');
-        }
-      } else if (event.data.action === 'setCurrentStage') {
-        console.log('📋 Cambiando stage actual:', event.data.data?.stageIndex);
-        if (event.data.data?.stageIndex !== undefined) {
-          const newIndex = event.data.data.stageIndex;
-          setCurrentStageIndex(newIndex);
-          if (stages[newIndex]) {
-            setTimeLeft(stages[newIndex].duration);
-            setTotalTime(stages[newIndex].duration);
-            console.log('✅ Stage cambiado a:', stages[newIndex]);
-          }
-        }
-      } else if (event.data.action === 'syncAll') {
-        console.log('📡 MeetingView recibió syncAll:', event.data.data);
-        if (event.data.data) {
-          const data = event.data.data;
-          if (data.currentTimeLeft !== undefined) {
-            const newTime = parseInt(data.currentTimeLeft);
-            if (!isNaN(newTime)) {
-              setTimeLeft(newTime);
-              setTotalTime(newTime); // Sincronizar totalTime con timeLeft
-            }
-          }
-          if (data.currentStageIndex !== undefined) {
-            const newIndex = parseInt(data.currentStageIndex);
-            if (!isNaN(newIndex)) {
-              setCurrentStageIndex(newIndex);
-            }
-          }
-          if (data.meetingStages) {
-            try {
-              const parsedStages = JSON.parse(data.meetingStages);
-              setStages(parsedStages);
-            } catch (error) {
-              console.error('❌ Error parsing meetingStages en syncAll:', error);
-            }
-          }
-          if (data.isTimerRunning !== undefined) {
-            const running = data.isTimerRunning === 'true' || data.isTimerRunning === true;
-            setIsRunning(running);
-            setIsPaused(!running);
-          }
-        }
+      console.log('📨 Mensaje recibido en ventana de reflejo:', event.data);
+
+      if (event.data.action === 'updateTimer') {
+        const { stages, currentStageIndex, timeLeft, isRunning, isPaused, totalTime, startTime, pausedTime } = event.data;
+        
+        setStages(stages || []);
+        setCurrentStageIndex(currentStageIndex || 0);
+        setTimeLeft(timeLeft || 0);
+        setIsRunning(isRunning || false);
+        setIsPaused(isPaused || false);
+        setTotalTime(totalTime || 0);
+        setStartTime(startTime || null);
+        setPausedTime(pausedTime || 0);
+        
+        console.log('🔄 Timer actualizado desde ventana principal');
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [stages, currentStageIndex, startTime, pausedTime]);
+  }, []);
 
-
-  // Efecto de parpadeo
+  // Sincronización con localStorage
   useEffect(() => {
-    let blinkInterval: NodeJS.Timeout;
-
-    if (timeLeft <= 15) {
-      setIsBlinking(true);
-      blinkInterval = setInterval(() => {
-        setIsBlinking(prev => !prev);
-      }, 500);
-    } else {
-      setIsBlinking(false);
-    }
-
-    return () => {
-      if (blinkInterval) {
-        clearInterval(blinkInterval);
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'meetingStages' && e.newValue) {
+        const parsedStages = JSON.parse(e.newValue);
+        setStages(parsedStages);
+        console.log('🔄 Stages sincronizados desde localStorage');
+      }
+      
+      if (e.key === 'currentStageIndex' && e.newValue !== null) {
+        setCurrentStageIndex(parseInt(e.newValue));
+        console.log('🔄 Stage actual sincronizado desde localStorage');
+      }
+      
+      if (e.key === 'timeLeft' && e.newValue !== null) {
+        setTimeLeft(parseInt(e.newValue));
+        console.log('🔄 Tiempo restante sincronizado desde localStorage');
+      }
+      
+      if (e.key === 'isRunning' && e.newValue !== null) {
+        setIsRunning(e.newValue === 'true');
+        console.log('🔄 Estado de ejecución sincronizado desde localStorage');
+      }
+      
+      if (e.key === 'isPaused' && e.newValue !== null) {
+        setIsPaused(e.newValue === 'true');
+        console.log('🔄 Estado de pausa sincronizado desde localStorage');
+      }
+      
+      if (e.key === 'totalTime' && e.newValue !== null) {
+        setTotalTime(parseInt(e.newValue));
+        console.log('🔄 Tiempo total sincronizado desde localStorage');
+      }
+      
+      if (e.key === 'startTime' && e.newValue !== null) {
+        setStartTime(parseInt(e.newValue));
+        console.log('🔄 Tiempo de inicio sincronizado desde localStorage');
+      }
+      
+      if (e.key === 'pausedTime' && e.newValue !== null) {
+        setPausedTime(parseInt(e.newValue));
+        console.log('🔄 Tiempo pausado sincronizado desde localStorage');
       }
     };
-  }, [timeLeft]);
 
-  // Actualización continua del timestamp para forzar re-renders en streaming
-  useEffect(() => {
-    const timestampInterval = setInterval(() => {
-      setCurrentTimestamp(Date.now());
-    }, 100); // Actualizar cada 100ms para forzar cambios visuales
-
-    return () => clearInterval(timestampInterval);
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Sistema robusto de sincronización - Capa 3: Timer Interno de Respaldo
+  // Manejar el cronómetro
   useEffect(() => {
-    let backupTimer: NodeJS.Timeout;
+    let interval: NodeJS.Timeout | null = null;
 
-    const startBackupTimer = () => {
-      backupTimer = setInterval(() => {
-        const currentTime = localStorage.getItem("timeLeft");
-        const isRunning = localStorage.getItem("isRunning");
-
-        if (currentTime && isRunning === "true") {
-          const seconds = parseInt(currentTime);
-          if (!isNaN(seconds) && seconds > 0) {
-            const newTime = seconds - 1;
-            localStorage.setItem("timeLeft", newTime.toString());
-            setTimeLeft(newTime);
-
-            if (newTime === 0) {
-              localStorage.setItem("isRunning", "false");
-              setIsRunning(false);
+    if (isRunning && !isPaused && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prevTime) => {
+          const newTime = prevTime - 1;
+          
+          // Guardar en localStorage para sincronización
+          localStorage.setItem('timeLeft', newTime.toString());
+          
+          // Si el tiempo se agotó, pasar a la siguiente etapa
+          if (newTime <= 0) {
+            setIsRunning(false);
+            setIsPaused(false);
+            
+            // Notificar a la ventana principal
+            if (window.opener) {
+              window.opener.postMessage({
+                action: 'stageCompleted',
+                stageIndex: currentStageIndex,
+                stageName: stages[currentStageIndex]?.title || 'Etapa desconocida'
+              }, '*');
             }
+            
+            // Pasar a la siguiente etapa si existe
+            if (currentStageIndex < stages.length - 1) {
+              const nextIndex = currentStageIndex + 1;
+              setCurrentStageIndex(nextIndex);
+              const nextStage = stages[nextIndex];
+              if (nextStage) {
+                setTimeLeft(nextStage.duration);
+                setTotalTime(nextStage.duration);
+                localStorage.setItem('currentStageIndex', nextIndex.toString());
+                localStorage.setItem('timeLeft', nextStage.duration.toString());
+                localStorage.setItem('totalTime', nextStage.duration.toString());
+              }
+            }
+            
+            return 0;
           }
-        }
+          
+          return newTime;
+        });
       }, 1000);
-    };
-
-    startBackupTimer();
+    }
 
     return () => {
-      if (backupTimer) clearInterval(backupTimer);
+      if (interval) clearInterval(interval);
     };
-  }, []);
+  }, [isRunning, isPaused, timeLeft, currentStageIndex, stages]);
 
-  // Función para obtener el color de fondo basado en el tiempo transcurrido
-  const getBackgroundColor = () => {
-    if (!stages[currentStageIndex] || !stages[currentStageIndex].colors) {
-      return '#1f2937'; // Color por defecto
+  // Formatear tiempo
+  const formatTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Calcular color de fondo basado en tiempo restante
+  const getBackgroundColor = (): string => {
+    if (!stages[currentStageIndex]) return '#1f2937';
 
     const currentStage = stages[currentStageIndex];
-    const timeElapsed = totalTime - timeLeft;
-    
-    console.log('🎨 Calculando color de fondo:');
-    console.log('  - Tiempo total:', totalTime);
-    console.log('  - Tiempo restante:', timeLeft);
-    console.log('  - Tiempo transcurrido:', timeElapsed);
-    console.log('  - Colores configurados:', currentStage.colors);
+    const percentage = timeLeft / totalTime;
 
-    // Verificar que currentStage.colors existe y es un array
-    if (!currentStage.colors || !Array.isArray(currentStage.colors)) {
-      console.log('🎨 No hay colores configurados o no es un array válido');
-      return '#1f2937';
-    }
-
-    // Buscar el color correspondiente al tiempo transcurrido
-    for (let i = currentStage.colors.length - 1; i >= 0; i--) {
-      const colorConfig = currentStage.colors[i];
-      if (colorConfig && timeElapsed >= colorConfig.timeInSeconds) {
-        console.log('🎨 Aplicando color:', colorConfig.backgroundColor, 'para tiempo:', colorConfig.timeInSeconds);
-        return colorConfig.backgroundColor;
+    // Si hay colores personalizados definidos
+    if (currentStage.colors && currentStage.colors.length > 0) {
+      const sortedColors = [...currentStage.colors].sort((a, b) => b.timeInSeconds - a.timeInSeconds);
+      
+      for (const colorConfig of sortedColors) {
+        if (timeLeft <= colorConfig.timeInSeconds) {
+          return colorConfig.backgroundColor;
+        }
       }
     }
 
-    // Si no hay colores configurados o no se cumple ninguna condición, usar color por defecto
-    console.log('🎨 Usando color por defecto');
-    return '#1f2937';
+    // Colores por defecto basados en porcentaje
+    if (percentage > 0.5) return '#10b981'; // Verde
+    if (percentage > 0.25) return '#f59e0b'; // Amarillo
+    return '#ef4444'; // Rojo
   };
 
-  // Función para formatear tiempo
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  // Calcular color de texto basado en el fondo
+  const getTextColor = (): string => {
+    const bgColor = getBackgroundColor();
+    // Si el fondo es claro, usar texto oscuro, si es oscuro usar texto claro
+    return bgColor === '#f59e0b' ? '#000000' : '#ffffff';
   };
 
-  // Función para obtener el color del texto
-  const getTextColor = () => {
-    if (timeLeft <= 15) {
-      return isBlinking ? '#ef4444' : '#ffffff';
-    }
-    return '#ffffff';
+  // Calcular progreso
+  const getProgress = (): number => {
+    if (totalTime === 0) return 0;
+    return ((totalTime - timeLeft) / totalTime) * 100;
   };
 
-  if (stages.length === 0) {
+  const currentStage = stages[currentStageIndex];
+
+  if (!currentStage) {
     return (
-      <div className="min-h-screen bg-gray-800 flex items-center justify-center">
-        <div className="text-center text-white">
-          <h1 className="text-2xl font-bold mb-4">Cronómetro de Reunión</h1>
-          <p className="text-gray-300">No hay stages configurados</p>
-          <p className="text-sm text-gray-400 mt-2">Abre la ventana principal para configurar las etapas</p>
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">⏳</div>
+          <h1 className="text-4xl font-bold text-gray-800 mb-4">
+            Esperando Directorio...
+          </h1>
+          <p className="text-gray-600">
+            Configura las etapas e inicia el directorio desde la ventana principal
+          </p>
         </div>
       </div>
     );
   }
 
-  const currentStage = stages[currentStageIndex];
-  const backgroundColor = getBackgroundColor();
-
   return (
     <div
-      className="min-h-screen flex flex-col transition-all duration-100"
+      className="min-h-screen flex flex-col items-center justify-center transition-all duration-100"
       style={{ backgroundColor: getBackgroundColor() }}
     >
-      {/* Barra de navegación */}
-      <TimerNavigationBar
-        onToggleSettings={() => setShowSettings(true)}
-        onToggleAlwaysOnTop={toggleAlwaysOnTop}
-        onToggleBackgroundMode={toggleBackgroundMode}
-        onClose={handleClose}
-        isAlwaysOnTop={isAlwaysOnTop}
-        isBackgroundMode={isBackgroundMode}
-      />
-
       {/* Contenido principal del cronómetro */}
       <div className="flex-1 flex flex-col items-center justify-center">
-      {/* Título del Stage */}
-      <div className="text-center mb-8">
-        <h1
-          className="text-4xl font-bold mb-2"
+        {/* Título de la etapa */}
+        <h1 
+          className="text-6xl font-bold mb-12 text-center px-8"
           style={{ color: getTextColor() }}
         >
-          {currentStage?.title || 'Stage Actual'}
+          {currentStage.title}
         </h1>
-        <p
-          className="text-lg opacity-80"
-          style={{ color: getTextColor() }}
-        >
-          {currentStageIndex + 1} de {stages.length} etapas
-        </p>
-      </div>
-
-      {/* Cronómetro principal con timestamp forzado */}
-      <div key={currentTimestamp} className="text-center mb-8">
-        <div
-          className={`text-8xl font-mono font-bold transition-all duration-100 ${
-            isBlinking ? 'animate-pulse' : ''
-          }`}
+        
+        {/* Cronómetro principal */}
+        <div 
+          className="text-9xl font-bold font-mono mb-12"
           style={{ color: getTextColor() }}
         >
           {formatTime(timeLeft)}
         </div>
-
+        
+        {/* Indicador de etapa */}
+        <div 
+          className="text-2xl mb-8"
+          style={{ color: getTextColor() }}
+        >
+          Etapa {currentStageIndex + 1} de {stages.length}
+        </div>
+        
         {/* Barra de progreso */}
-        <div className="w-96 h-4 bg-gray-700 rounded-full mt-6 overflow-hidden">
-          <div
-            className="h-full bg-white transition-all duration-1000 ease-linear"
-            style={{
-              width: `${((totalTime - timeLeft) / totalTime) * 100}%`,
-              backgroundColor: getTextColor()
+        <div className="w-96 bg-black bg-opacity-20 rounded-full h-4 mb-8">
+          <div 
+            className="h-4 rounded-full transition-all duration-300"
+            style={{ 
+              width: `${getProgress()}%`,
+              backgroundColor: getTextColor(),
+              opacity: 0.7
             }}
-          />
+          ></div>
         </div>
-
-        {/* Texto de progreso */}
-        <p
-          className="text-sm mt-2"
+        
+        {/* Estado del cronómetro */}
+        <div 
+          className="text-xl mb-4"
           style={{ color: getTextColor() }}
         >
-          {Math.floor(((totalTime - timeLeft) / totalTime) * 100)}% completado
-        </p>
-      </div>
-
-      {/* Información del estado */}
-      <div className="text-center">
-        <div
-          className="text-lg mb-2"
+          {isRunning ? '▶️ Ejecutando' : isPaused ? '⏸️ Pausado' : '⏹️ Detenido'}
+        </div>
+        
+        {/* Información adicional */}
+        <div 
+          className="text-lg text-center"
           style={{ color: getTextColor() }}
         >
-          {isRunning ? '⏱️ Ejecutando' : isPaused ? '⏸️ Pausado' : '⏹️ Detenido'}
+          <p>Tiempo total: {formatTime(totalTime)}</p>
+          <p>Tiempo transcurrido: {formatTime(totalTime - timeLeft)}</p>
         </div>
-
-        {timeLeft <= 15 && (
-          <div
-            className="text-sm opacity-80"
-            style={{ color: getTextColor() }}
-          >
-            {timeLeft === 0 ? '⏰ Tiempo agotado' : '⚠️ Tiempo crítico'}
-          </div>
-        )}
       </div>
-
-      {/* Información de Debug (solo en desarrollo) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 left-4 text-xs text-gray-400 bg-black bg-opacity-50 p-2 rounded">
-          <div>Stage: {currentStageIndex + 1}/{stages.length}</div>
-          <div>Tiempo: {timeLeft}s / {totalTime}s</div>
-          <div>Estado: {isRunning ? 'Ejecutando' : isPaused ? 'Pausado' : 'Detenido'}</div>
-          <div>Color: {backgroundColor}</div>
-          <div>Timestamp: {currentTimestamp}</div>
-        </div>
-      )}
-
-      {/* Indicador de actividad para cámara virtual (siempre visible pero sutil) */}
-      <div
-        className="fixed top-4 right-4 w-2 h-2 bg-green-500 rounded-full opacity-30 animate-pulse"
-        title="Indicador de actividad para streaming"
-      />
-
-      {/* Timestamp invisible para forzar actualizaciones continuas */}
-      <div className="opacity-0 text-xs fixed bottom-0 right-0 pointer-events-none">
-        {currentTimestamp}
-      </div>
-      </div>
-
-      {/* Componente de configuración */}
-      <TimerSettings
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        onSave={handleSaveSettings}
-      />
     </div>
   );
 };
