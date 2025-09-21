@@ -104,24 +104,108 @@ export const MeetingView: React.FC = () => {
     loadInitialState();
   }, []);
 
-  // Escuchar mensajes de la ventana principal
+  // Escuchar mensajes de la ventana principal - VERSIÓN CORREGIDA
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       console.log('📨 Mensaje recibido en ventana de reflejo:', event.data);
 
-      if (event.data.action === 'updateTimer') {
-        const { stages, currentStageIndex, timeLeft, isRunning, isPaused, totalTime, startTime, pausedTime } = event.data;
-        
-        setStages(stages || []);
-        setCurrentStageIndex(currentStageIndex || 0);
-        setTimeLeft(timeLeft || 0);
-        setIsRunning(isRunning || false);
-        setIsPaused(isPaused || false);
-        setTotalTime(totalTime || 0);
-        setStartTime(startTime || null);
-        setPausedTime(pausedTime || 0);
-        
-        console.log('🔄 Timer actualizado desde ventana principal');
+      // Procesar diferentes tipos de mensajes de sincronización
+      switch (event.data.action) {
+        case 'updateTimer':
+          const { stages, currentStageIndex, timeLeft, isRunning, isPaused, totalTime, startTime, pausedTime } = event.data;
+          
+          setStages(stages || []);
+          setCurrentStageIndex(currentStageIndex || 0);
+          setTimeLeft(timeLeft || 0);
+          setIsRunning(isRunning || false);
+          setIsPaused(isPaused || false);
+          setTotalTime(totalTime || 0);
+          setStartTime(startTime || null);
+          setPausedTime(pausedTime || 0);
+          
+          console.log('🔄 Timer actualizado desde ventana principal');
+          break;
+
+        case 'syncAll':
+          // Sincronización completa desde el principal
+          const syncData = event.data.data;
+          if (syncData) {
+            if (syncData.currentTimeLeft !== undefined) {
+              setTimeLeft(parseInt(syncData.currentTimeLeft));
+            }
+            if (syncData.currentStageIndex !== undefined) {
+              setCurrentStageIndex(parseInt(syncData.currentStageIndex));
+            }
+            if (syncData.meetingStages) {
+              const parsedStages = JSON.parse(syncData.meetingStages);
+              setStages(parsedStages);
+            }
+            if (syncData.isTimerRunning !== undefined) {
+              setIsRunning(syncData.isTimerRunning === 'true' || syncData.isTimerRunning === true);
+            }
+            console.log('🔄 Sincronización completa recibida');
+          }
+          break;
+
+        case 'setTime':
+          if (event.data.seconds !== undefined) {
+            setTimeLeft(event.data.seconds);
+            console.log('🔄 Tiempo actualizado:', event.data.seconds);
+          }
+          break;
+
+        case 'setStage':
+          if (event.data.stageIndex !== undefined) {
+            setCurrentStageIndex(event.data.stageIndex);
+            console.log('🔄 Etapa actualizada:', event.data.stageIndex);
+          }
+          break;
+
+        case 'setStages':
+          if (event.data.stages) {
+            setStages(event.data.stages);
+            console.log('🔄 Etapas actualizadas');
+          }
+          break;
+
+        case 'pauseResume':
+          if (event.data.isRunning !== undefined) {
+            setIsRunning(event.data.isRunning);
+            console.log('🔄 Estado de ejecución actualizado:', event.data.isRunning);
+          }
+          break;
+
+        case 'previousStage':
+          if (event.data.stageIndex !== undefined) {
+            setCurrentStageIndex(event.data.stageIndex);
+            console.log('🔄 Etapa anterior:', event.data.stageIndex);
+          }
+          break;
+
+        case 'nextStage':
+          if (event.data.stageIndex !== undefined) {
+            setCurrentStageIndex(event.data.stageIndex);
+            console.log('🔄 Siguiente etapa:', event.data.stageIndex);
+          }
+          break;
+
+        case 'addTime':
+          setTimeLeft(prev => prev + 30);
+          console.log('🔄 Tiempo agregado: +30s');
+          break;
+
+        case 'subtractTime':
+          setTimeLeft(prev => Math.max(0, prev - 30));
+          console.log('🔄 Tiempo restado: -30s');
+          break;
+
+        case 'stopTimer':
+          setIsRunning(false);
+          console.log('🔄 Cronómetro detenido');
+          break;
+
+        default:
+          console.log('📨 Mensaje no reconocido:', event.data.action);
       }
     };
 
@@ -178,58 +262,8 @@ export const MeetingView: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Manejar el cronómetro
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    if (isRunning && !isPaused && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          const newTime = prevTime - 1;
-          
-          // Guardar en localStorage para sincronización
-          localStorage.setItem('timeLeft', newTime.toString());
-          
-          // Si el tiempo se agotó, pasar a la siguiente etapa
-          if (newTime <= 0) {
-            setIsRunning(false);
-            setIsPaused(false);
-            
-            // Notificar a la ventana principal
-            if (window.opener) {
-              window.opener.postMessage({
-                action: 'stageCompleted',
-                stageIndex: currentStageIndex,
-                stageName: stages[currentStageIndex]?.title || 'Etapa desconocida'
-              }, '*');
-            }
-            
-            // Pasar a la siguiente etapa si existe
-            if (currentStageIndex < stages.length - 1) {
-              const nextIndex = currentStageIndex + 1;
-              setCurrentStageIndex(nextIndex);
-              const nextStage = stages[nextIndex];
-              if (nextStage) {
-                setTimeLeft(nextStage.duration);
-                setTotalTime(nextStage.duration);
-                localStorage.setItem('currentStageIndex', nextIndex.toString());
-                localStorage.setItem('timeLeft', nextStage.duration.toString());
-                localStorage.setItem('totalTime', nextStage.duration.toString());
-              }
-            }
-            
-            return 0;
-          }
-          
-          return newTime;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isRunning, isPaused, timeLeft, currentStageIndex, stages]);
+  // ELIMINADO: setInterval local que causaba desincronización
+  // La pestaña de reflejo ahora solo muestra datos, no calcula tiempo
 
   // Formatear tiempo
   const formatTime = (seconds: number): string => {
