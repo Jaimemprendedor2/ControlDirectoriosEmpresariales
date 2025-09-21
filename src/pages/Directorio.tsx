@@ -103,7 +103,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-21T14:05:39.631Z'); // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-21T15:15:40.119Z'); // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -1113,76 +1113,43 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     }
   }, [stages, selectedMeeting]);
 
-  // Inicializar Pusher cuando se selecciona un directorio
+  // PUSHER DESHABILITADO TEMPORALMENTE - Solo sincronización local
   useEffect(() => {
     if (selectedMeeting) {
-      addConnectionLog('Inicializando Pusher para directorio: ' + selectedMeeting.title);
+      addConnectionLog('Pusher deshabilitado - usando solo sincronización local');
+      setConnectionState({ connected: true, connecting: false, error: null });
       
-      const pusherService = createPusherService({
-        appKey: import.meta.env.VITE_PUSHER_KEY || 'tu_pusher_key_aqui',
-        cluster: import.meta.env.VITE_PUSHER_CLUSTER || 'tu_cluster_aqui',
-        room: selectedMeeting.id
-      });
-
-      // Configurar callbacks
-      pusherService.onConnectionChange((state) => {
-        setConnectionState(state);
-        addConnectionLog(`Estado de conexión: ${state.connected ? 'Conectado' : 'Desconectado'}`);
-        if (state.error) {
-          addConnectionLog(`Error: ${state.error}`);
-        }
-      });
-
-      pusherService.onCommand((command) => {
-        addConnectionLog(`Comando recibido: ${command.action}`);
-        console.log('📡 Comando recibido via Pusher:', command);
-        
-        // Procesar comandos del control remoto
-        switch (command.action) {
-          case 'previousStage':
-            handlePreviousStage();
-            break;
-          case 'nextStage':
-            handleNextStage();
-            break;
-          case 'pauseResume':
-            handlePauseResume();
-            break;
-          case 'setTime':
-            if (command.data?.seconds !== undefined) {
-              localStorage.setItem('currentTimeLeft', command.data.seconds.toString());
-              sendMessageToReflectionWindow('setTime', { seconds: command.data.seconds });
+      // Sincronización mejorada independiente de Pusher
+      const syncInterval = setInterval(() => {
+        if (meetingWindow && !meetingWindow.closed) {
+          const currentTime = localStorage.getItem('currentTimeLeft');
+          const currentStageIdx = localStorage.getItem('currentStageIndex');
+          const meetingStages = localStorage.getItem('meetingStages');
+          const isRunning = localStorage.getItem('isTimerRunning');
+          
+          // Enviar sincronización completa cada 500ms
+          meetingWindow.postMessage({
+            action: 'syncAll',
+            data: {
+              currentTimeLeft: currentTime || '0',
+              currentStageIndex: currentStageIdx || '0',
+              meetingStages: meetingStages || '[]',
+              isTimerRunning: isRunning || 'false',
+              timestamp: Date.now()
             }
-            break;
-          case 'addTime':
-            handleAddTime();
-            break;
-          case 'subtractTime':
-            handleSubtractTime();
-            break;
+          }, '*');
+          
+          console.log('🔄 Sincronización enviada (sin Pusher):', {
+            currentTimeLeft: currentTime,
+            currentStageIndex: currentStageIdx,
+            isRunning: isRunning
+          });
         }
-      });
-
-      pusherService.onError((error) => {
-        addConnectionLog(`Error Pusher: ${error}`);
-      });
-
-      // Conectar al servidor
-      pusherService.connect().then(() => {
-        addConnectionLog('Pusher conectado exitosamente');
-        window.pusherService = pusherService;
-      }).catch((error) => {
-        addConnectionLog(`Error conectando Pusher: ${error}`);
-      });
-
-      // Cleanup al desmontar
-      return () => {
-        addConnectionLog('Cerrando conexión Pusher');
-        pusherService.disconnect();
-        window.pusherService = undefined;
-      };
+      }, 500);
+      
+      return () => clearInterval(syncInterval);
     }
-  }, [selectedMeeting?.id]);
+  }, [selectedMeeting?.id, meetingWindow]);
 
   // Enviar estado del timer periódicamente
   useEffect(() => {
@@ -1431,7 +1398,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.61 ({getBuildInfo()})
+                v1.7.62 ({getBuildInfo()})
               </span>
             </div>
           </div>
