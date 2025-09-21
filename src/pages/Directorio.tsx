@@ -103,7 +103,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-20T05:35:33.574Z'); // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-21T14:05:39.631Z'); // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -1431,7 +1431,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.59 ({getBuildInfo()})
+                v1.7.61 ({getBuildInfo()})
               </span>
             </div>
           </div>
