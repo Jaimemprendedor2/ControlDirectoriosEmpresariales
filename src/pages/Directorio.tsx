@@ -103,7 +103,7 @@ export const Directorio: React.FC = () => {
   // Función para obtener información de compilación
   const getBuildInfo = () => {
     // Usar la fecha actual del sistema
-    const buildDate = new Date('2025-09-21T15:33:57.689Z'); // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
+    const buildDate = new Date('2025-09-21T15:36:33.940Z'); // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
     const date = buildDate.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -542,7 +542,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       const reflectionURL = getReflectionURL();
       const newMeetingWindow = window.open(
         reflectionURL,
-        'meeting',
+        'Cronometro_Windows',
         'noopener,noreferrer'
       );
       if (newMeetingWindow) {
@@ -593,7 +593,17 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
   // Función para enviar mensajes a la ventana de reflejo (solo para sincronización local)
   const sendMessageToReflectionWindow = (action: string, data?: any) => {
     if (meetingWindow && !meetingWindow.closed) {
-      meetingWindow.postMessage({ action, data }, '*');
+      try {
+        const message = { action, data, timestamp: Date.now() };
+        meetingWindow.postMessage(message, '*');
+        console.log('📡 Mensaje enviado a ventana de reflejo:', message);
+      } catch (error) {
+        console.error('❌ Error enviando mensaje a ventana de reflejo:', error);
+        // Si hay error, limpiar la referencia
+        setMeetingWindow(null);
+      }
+    } else {
+      console.log('⚠️ Ventana de reflejo no disponible para envío de mensaje');
     }
   };
 
@@ -660,15 +670,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       setIsTimerRunning(false);
       sendMessageToReflectionWindow('previousStage', { stageIndex: newIndex });
       
-      // Enviar comando a través de Pusher
-      if (window.pusherService) {
-        window.pusherService.sendCommand({
-          action: 'previousStage',
-          data: { stageIndex: newIndex },
-          timestamp: Date.now(),
-          source: 'main-timer'
-        });
-      }
+      // Sincronización local - Pusher deshabilitado
+      console.log('🔄 Etapa anterior:', newIndex);
     }
   };
 
@@ -684,15 +687,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       setIsTimerRunning(false);
       sendMessageToReflectionWindow('nextStage', { stageIndex: newIndex });
       
-      // Enviar comando a través de Pusher
-      if (window.pusherService) {
-        window.pusherService.sendCommand({
-          action: 'nextStage',
-          data: { stageIndex: newIndex },
-          timestamp: Date.now(),
-          source: 'main-timer'
-        });
-      }
+      // Sincronización local - Pusher deshabilitado
+      console.log('🔄 Siguiente etapa:', newIndex);
     }
   };
 
@@ -730,15 +726,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       // Enviar mensaje a la ventana de reflejo
       sendMessageToReflectionWindow('pauseResume', { isRunning: true });
       
-      // Enviar comando a través de Pusher
-      if (window.pusherService) {
-        window.pusherService.sendCommand({
-          action: 'pauseResume',
-          data: { isRunning: true },
-          timestamp: Date.now(),
-          source: 'main-timer'
-        });
-      }
+      // Sincronización local - Pusher deshabilitado
+      console.log('🔄 Directorio iniciado');
       
       // Forzar una actualización inmediata del panel de control
       setTimeout(() => {
@@ -793,15 +782,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     // Enviar mensaje a la ventana de reflejo
     sendMessageToReflectionWindow('pauseResume', { isRunning: newRunningState });
     
-    // Enviar comando a través de Pusher
-    if (window.pusherService) {
-      window.pusherService.sendCommand({
-        action: 'pauseResume',
-        data: { isRunning: newRunningState },
-        timestamp: Date.now(),
-        source: 'main-timer'
-      });
-    }
+    // Sincronización local - Pusher deshabilitado
+    console.log('🔄 Pausar/Reanudar:', newRunningState);
     
     // Sincronizar inmediatamente el estado del panel de control
     setTimeout(() => {
@@ -824,15 +806,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     sendMessageToReflectionWindow('setTime', { seconds: 0 });
     setIsTimerRunning(false);
     
-    // Enviar comando a través de Pusher
-    if (window.pusherService) {
-      window.pusherService.sendCommand({
-        action: 'setTime',
-        data: { seconds: 0 },
-        timestamp: Date.now(),
-        source: 'main-timer'
-      });
-    }
+    // Sincronización local - Pusher deshabilitado
+    console.log('🔄 Reset a cero');
   };
 
   // Funciones para manejar presión prolongada del botón
@@ -890,15 +865,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
-      // Enviar comando a través de Pusher
-      if (window.pusherService) {
-        window.pusherService.sendCommand({
-          action: 'setTime',
-          data: { seconds: newTime },
-          timestamp: Date.now(),
-          source: 'main-timer'
-        });
-      }
+      // Sincronización local - Pusher deshabilitado
+      console.log('🔄 Tiempo actualizado:', newTime);
       
       // Forzar actualización de la UI cuando está detenido
       setTimerUpdate(prev => prev + 1);
@@ -908,15 +876,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('addTime', { seconds: 30 });
       
-      // Enviar comando a través de Pusher
-      if (window.pusherService) {
-        window.pusherService.sendCommand({
-          action: 'addTime',
-          data: { seconds: 30 },
-          timestamp: Date.now(),
-          source: 'main-timer'
-        });
-      }
+      // Sincronización local - Pusher deshabilitado
+      console.log('🔄 Tiempo agregado: +30s');
     }
   };
 
@@ -940,15 +901,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('setTime', { seconds: newTime });
       
-      // Enviar comando a través de Pusher
-      if (window.pusherService) {
-        window.pusherService.sendCommand({
-          action: 'setTime',
-          data: { seconds: newTime },
-          timestamp: Date.now(),
-          source: 'main-timer'
-        });
-      }
+      // Sincronización local - Pusher deshabilitado
+      console.log('🔄 Tiempo actualizado:', newTime);
       
       // Forzar actualización de la UI cuando está detenido
       setTimerUpdate(prev => prev + 1);
@@ -958,15 +912,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendMessageToReflectionWindow('subtractTime', { seconds: 30 });
       
-      // Enviar comando a través de Pusher
-      if (window.pusherService) {
-        window.pusherService.sendCommand({
-          action: 'subtractTime',
-          data: { seconds: 30 },
-          timestamp: Date.now(),
-          source: 'main-timer'
-        });
-      }
+      // Sincronización local - Pusher deshabilitado
+      console.log('🔄 Tiempo restado: -30s');
     }
   };
 
@@ -1151,20 +1098,35 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     }
   }, [selectedMeeting?.id, meetingWindow]);
 
-  // Enviar estado del timer periódicamente
+  // Enviar estado del timer periódicamente - SIN PUSHER
   useEffect(() => {
-    if (connectionState.connected && window.pusherService) {
+    if (connectionState.connected && meetingWindow && !meetingWindow.closed) {
       const interval = setInterval(() => {
-        sendTimerState();
+        // Enviar estado completo del timer cada segundo
+        const currentTimeLeft = localStorage.getItem('currentTimeLeft') || '0';
+        const timerState = {
+          action: 'updateTimer',
+          stages: stages,
+          currentStageIndex: currentStageIndex,
+          timeLeft: parseInt(currentTimeLeft),
+          isRunning: isTimerRunning,
+          isPaused: false,
+          totalTime: stages.reduce((total, stage) => total + stage.duration, 0),
+          startTime: null,
+          pausedTime: 0
+        };
+        
+        meetingWindow.postMessage(timerState, '*');
+        console.log('📡 Estado del timer enviado:', timerState);
       }, 1000); // Enviar estado cada segundo
 
       return () => clearInterval(interval);
     }
-  }, [connectionState.connected, isTimerRunning, currentStageIndex, stages]);
+  }, [connectionState.connected, isTimerRunning, currentStageIndex, stages, meetingWindow, timeLeft, isPaused, totalTime, startTime, pausedTime]);
 
   // Timer principal del cronómetro
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: number;
     
     if (isTimerRunning) {
       interval = setInterval(() => {
@@ -1398,7 +1360,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             </button>
             <div className="mb-2">
               <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.64 ({getBuildInfo()})
+                v1.7.65 ({getBuildInfo()})
               </span>
             </div>
           </div>
