@@ -1,7 +1,7 @@
 {
   "name": "housenovo-directorios",
   "private": true,
-  "version": "1.7.77",
+  "version": "1.7.79",
   "type": "module",
   "scripts": {
     "dev": "vite",
