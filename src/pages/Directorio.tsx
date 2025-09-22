@@ -5,29 +5,17 @@ import { StageColorConfig } from '../components/StageColorConfig';
 import { VersionInfo } from '../components/VersionInfo';
 import { MeetingService } from '../services/meetingService';
 import { Meeting } from '../lib/supabase';
-import { createSyncService, SyncMessage, TimerState } from '../services/syncChannel';
+import { createSyncService } from '../services/syncChannel';
+import { SyncMessage, TimerState, Stage } from '../types/timer';
 
 // Extender Window interface para incluir syncService
 declare global {
   interface Window {
-    syncService?: any;
+    syncService?: ReturnType<typeof createSyncService>;
   }
 }
 
-interface Stage {
-  id?: string;
-  title: string;
-  description?: string;
-  duration: number;
-  order_index?: number;
-  is_completed?: boolean;
-  colors?: Array<{
-    timeInSeconds: number;
-    backgroundColor: string;
-  }>;
-  alertColor?: string;
-  alertSeconds?: number;
-}
+// Stage interface ahora importada desde types/timer
 
 export const Directorio: React.FC = () => {
   const [stages, setStages] = useState<Stage[]>([]);
@@ -588,7 +576,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
 
   // Función para enviar mensajes a la ventana de reflejo (solo para sincronización local)
   // Función para enviar comandos de control
-  const sendControlCommand = (action: string, data?: any) => {
+  const sendControlCommand = (action: string, data?: Record<string, any>): void => {
     // Enviar a través del servicio de sincronización
     if (window.syncService) {
       window.syncService.sendControlCommand(action, data);
@@ -617,7 +605,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     console.log(logEntry);
   };
 
-  const sendTimerState = () => {
+  const sendTimerState = (): void => {
     const currentTimeLeft = parseInt(localStorage.getItem('currentTimeLeft') || '0');
     const timerState: TimerState = {
       currentTimeLeft,

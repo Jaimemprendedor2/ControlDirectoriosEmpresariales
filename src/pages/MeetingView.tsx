@@ -1,20 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { VersionInfo } from '../components/VersionInfo';
-import { createSyncService, SyncMessage, TimerState } from '../services/syncChannel';
+import { createSyncService } from '../services/syncChannel';
+import { SyncMessage, TimerState, Stage } from '../types/timer';
 
-interface Stage {
-  id?: string;
-  title: string;
-  duration: number;
-  order_index?: number;
-  is_completed?: boolean;
-  colors?: Array<{
-    timeInSeconds: number;
-    backgroundColor: string;
-  }>;
-  alertColor?: string;
-  alertSeconds?: number;
-}
+// Stage interface ahora importada desde types/timer
 
 export const MeetingView: React.FC = () => {
   const [stages, setStages] = useState<Stage[]>([]);
@@ -26,7 +15,7 @@ export const MeetingView: React.FC = () => {
   const [totalTime, setTotalTime] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pausedTime, setPausedTime] = useState(0);
-  const [syncService, setSyncService] = useState<any>(null);
+  const [syncService, setSyncService] = useState<ReturnType<typeof createSyncService> | null>(null);
 
   // Establecer título de la ventana
   useEffect(() => {
@@ -82,40 +71,42 @@ export const MeetingView: React.FC = () => {
   }, []);
 
   // Función para manejar comandos de control
-  const handleControlCommand = (action: string, data: any) => {
+  const handleControlCommand = (action: string, data: Record<string, any>): void => {
     console.log('🎮 Comando de control recibido:', action, data);
     
     switch (action) {
       case 'pauseResume':
-        setIsRunning(data.isRunning);
+        if (typeof data.isRunning === 'boolean') {
+          setIsRunning(data.isRunning);
+        }
         break;
       case 'nextStage':
-        if (data.stageIndex !== undefined) {
+        if (typeof data.stageIndex === 'number') {
           setCurrentStageIndex(data.stageIndex);
         }
         break;
       case 'previousStage':
-        if (data.stageIndex !== undefined) {
+        if (typeof data.stageIndex === 'number') {
           setCurrentStageIndex(data.stageIndex);
         }
         break;
       case 'setTime':
-        if (data.seconds !== undefined) {
+        if (typeof data.seconds === 'number') {
           setTimeLeft(data.seconds);
         }
         break;
       case 'addTime':
-        if (data.seconds !== undefined) {
-          setTimeLeft(prev => prev + data.seconds);
+        if (typeof data.seconds === 'number') {
+          setTimeLeft((prev: number) => prev + data.seconds);
         }
         break;
       case 'subtractTime':
-        if (data.seconds !== undefined) {
-          setTimeLeft(prev => Math.max(0, prev - data.seconds));
+        if (typeof data.seconds === 'number') {
+          setTimeLeft((prev: number) => Math.max(0, prev - data.seconds));
         }
         break;
       case 'setStages':
-        if (data.stages) {
+        if (Array.isArray(data.stages)) {
           setStages(data.stages);
         }
         break;

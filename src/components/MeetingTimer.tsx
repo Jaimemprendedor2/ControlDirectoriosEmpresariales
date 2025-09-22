@@ -1,20 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { ColorConfig } from './ColorConfig';
-import { createSyncService, TimerState } from '../services/syncChannel';
+import { createSyncService } from '../services/syncChannel';
+import { TimerState, Stage } from '../types/timer';
 
 interface StageColor {
   timePercentage: number; // Porcentaje de tiempo (ej: 50 para 50%)
   backgroundColor: string; // Color en hexadecimal
 }
 
-interface Stage {
-  id?: string;
-  title: string;
-  duration: number;
-  order_index?: number;
-  is_completed?: boolean;
-  colors?: StageColor[]; // Configuración de colores por etapa
-}
+// Stage interface ahora importada desde types/timer
 
 interface MeetingTimerProps {
   stages: Stage[];
@@ -31,7 +25,7 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [showColorConfig, setShowColorConfig] = useState(false);
-  const [syncService, setSyncService] = useState<any>(null);
+  const [syncService, setSyncService] = useState<ReturnType<typeof createSyncService> | null>(null);
 
   const currentStage = stages[currentStageIndex];
 

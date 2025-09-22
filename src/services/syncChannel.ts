@@ -3,33 +3,16 @@
  * Reemplaza Pusher con una solución más simple y confiable
  */
 
-export interface SyncMessage {
-  type: 'INIT' | 'TICK' | 'CONTROL' | 'SYNC_REQUEST' | 'SYNC_RESPONSE' | 'PING' | 'PONG';
-  data?: any;
-  timestamp: number;
-  source: string;
-  directoryId?: string;
-}
-
-export interface TimerState {
-  currentTimeLeft: number;
-  isRunning: boolean;
-  currentStageIndex: number;
-  stages: any[];
-  timestamp: number;
-}
-
-export interface ConnectionState {
-  connected: boolean;
-  connecting: boolean;
-  error: string | null;
-  lastConnected: number | null;
-  latency: number;
-}
-
-export type MessageCallback = (message: SyncMessage) => void;
-export type ConnectionCallback = (state: ConnectionState) => void;
-export type ErrorCallback = (error: string) => void;
+import { 
+  SyncMessage, 
+  TimerState, 
+  ConnectionState, 
+  MessageCallback, 
+  ConnectionCallback, 
+  ErrorCallback,
+  ControlCommand,
+  SyncChannelConfig
+} from '../types/timer';
 
 export class SyncChannelService {
   private broadcastChannel: BroadcastChannel | null = null;
@@ -237,10 +220,11 @@ export class SyncChannelService {
     });
   }
 
-  public sendControlCommand(action: string, data?: any): void {
+  public sendControlCommand(action: string, data?: Record<string, any>): void {
+    const command: ControlCommand = { action, ...data };
     this.sendMessage({
       type: 'CONTROL',
-      data: { action, ...data },
+      data: command,
       timestamp: Date.now(),
       source: 'housenovo-directorios',
       directoryId: this.directoryId
