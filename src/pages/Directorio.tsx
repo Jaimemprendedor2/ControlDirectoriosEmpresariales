@@ -186,7 +186,7 @@ export const Directorio: React.FC = () => {
       });
 
       // Actualizar el estado local
-      setSelectedMeeting(prev => prev ? { ...prev, title: newName.trim() } : null);
+      setSelectedMeeting((prev: Meeting | null) => prev ? { ...prev, title: newName.trim() } : null);
       
       // Recargar la lista de directorios para actualizar la vista
       await loadMeetings();
@@ -252,7 +252,7 @@ export const Directorio: React.FC = () => {
         
         // Forzar actualización del cronómetro
         setTimeout(() => {
-          setTimerUpdate(prev => prev + 1);
+          setTimerUpdate((prev: number) => prev + 1);
             
             // Sincronizar con la ventana de reflejo
             sendControlCommand('setTime', { seconds: firstStageTime });
@@ -292,7 +292,7 @@ export const Directorio: React.FC = () => {
     setIsTimerRunning(false);
     
     // Forzar actualización
-    setTimerUpdate(prev => prev + 1);
+    setTimerUpdate((prev: number) => prev + 1);
             
             // Sincronizar con la ventana de reflejo
             sendControlCommand('setTime', { seconds: 0 });
@@ -411,9 +411,9 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
   };
 
   const handleRemoveStage = (index: number) => {
-    const newStages = stages.filter((_, i) => i !== index);
+    const newStages = stages.filter((_: Stage, i: number) => i !== index);
     // Reorder stages
-    const reorderedStages = newStages.map((stage, i) => ({
+    const reorderedStages = newStages.map((stage: Stage, i: number) => ({
       ...stage,
       order_index: i + 1
     }));
@@ -601,7 +601,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
   const addConnectionLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     const logEntry = `[${timestamp}] ${message}`;
-    setConnectionLogs(prev => [...prev.slice(-49), logEntry]); // Mantener solo los últimos 50 logs
+    setConnectionLogs((prev: string[]) => [...prev.slice(-49), logEntry]); // Mantener solo los últimos 50 logs
     console.log(logEntry);
   };
 
@@ -720,7 +720,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       
       // Forzar una actualización inmediata del panel de control
       setTimeout(() => {
-        setTimerUpdate(prev => prev + 1);
+        setTimerUpdate((prev: number) => prev + 1);
             
             // Sincronizar con la ventana de reflejo
             sendControlCommand('setTime', { seconds: initialStageTime });
@@ -728,7 +728,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       
       // Forzar actualización del cronómetro principal
       setTimeout(() => {
-        setTimerUpdate(prev => prev + 1);
+        setTimerUpdate((prev: number) => prev + 1);
             
             // Sincronizar con la ventana de reflejo
             sendControlCommand('setTime', { seconds: initialStageTime });
@@ -779,7 +779,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       const currentTimeLeft = localStorage.getItem('currentTimeLeft');
       console.log('💾 Tiempo en localStorage después de pausa:', currentTimeLeft);
       // Forzar una actualización inmediata del panel de control
-      setTimerUpdate(prev => prev + 1);
+      setTimerUpdate((prev: number) => prev + 1);
       
       // Sincronizar con la ventana de reflejo
       sendControlCommand('setTime', { seconds: parseInt(currentTimeLeft || '0') });
@@ -858,7 +858,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       console.log('🔄 Tiempo actualizado:', newTime);
       
       // Forzar actualización de la UI cuando está detenido
-      setTimerUpdate(prev => prev + 1);
+      setTimerUpdate((prev: number) => prev + 1);
     } else {
       // Si está funcionando: sumar 30s inmediatamente
       const newTime = currentSeconds + 30;
@@ -894,7 +894,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       console.log('🔄 Tiempo actualizado:', newTime);
       
       // Forzar actualización de la UI cuando está detenido
-      setTimerUpdate(prev => prev + 1);
+      setTimerUpdate((prev: number) => prev + 1);
     } else {
       // Si está funcionando: restar 30s inmediatamente
       const newTime = Math.max(0, currentSeconds - 30);
@@ -1039,7 +1039,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       
       // Forzar una actualización inmediata del panel de control
       setTimeout(() => {
-        setTimerUpdate(prev => prev + 1);
+        setTimerUpdate((prev: number) => prev + 1);
             
             // Sincronizar con la ventana de reflejo
             sendControlCommand('setTime', { seconds: initialStageTime });
@@ -1100,7 +1100,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
           timeLeft: parseInt(currentTimeLeft),
           isRunning: isTimerRunning,
           isPaused: false,
-          totalTime: stages.reduce((total, stage) => total + stage.duration, 0),
+          totalTime: stages.reduce((total: number, stage: Stage) => total + stage.duration, 0),
           startTime: null,
           pausedTime: 0
         };
@@ -1126,7 +1126,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
           if (!isNaN(seconds) && seconds > 0) {
             const newTime = seconds - 1;
             localStorage.setItem('currentTimeLeft', newTime.toString());
-            setTimerUpdate(prev => prev + 1);
+            setTimerUpdate((prev: number) => prev + 1);
             
             // Sincronización agresiva con la ventana de reflejo
             if (meetingWindow && !meetingWindow.closed) {
@@ -1296,18 +1296,13 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
      // Sincronizar con el reflejo (si está abierto)
      sendControlCommand('stopTimer', {});
      
-     // Enviar comando a través de Pusher
-     if (window.pusherService) {
-       window.pusherService.sendCommand({
-         action: 'stopTimer',
-         data: {},
-         timestamp: Date.now(),
-         source: 'main-timer'
-       });
+     // Enviar comando a través del servicio de sincronización
+     if (window.syncService) {
+       window.syncService.sendControlCommand('stopTimer', {});
      }
      
      // Forzar actualización de la UI
-     setTimerUpdate(prev => prev + 1);
+     setTimerUpdate((prev: number) => prev + 1);
             
             // Sincronizar con la ventana de reflejo
             const initialTimeValue = localStorage.getItem('initialTime');
@@ -1382,7 +1377,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                   <h3 className="text-lg font-semibold text-gray-700 mb-4">
                     Selecciona un directorio:
                   </h3>
-                  {meetings.map((meeting) => (
+                  {meetings.map((meeting: Meeting) => (
                     <div
                       key={meeting.id}
                       onClick={() => handleSelectMeeting(meeting)}
@@ -1678,7 +1673,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                      {connectionLogs.length === 0 ? (
                        <div className="text-gray-500">No hay logs disponibles</div>
                      ) : (
-                       connectionLogs.map((log, index) => (
+                       connectionLogs.map((log: string, index: number) => (
                          <div key={index} className="font-mono text-xs">{log}</div>
                        ))
                      )}
@@ -1758,7 +1753,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                     type="text"
                     id="meetingName"
                     value={newMeetingName}
-                    onChange={(e) => setNewMeetingName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMeetingName(e.target.value)}
                     placeholder="Ej: Directorio Mensual Enero 2024"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -1772,7 +1767,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
                     type="date"
                     id="meetingDate"
                     value={newMeetingDate}
-                    onChange={(e) => setNewMeetingDate(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewMeetingDate(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
