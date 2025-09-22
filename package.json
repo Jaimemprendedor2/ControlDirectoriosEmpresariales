@@ -1,25 +1,19 @@
 {
   "name": "housenovo-directorios",
   "private": true,
-  "version": "1.7.82",
+  "version": "1.7.83",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "sync-version": "node scripts/sync-version.js",
-    "auto-version": "node scripts/auto-version.js",
-    "setup-hooks": "node scripts/setup-hooks.js",
-    "version-patch": "npm version patch && npm run sync-version",
-    "version-minor": "npm version minor && npm run sync-version",
-    "version-major": "npm version major && npm run sync-version",
-    "auto-commit": "npm run sync-version && git add . && git commit",
-    "force-version-sync": "node scripts/force-version-sync.js",
-    "verify-sync": "node scripts/verify-sync.js",
-    "auto-update-version": "node scripts/auto-update-version.js",
-    "setup-git-hooks": "node scripts/setup-git-hooks.js",
-    "commit-with-version": "npm run auto-update-version && git commit"
+    "deploy": "node scripts/deploy.js",
+    "deploy-patch": "node scripts/version-deploy.js patch",
+    "deploy-minor": "node scripts/version-deploy.js minor",
+    "deploy-major": "node scripts/version-deploy.js major",
+    "version-update": "node scripts/deploy-version-update.js",
+    "setup-deploy": "node scripts/setup-deploy-versioning.js"
   },
   "dependencies": {
     "react": "^18.2.0",

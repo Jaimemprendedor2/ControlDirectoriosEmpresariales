@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { VersionInfo } from '../components/VersionInfo';
 import { MeetingService } from '../services/meetingService';
 import { Meeting } from '../lib/supabase';
 import { createPusherService, getPusherService, ConnectionState, CommandData } from '../services/pusherService';
@@ -422,6 +423,7 @@ export const Control: React.FC = () => {
       <div className="max-w-md mx-auto">
         {/* Header */}
         <header className="text-center mb-6">
+          <VersionInfo className="mb-4" />
           <h1 className="text-2xl font-bold mb-2">{meeting.title}</h1>
           <p className="text-gray-400 text-sm">Control Remoto</p>
           

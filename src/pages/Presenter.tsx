@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { VersionInfo } from '../components/VersionInfo';
 
 interface Stage {
   id?: string;
@@ -153,6 +154,11 @@ export const Presenter: React.FC = () => {
       className="min-h-screen flex flex-col items-center justify-center transition-colors duration-1000"
       style={{ backgroundColor: getCurrentBackgroundColor() }}
     >
+      {/* Versión de la plataforma */}
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+        <VersionInfo showTitle={false} />
+      </div>
+      
       <div className="text-center">
         {/* Título de la etapa */}
         <h1 className="text-6xl font-bold text-gray-800 mb-12">

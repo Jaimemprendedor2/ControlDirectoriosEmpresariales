@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CsvDropzone } from '../components/CsvDropzone';
 import { StagesList } from '../components/StagesList';
 import { StageColorConfig } from '../components/StageColorConfig';
+import { VersionInfo } from '../components/VersionInfo';
 import { MeetingService } from '../services/meetingService';
 import { Meeting } from '../lib/supabase';
 import { createPusherService, ConnectionState } from '../services/pusherService';
@@ -1358,11 +1359,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             >
               ← Volver al Menú Principal
             </button>
-            <div className="mb-2">
-              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                v1.7.82 ({getBuildInfo()})
-              </span>
-            </div>
+            <VersionInfo />
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             Configuración de Directorios Empresariales Gemini

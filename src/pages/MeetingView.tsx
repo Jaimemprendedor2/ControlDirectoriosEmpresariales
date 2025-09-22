@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { VersionInfo } from '../components/VersionInfo';
 
 interface Stage {
   id?: string;
@@ -337,6 +338,11 @@ export const MeetingView: React.FC = () => {
       className="min-h-screen flex flex-col items-center justify-center transition-all duration-100"
       style={{ backgroundColor: getBackgroundColor() }}
     >
+      {/* Versión de la plataforma */}
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+        <VersionInfo showTitle={false} />
+      </div>
+      
       {/* Contenido principal del cronómetro */}
       <div className="flex-1 flex flex-col items-center justify-center">
         {/* Título de la etapa */}
