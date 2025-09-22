@@ -1,3 +1,17 @@
+## v1.7.77 - [2025-09-22 12:50:00]
+
+- **CAMBIO DE NOMBRE**: Plataforma renombrada a "Housenovo Directorios"
+- **ACTUALIZACIÓN DE BRANDING**: Cambio completo de identidad de marca
+- **ARCHIVOS ACTUALIZADOS**: package.json, README.md, MainMenu.tsx, index.html
+- **DESCRIPCIÓN**: Sistema de gestión empresarial con nueva identidad Housenovo
+
+## v1.7.76 - [2025-09-22 12:46:32]
+
+- **ACTUALIZACIÓN AUTOMÁTICA**: Versión actualizada automáticamente
+- **FECHA**: 2025-09-22
+- **HORA**: 12:46:32
+- **TIMESTAMP**: 2025-09-22T15:46:32.417Z
+
 ## v1.7.75 - [2025-09-22 12:45:06]
 
 - **ACTUALIZACIÓN AUTOMÁTICA**: Versión actualizada automáticamente
@@ -981,4 +995,4 @@
 
 ---
 
-*Última actualización: 2025-09-22 12:45:06*
+*Última actualización: 2025-09-22 12:46:32*

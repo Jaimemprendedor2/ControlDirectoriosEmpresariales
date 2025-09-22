@@ -1,8 +1,8 @@
-# Configuración de Directorios Empresariales Gemini
+# Housenovo Directorios
 
-**Versión:** 1.1.2
+**Versión:** 1.7.76
 
-Una plataforma moderna y eficiente para configurar y gestionar directorios empresariales con tecnología Gemini. Esta aplicación te permite crear, organizar y administrar estructuras de directorios empresariales de manera intuitiva y profesional.
+Una plataforma moderna y eficiente para configurar y gestionar directorios empresariales. Esta aplicación te permite crear, organizar y administrar estructuras de directorios empresariales de manera intuitiva y profesional.
 
 ## 🚀 Características Principales
 
@@ -104,20 +104,20 @@ Validación Final,10:00
 
 ## 🚀 Roadmap
 
-### Versión 1.2.0 (Próxima)
-- [ ] Autenticación de usuarios
-- [ ] Plantillas de directorios predefinidas
+### Versión 1.8.0 (Próxima)
+- [ ] Predirectorio funcional
+- [ ] Jornada de Coaching Empresarial
+- [ ] Dashboard de analytics
 - [ ] Exportación de reportes
-- [ ] Integración con APIs empresariales
 
-### Versión 1.3.0
+### Versión 1.9.0
 - [ ] Dashboard de analytics
 - [ ] Notificaciones en tiempo real
 - [ ] Modo presentación mejorado
 - [ ] Integración con calendarios
 
 ### Versión 2.0.0
-- [ ] IA asistente con Gemini
+- [ ] IA asistente
 - [ ] Automatización de procesos
 - [ ] Colaboración en tiempo real
 - [ ] Múltiples directorios simultáneos
@@ -137,9 +137,9 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 ## 📞 Soporte
 
 Para soporte técnico o consultas:
-- 📧 Email: soporte@directoriosempresariales.com
+- 📧 Email: soporte@housenovo.com
 - 📱 WhatsApp: +1 (555) 123-4567
-- 🌐 Web: https://directoriosempresariales.com
+- 🌐 Web: https://housenovo.com
 
 ---
 
