@@ -87,6 +87,16 @@ export const Directorio: React.FC = () => {
   });
   const [connectionLogs, setConnectionLogs] = useState<string[]>([]);
   const [showConnectionLogs, setShowConnectionLogs] = useState(false);
+  
+  // Estado para manejo de popup bloqueado
+  const [popupBlocked, setPopupBlocked] = useState(false);
+  const [popupRetryButtonRef, setPopupRetryButtonRef] = useState<HTMLButtonElement | null>(null);
+  
+  // Estado para sistema de cronómetro basado en timestamps
+  const [timerStartTime, setTimerStartTime] = useState<number | null>(null);
+  const [timerPausedTime, setTimerPausedTime] = useState<number>(0);
+  const [timerAdjustments, setTimerAdjustments] = useState<number>(0); // Acumulador de ajustes (+/- 30s)
+  const [isPageVisible, setIsPageVisible] = useState(true);
 
   // Función para obtener información de compilación
   const getBuildInfo = () => {
@@ -336,7 +346,7 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     }
   };
 
-  // Función para obtener el tiempo actual del cronómetro principal
+  // Función para obtener el tiempo actual del cronómetro principal (basado en timestamps)
   const getCurrentTime = () => {
     // Usar timerUpdate para forzar la actualización
     timerUpdate; // Esto hace que la función se ejecute cada vez que timerUpdate cambie
@@ -347,29 +357,52 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       return "00:00";
     }
     
-    // El cronómetro principal siempre usa localStorage
-    const timeLeft = localStorage.getItem('currentTimeLeft');
-    let seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
-    
-    console.log('🕰️ getCurrentTime debug:', {
-      timeLeft: timeLeft,
-      parsedTimeLeft: timeLeft ? parseInt(timeLeft) : null,
-      currentStageDuration: currentStage.duration,
-      finalSeconds: seconds
-    });
-    
-    // Asegurar que el tiempo no sea negativo y no sea NaN
-    if (isNaN(seconds)) {
-      console.log('⚠️ Valor NaN detectado en localStorage, corrigiendo...');
-      seconds = currentStage.duration;
-      // Si el valor es NaN, corregir el localStorage
-      localStorage.setItem('currentTimeLeft', seconds.toString());
+    // Si el cronómetro no está corriendo, usar el tiempo del localStorage
+    if (!isTimerRunning || !timerStartTime) {
+      const timeLeft = localStorage.getItem('currentTimeLeft');
+      let seconds = timeLeft ? parseInt(timeLeft) : currentStage.duration;
+      
+      // Asegurar que el tiempo no sea negativo y no sea NaN
+      if (isNaN(seconds)) {
+        seconds = currentStage.duration;
+        localStorage.setItem('currentTimeLeft', seconds.toString());
+      }
+      
+      const validSeconds = Math.max(0, seconds);
+      const minutes = Math.floor(validSeconds / 60);
+      const secs = validSeconds % 60;
+      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     
-    const validSeconds = Math.max(0, seconds);
+    // Calcular tiempo restante basado en timestamps
+    const now = performance.now();
+    const elapsedMs = now - timerStartTime;
+    const pausedMs = timerPausedTime;
+    const adjustmentMs = timerAdjustments * 1000; // Convertir segundos a milisegundos
     
-    const minutes = Math.floor(validSeconds / 60);
-    const secs = validSeconds % 60;
+    // Tiempo inicial en milisegundos
+    const initialTimeMs = currentStage.duration * 1000;
+    
+    // Calcular tiempo restante: tiempo inicial - tiempo transcurrido + ajustes
+    const remainingMs = Math.max(0, initialTimeMs - (elapsedMs - pausedMs) + adjustmentMs);
+    const remainingSeconds = Math.floor(remainingMs / 1000);
+    
+    console.log('🕰️ getCurrentTime timestamp debug:', {
+      now,
+      timerStartTime,
+      elapsedMs,
+      pausedMs,
+      adjustmentMs,
+      initialTimeMs,
+      remainingMs,
+      remainingSeconds
+    });
+    
+    // Actualizar localStorage para compatibilidad
+    localStorage.setItem('currentTimeLeft', remainingSeconds.toString());
+    
+    const minutes = Math.floor(remainingSeconds / 60);
+    const secs = remainingSeconds % 60;
     
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
@@ -525,6 +558,9 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
 
   // Función para abrir o enfocar el cronómetro en popup
   const openOrFocusMirror = () => {
+    // Limpiar estado de popup bloqueado al intentar abrir
+    setPopupBlocked(false);
+    
     if (!meetingWindow || meetingWindow.closed) {
       console.log('📺 Abriendo nueva ventana popup del cronómetro');
       const reflectionURL = getReflectionURL();
@@ -533,7 +569,24 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
         'HousenovoDirectoriosTimer',
         'popup=yes,width=1200,height=800,noopener,noreferrer'
       );
+      
       if (newMeetingWindow) {
+        // Verificar si la ventana se cerró inmediatamente (popup bloqueado)
+        setTimeout(() => {
+          if (newMeetingWindow.closed) {
+            console.log('❌ Popup bloqueado por el navegador');
+            setPopupBlocked(true);
+            addConnectionLog('Error: Popup bloqueado por el navegador');
+            
+            // Enfocar el botón de reintento para accesibilidad
+            setTimeout(() => {
+              if (popupRetryButtonRef) {
+                popupRetryButtonRef.focus();
+              }
+            }, 100);
+          }
+        }, 100);
+        
         setMeetingWindow(newMeetingWindow);
         console.log('✅ Ventana popup del cronómetro abierta correctamente');
         addConnectionLog('Ventana popup del cronómetro abierta');
@@ -565,13 +618,33 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
           sendTimerState();
         }, 500);
       } else {
+        console.log('❌ window.open devolvió null - popup bloqueado');
+        setPopupBlocked(true);
         addConnectionLog('Error: No se pudo abrir la ventana popup (bloqueado por el navegador)');
+        
+        // Enfocar el botón de reintento para accesibilidad
+        setTimeout(() => {
+          if (popupRetryButtonRef) {
+            popupRetryButtonRef.focus();
+          }
+        }, 100);
       }
     } else {
       console.log('📺 Enfocando ventana popup existente');
       meetingWindow.focus();
       addConnectionLog('Ventana popup enfocada');
     }
+  };
+
+  // Función para reintentar abrir popup (llamada desde el banner)
+  const retryOpenPopup = () => {
+    console.log('🔄 Reintentando abrir popup...');
+    openOrFocusMirror();
+  };
+
+  // Función para cerrar el banner de popup bloqueado
+  const dismissPopupBlockedBanner = () => {
+    setPopupBlocked(false);
   };
 
   // Función para enviar mensajes a la ventana de reflejo (solo para sincronización local)
@@ -686,9 +759,6 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     if (!localStorage.getItem('currentTimeLeft') && stages.length > 0) {
       console.log('🚀 Iniciando directorio por primera vez');
       
-      // Mantener reflejo abierto y sincronizado
-      console.log('📺 Manteniendo reflejo abierto para nuevo directorio');
-      
       localStorage.setItem('meetingStages', JSON.stringify(stages));
       const initialStageTime = stages[0].duration;
       console.log('🚀 Iniciando directorio - initialStageTime:', initialStageTime);
@@ -706,35 +776,23 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       setCurrentStageIndex(0);
       setIsTimerRunning(true);
       
-      console.log('✅ localStorage configurado:', {
-        currentTimeLeft: localStorage.getItem('currentTimeLeft'),
-        initialTime: localStorage.getItem('initialTime'),
-        isTimerRunning: localStorage.getItem('isTimerRunning')
-      });
+      // Inicializar timestamps para el nuevo sistema
+      setTimerStartTime(performance.now());
+      setTimerPausedTime(0);
+      setTimerAdjustments(0);
+      
+      console.log('✅ Sistema de timestamps inicializado');
       
       // Enviar mensaje a la ventana de reflejo
       sendControlCommand('pauseResume', { isRunning: true });
       
-      // Sincronización con nuevo sistema
-      console.log('🔄 Directorio iniciado');
-      
-      // Forzar una actualización inmediata del panel de control
+      // Forzar actualización
       setTimeout(() => {
         setTimerUpdate((prev: number) => prev + 1);
-            
-            // Sincronizar con la ventana de reflejo
-            sendControlCommand('setTime', { seconds: initialStageTime });
+        sendControlCommand('setTime', { seconds: initialStageTime });
       }, 50);
       
-      // Forzar actualización del cronómetro principal
-      setTimeout(() => {
-        setTimerUpdate((prev: number) => prev + 1);
-            
-            // Sincronizar con la ventana de reflejo
-            sendControlCommand('setTime', { seconds: initialStageTime });
-      }, 100);
-      
-      console.log('✅ Directorio iniciado y cronómetro iniciado');
+      console.log('✅ Directorio iniciado con sistema de timestamps');
       return;
     }
     
@@ -745,8 +803,8 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       to: newRunningState
     });
     
-    // Marcar que el cronómetro ha sido iniciado cuando se reanuda
     if (newRunningState) {
+      // Reanudar: establecer nuevo timestamp de inicio
       localStorage.setItem('hasBeenStarted', 'true');
       
       // Si el cronómetro está en 0, restaurar el tiempo inicial
@@ -759,10 +817,20 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
           const initialSeconds = parseInt(initialTime);
           localStorage.setItem('currentTimeLeft', initialSeconds.toString());
           console.log('🔄 Restaurando tiempo inicial:', initialSeconds, 'segundos');
-          
-          // Sincronizar con el reflejo
           sendControlCommand('setTime', { seconds: initialSeconds });
         }
+      }
+      
+      // Establecer nuevo timestamp de inicio
+      setTimerStartTime(performance.now());
+      console.log('🔄 Timer reanudado con nuevo timestamp');
+    } else {
+      // Pausar: actualizar tiempo pausado
+      if (timerStartTime) {
+        const now = performance.now();
+        const elapsedSinceStart = now - timerStartTime;
+        setTimerPausedTime(prev => prev + elapsedSinceStart);
+        console.log('🔄 Timer pausado, tiempo pausado actualizado:', elapsedSinceStart);
       }
     }
     
@@ -771,18 +839,9 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     // Enviar comando de control
     sendControlCommand('pauseResume', { isRunning: newRunningState });
     
-    // Sincronización con nuevo sistema
-    console.log('🔄 Pausar/Reanudar:', newRunningState);
-    
-    // Sincronizar inmediatamente el estado del panel de control
+    // Forzar actualización
     setTimeout(() => {
-      const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-      console.log('💾 Tiempo en localStorage después de pausa:', currentTimeLeft);
-      // Forzar una actualización inmediata del panel de control
       setTimerUpdate((prev: number) => prev + 1);
-      
-      // Sincronizar con la ventana de reflejo
-      sendControlCommand('setTime', { seconds: parseInt(currentTimeLeft || '0') });
     }, 50);
   };
 
@@ -837,12 +896,11 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
   };
 
   const handleAddTime = () => {
-    // Obtener el tiempo actual del localStorage
-    const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-    const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
-    
     if (!isTimerRunning) {
-      // Si está detenido: ajustar a múltiplos de 30s
+      // Si está detenido: ajustar a múltiplos de 30s usando localStorage
+      const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+      const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
+      
       let newTime: number;
       if (currentSeconds === 0) {
         newTime = 30; // Desde 0 → primer múltiplo
@@ -854,29 +912,24 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendControlCommand('setTime', { seconds: newTime });
       
-      // Sincronización con nuevo sistema
-      console.log('🔄 Tiempo actualizado:', newTime);
-      
-      // Forzar actualización de la UI cuando está detenido
+      console.log('🔄 Tiempo actualizado (detenido):', newTime);
       setTimerUpdate((prev: number) => prev + 1);
     } else {
-      // Si está funcionando: sumar 30s inmediatamente
-      const newTime = currentSeconds + 30;
-      localStorage.setItem('currentTimeLeft', newTime.toString());
+      // Si está funcionando: actualizar acumulador de ajustes
+      setTimerAdjustments(prev => prev + 30);
       sendControlCommand('addTime', { seconds: 30 });
       
-      // Sincronización con nuevo sistema
-      console.log('🔄 Tiempo agregado: +30s');
+      console.log('🔄 Tiempo agregado: +30s (acumulador)');
+      setTimerUpdate((prev: number) => prev + 1);
     }
   };
 
   const handleSubtractTime = () => {
-    // Obtener el tiempo actual del localStorage
-    const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-    const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
-    
     if (!isTimerRunning) {
-      // Si está detenido: ajustar a múltiplos de 30s
+      // Si está detenido: ajustar a múltiplos de 30s usando localStorage
+      const currentTimeLeft = localStorage.getItem('currentTimeLeft');
+      const currentSeconds = currentTimeLeft ? parseInt(currentTimeLeft) : 0;
+      
       let newTime: number;
       if (currentSeconds === 0) {
         newTime = 0; // Ya está en 0, no puede ser menor
@@ -890,19 +943,15 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
       localStorage.setItem('currentTimeLeft', newTime.toString());
       sendControlCommand('setTime', { seconds: newTime });
       
-      // Sincronización con nuevo sistema
-      console.log('🔄 Tiempo actualizado:', newTime);
-      
-      // Forzar actualización de la UI cuando está detenido
+      console.log('🔄 Tiempo actualizado (detenido):', newTime);
       setTimerUpdate((prev: number) => prev + 1);
     } else {
-      // Si está funcionando: restar 30s inmediatamente
-      const newTime = Math.max(0, currentSeconds - 30);
-      localStorage.setItem('currentTimeLeft', newTime.toString());
+      // Si está funcionando: actualizar acumulador de ajustes
+      setTimerAdjustments(prev => Math.max(prev - 30, -30 * 60)); // Limitar a -30 minutos máximo
       sendControlCommand('subtractTime', { seconds: 30 });
       
-      // Sincronización con nuevo sistema
-      console.log('🔄 Tiempo restado: -30s');
+      console.log('🔄 Tiempo restado: -30s (acumulador)');
+      setTimerUpdate((prev: number) => prev + 1);
     }
   };
 
@@ -947,6 +996,28 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
   useEffect(() => {
     loadMeetings();
   }, []);
+
+  // Manejar visibilitychange para pausar ticks visuales pero mantener cálculo preciso
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      setIsPageVisible(isVisible);
+      
+      if (isVisible && isTimerRunning && timerStartTime) {
+        // Cuando la página vuelve a ser visible, actualizar el tiempo pausado
+        const now = performance.now();
+        const timeSinceLastUpdate = now - (timerStartTime + timerPausedTime);
+        setTimerPausedTime(prev => prev + timeSinceLastUpdate);
+        console.log('📱 Página visible - actualizando tiempo pausado:', timeSinceLastUpdate);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isTimerRunning, timerStartTime]);
 
   // Sincronizar ventana de reflejo cuando se cambia de directorio
   useEffect(() => {
@@ -1113,28 +1184,42 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
     }
   }, [connectionState.connected, isTimerRunning, currentStageIndex, stages, meetingWindow]);
 
-  // Timer principal del cronómetro
+  // Timer principal del cronómetro (basado en timestamps y requestAnimationFrame)
   useEffect(() => {
-    let interval: number;
+    let animationFrameId: number;
+    let lastUpdateTime = 0;
     
     if (isTimerRunning) {
-      interval = setInterval(() => {
-        // Actualizar el tiempo en localStorage y forzar re-render
-        const currentTimeLeft = localStorage.getItem('currentTimeLeft');
-        if (currentTimeLeft) {
-          const seconds = parseInt(currentTimeLeft);
-          if (!isNaN(seconds) && seconds > 0) {
-            const newTime = seconds - 1;
-            localStorage.setItem('currentTimeLeft', newTime.toString());
-            setTimerUpdate((prev: number) => prev + 1);
+      const updateTimer = (currentTime: number) => {
+        // Solo actualizar visualmente si la página es visible (optimización)
+        if (isPageVisible && isTimerRunning && timerStartTime) {
+          // Calcular tiempo restante usando timestamps
+          const elapsedMs = currentTime - timerStartTime;
+          const pausedMs = timerPausedTime;
+          const adjustmentMs = timerAdjustments * 1000;
+          
+          const currentStage = stages[currentStageIndex];
+          if (currentStage) {
+            const initialTimeMs = currentStage.duration * 1000;
+            const remainingMs = Math.max(0, initialTimeMs - (elapsedMs - pausedMs) + adjustmentMs);
+            const remainingSeconds = Math.floor(remainingMs / 1000);
             
-            // Sincronización agresiva con la ventana de reflejo
+            // Actualizar localStorage para compatibilidad
+            localStorage.setItem('currentTimeLeft', remainingSeconds.toString());
+            
+            // Forzar re-render solo si ha pasado al menos 100ms desde la última actualización
+            if (currentTime - lastUpdateTime >= 100) {
+              setTimerUpdate((prev: number) => prev + 1);
+              lastUpdateTime = currentTime;
+            }
+            
+            // Sincronización con ventana de reflejo
             if (meetingWindow && !meetingWindow.closed) {
               // Enviar datos completos cada segundo
               meetingWindow.postMessage({
                 action: 'syncAll',
                 data: {
-                  currentTimeLeft: newTime.toString(),
+                  currentTimeLeft: remainingSeconds.toString(),
                   currentStageIndex: localStorage.getItem('currentStageIndex'),
                   meetingStages: localStorage.getItem('meetingStages'),
                   isTimerRunning: 'true',
@@ -1144,23 +1229,30 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             }
             
             // Sincronización individual para compatibilidad
-            sendControlCommand('setTime', { seconds: newTime });
+            sendControlCommand('setTime', { seconds: remainingSeconds });
             
             // Si el tiempo llega a 0, pausar autom�ticamente
-            if (newTime === 0) {
+            if (remainingSeconds === 0) {
               setIsTimerRunning(false);
             }
           }
         }
-      }, 1000);
+        
+        // Continuar animación solo si el timer está corriendo
+        if (isTimerRunning) {
+          animationFrameId = requestAnimationFrame(updateTimer);
+        }
+      };
+      
+      animationFrameId = requestAnimationFrame(updateTimer);
     }
 
     return () => {
-      if (interval) {
-        clearInterval(interval);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [isTimerRunning]);
+  }, [isTimerRunning, timerStartTime, timerPausedTime, timerAdjustments, isPageVisible, meetingWindow, currentStageIndex, stages]);
 
   // Sistema de comunicación eliminado - Solo Pusher
 
@@ -1352,6 +1444,53 @@ Esta acción no se puede deshacer y eliminará todas las etapas asociadas.`
             Configuración de Directorios Empresariales Gemini
           </h1>
         </header>
+
+        {/* Banner de popup bloqueado */}
+        {popupBlocked && (
+          <div 
+            className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-6 rounded-r-lg shadow-sm"
+            role="alert"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <span className="text-yellow-500 text-xl" aria-hidden="true">⚠️</span>
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  No pudimos abrir el popup
+                </h3>
+                <div className="mt-2 text-sm text-yellow-700">
+                  <p>
+                    Permite popups para este sitio o haz clic en "Reintentar abrir popup" de nuevo.
+                  </p>
+                </div>
+                <div className="mt-3 flex space-x-3">
+                  <button
+                    ref={setPopupRetryButtonRef}
+                    onClick={retryOpenPopup}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm flex items-center space-x-2"
+                    aria-describedby="popup-retry-description"
+                  >
+                    <span>🔄</span>
+                    <span>Reintentar abrir popup</span>
+                  </button>
+                  <button
+                    onClick={dismissPopupBlockedBanner}
+                    className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"
+                    aria-label="Cerrar mensaje de popup bloqueado"
+                  >
+                    ✕ Cerrar
+                  </button>
+                </div>
+                <div id="popup-retry-description" className="sr-only">
+                  Botón para reintentar abrir la ventana popup del cronómetro
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
                 <div className="bg-white rounded-lg shadow-md p-6">
           {!selectedMeeting ? (

@@ -13,7 +13,11 @@
     "deploy-minor": "node scripts/version-deploy.js minor",
     "deploy-major": "node scripts/version-deploy.js major",
     "version-update": "node scripts/deploy-version-update.js",
-    "setup-deploy": "node scripts/setup-deploy-versioning.js"
+    "setup-deploy": "node scripts/setup-deploy-versioning.js",
+    "qa": "echo '🚀 Iniciando QA de Sincronización...' && echo '📋 Abriendo script de QA...' && start scripts/qa-sync.md",
+    "qa-sync": "echo '🔍 Ejecutando QA de Sincronización...' && echo '📖 Ver scripts/qa-sync.md para pasos detallados' && echo '🌐 Asegúrate de tener npm run dev ejecutándose' && echo '✅ QA listo para ejecutar'",
+    "qa-auto": "node scripts/qa-automation.js --all",
+    "qa-help": "node scripts/qa-automation.js --help"
   },
   "dependencies": {
     "react": "^18.2.0",
