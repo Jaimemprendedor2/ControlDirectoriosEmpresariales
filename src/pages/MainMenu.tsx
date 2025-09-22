@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Función para obtener información de compilación
 const getBuildInfo = () => {
-  const buildDate = new Date('2025-09-22T15:44:14.704Z'); // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
+  const buildDate = new Date('2025-09-22T15:44:40.534Z'); // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Actualizado automáticamente // Fecha actualizada automáticamente
   const date = buildDate.toLocaleDateString('es-CL', { 
     day: '2-digit', 
     month: '2-digit', 
@@ -45,7 +45,7 @@ export const MainMenu: React.FC = () => {
         <header className="text-center mb-12">
           <div className="mb-4">
             <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-              v1.7.72 ({getBuildInfo()})
+              v1.7.73 ({getBuildInfo()})
             </span>
           </div>
           <h1 className="text-4xl font-bold text-gray-800 mb-4">
