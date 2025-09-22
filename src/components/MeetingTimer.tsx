@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ColorConfig } from './ColorConfig';
+import { createSyncService, TimerState } from '../services/syncChannel';
 
 interface StageColor {
   timePercentage: number; // Porcentaje de tiempo (ej: 50 para 50%)
@@ -30,8 +31,35 @@ export const MeetingTimer: React.FC<MeetingTimerProps> = ({ stages, isOpen, onCl
   const [isWaitingForNext, setIsWaitingForNext] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
   const [showColorConfig, setShowColorConfig] = useState(false);
+  const [syncService, setSyncService] = useState<any>(null);
 
   const currentStage = stages[currentStageIndex];
+
+  // Inicializar servicio de sincronización
+  useEffect(() => {
+    const service = createSyncService();
+    service.setIsMainWindow(false);
+    service.startHeartbeat();
+    setSyncService(service);
+    
+    return () => {
+      service.disconnect();
+    };
+  }, []);
+
+  // Publicar estado del timer
+  useEffect(() => {
+    if (syncService && isOpen) {
+      const timerState: TimerState = {
+        currentTimeLeft: timeLeft,
+        isRunning,
+        currentStageIndex,
+        stages,
+        timestamp: Date.now()
+      };
+      syncService.sendTimerState(timerState);
+    }
+  }, [syncService, timeLeft, isRunning, currentStageIndex, stages, isOpen]);
 
   // Inicializar el cronómetro cuando se abre
   useEffect(() => {

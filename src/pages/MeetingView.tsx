@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { VersionInfo } from '../components/VersionInfo';
+import { createSyncService, SyncMessage, TimerState } from '../services/syncChannel';
 
 interface Stage {
   id?: string;
@@ -25,11 +26,103 @@ export const MeetingView: React.FC = () => {
   const [totalTime, setTotalTime] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [pausedTime, setPausedTime] = useState(0);
+  const [syncService, setSyncService] = useState<any>(null);
 
   // Establecer título de la ventana
   useEffect(() => {
     document.title = "Ventana Cronómetro";
   }, []);
+
+  // Inicializar servicio de sincronización
+  useEffect(() => {
+    const service = createSyncService();
+    service.setIsMainWindow(false);
+    service.startHeartbeat();
+    
+    // Configurar callbacks
+    service.onMessage((message: SyncMessage) => {
+      console.log('📨 Mensaje recibido en MeetingView:', message);
+      
+      if (message.type === 'TICK') {
+        // Actualizar estado del timer
+        const timerState = message.data as TimerState;
+        setTimeLeft(timerState.currentTimeLeft);
+        setIsRunning(timerState.isRunning);
+        setCurrentStageIndex(timerState.currentStageIndex);
+        setStages(timerState.stages);
+      } else if (message.type === 'CONTROL') {
+        // Procesar comandos de control
+        const { action, ...data } = message.data;
+        handleControlCommand(action, data);
+      } else if (message.type === 'SYNC_REQUEST') {
+        // Responder con estado actual
+        const currentState: TimerState = {
+          currentTimeLeft: timeLeft,
+          isRunning,
+          currentStageIndex,
+          stages,
+          timestamp: Date.now()
+        };
+        service.respondToSync(currentState);
+      }
+    });
+    
+    service.onConnection((state) => {
+      console.log('🔌 Estado de conexión:', state);
+    });
+    
+    setSyncService(service);
+    
+    // Solicitar sincronización inicial
+    service.requestSync();
+    
+    return () => {
+      service.disconnect();
+    };
+  }, []);
+
+  // Función para manejar comandos de control
+  const handleControlCommand = (action: string, data: any) => {
+    console.log('🎮 Comando de control recibido:', action, data);
+    
+    switch (action) {
+      case 'pauseResume':
+        setIsRunning(data.isRunning);
+        break;
+      case 'nextStage':
+        if (data.stageIndex !== undefined) {
+          setCurrentStageIndex(data.stageIndex);
+        }
+        break;
+      case 'previousStage':
+        if (data.stageIndex !== undefined) {
+          setCurrentStageIndex(data.stageIndex);
+        }
+        break;
+      case 'setTime':
+        if (data.seconds !== undefined) {
+          setTimeLeft(data.seconds);
+        }
+        break;
+      case 'addTime':
+        if (data.seconds !== undefined) {
+          setTimeLeft(prev => prev + data.seconds);
+        }
+        break;
+      case 'subtractTime':
+        if (data.seconds !== undefined) {
+          setTimeLeft(prev => Math.max(0, prev - data.seconds));
+        }
+        break;
+      case 'setStages':
+        if (data.stages) {
+          setStages(data.stages);
+        }
+        break;
+      default:
+        console.log('⚠️ Comando de control no reconocido:', action);
+    }
+  };
 
   // Cargar estado inicial desde localStorage
   useEffect(() => {
@@ -105,109 +198,16 @@ export const MeetingView: React.FC = () => {
     loadInitialState();
   }, []);
 
-  // Escuchar mensajes de la ventana principal - VERSIÓN CORREGIDA
+  // Escuchar mensajes de la ventana principal (fallback para postMessage)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      console.log('📨 Mensaje recibido en ventana de reflejo:', event.data);
-
-      // Procesar diferentes tipos de mensajes de sincronización
-      switch (event.data.action) {
-        case 'updateTimer':
-          const { stages, currentStageIndex, timeLeft, isRunning, isPaused, totalTime, startTime, pausedTime } = event.data;
-          
-          setStages(stages || []);
-          setCurrentStageIndex(currentStageIndex || 0);
-          setTimeLeft(timeLeft || 0);
-          setIsRunning(isRunning || false);
-          setIsPaused(isPaused || false);
-          setTotalTime(totalTime || 0);
-          setStartTime(startTime || null);
-          setPausedTime(pausedTime || 0);
-          
-          console.log('🔄 Timer actualizado desde ventana principal');
-          break;
-
-        case 'syncAll':
-          // Sincronización completa desde el principal
-          const syncData = event.data.data;
-          if (syncData) {
-            if (syncData.currentTimeLeft !== undefined) {
-              setTimeLeft(parseInt(syncData.currentTimeLeft));
-            }
-            if (syncData.currentStageIndex !== undefined) {
-              setCurrentStageIndex(parseInt(syncData.currentStageIndex));
-            }
-            if (syncData.meetingStages) {
-              const parsedStages = JSON.parse(syncData.meetingStages);
-              setStages(parsedStages);
-            }
-            if (syncData.isTimerRunning !== undefined) {
-              setIsRunning(syncData.isTimerRunning === 'true' || syncData.isTimerRunning === true);
-            }
-            console.log('🔄 Sincronización completa recibida');
-          }
-          break;
-
-        case 'setTime':
-          if (event.data.seconds !== undefined) {
-            setTimeLeft(event.data.seconds);
-            console.log('🔄 Tiempo actualizado:', event.data.seconds);
-          }
-          break;
-
-        case 'setStage':
-          if (event.data.stageIndex !== undefined) {
-            setCurrentStageIndex(event.data.stageIndex);
-            console.log('🔄 Etapa actualizada:', event.data.stageIndex);
-          }
-          break;
-
-        case 'setStages':
-          if (event.data.stages) {
-            setStages(event.data.stages);
-            console.log('🔄 Etapas actualizadas');
-          }
-          break;
-
-        case 'pauseResume':
-          if (event.data.isRunning !== undefined) {
-            setIsRunning(event.data.isRunning);
-            console.log('🔄 Estado de ejecución actualizado:', event.data.isRunning);
-          }
-          break;
-
-        case 'previousStage':
-          if (event.data.stageIndex !== undefined) {
-            setCurrentStageIndex(event.data.stageIndex);
-            console.log('🔄 Etapa anterior:', event.data.stageIndex);
-          }
-          break;
-
-        case 'nextStage':
-          if (event.data.stageIndex !== undefined) {
-            setCurrentStageIndex(event.data.stageIndex);
-            console.log('🔄 Siguiente etapa:', event.data.stageIndex);
-          }
-          break;
-
-        case 'addTime':
-          setTimeLeft(prev => prev + 30);
-          console.log('🔄 Tiempo agregado: +30s');
-          break;
-
-        case 'subtractTime':
-          setTimeLeft(prev => Math.max(0, prev - 30));
-          console.log('🔄 Tiempo restado: -30s');
-          break;
-
-        case 'stopTimer':
-          setIsRunning(false);
-          console.log('🔄 Cronómetro detenido');
-          break;
-
-        default:
-          console.log('📨 Mensaje no reconocido:', event.data.action);
+      // Solo procesar mensajes que no sean del servicio de sincronización
+      if (event.data && event.data.source === 'housenovo-directorios') {
+        return; // Ya procesado por el servicio de sincronización
       }
+      
+      console.log('📨 Mensaje postMessage recibido:', event.data);
+      handleControlCommand(event.data.action, event.data);
     };
 
     window.addEventListener('message', handleMessage);
